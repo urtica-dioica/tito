@@ -1,0 +1,494 @@
+// Core Types for TITO HR Management System
+
+export type UserRole = 'hr' | 'department_head' | 'employee';
+
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DepartmentHead {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  updatedAt: string;
+  department?: {
+    id: string;
+    name: string;
+    description: string;
+  } | null;
+}
+
+export interface Employee {
+  id: string;
+  userId: string;
+  employeeId: string; // Format: EMP-YYYY-NNNNNNN
+  firstName: string;
+  lastName: string;
+  email: string;
+  departmentId: string;
+  departmentName: string;
+  position: string;
+  employmentType: 'regular' | 'contractual' | 'jo';
+  hireDate: string; // DATE format
+  baseSalary: number; // DECIMAL(10,2)
+  status: 'active' | 'inactive' | 'terminated' | 'on_leave';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DepartmentEmployee {
+  id: string;
+  employeeId: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  position: string;
+  employmentType: string;
+  hireDate: string;
+  status: string;
+  lastAttendance?: string;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  description: string | null;
+  departmentHeadUserId: string | null;
+  departmentHead: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  employeeCount: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  employeeId: string;
+  date: string; // DATE format
+  overallStatus: 'present' | 'late' | 'absent' | 'partial';
+  sessions: AttendanceSession[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AttendanceSession {
+  id: string;
+  sessionType: string;
+  clockIn: string | null; // TIMESTAMP
+  clockOut: string | null; // TIMESTAMP
+  calculatedHours: number; // DECIMAL(5,2)
+  lateHours: number; // DECIMAL(5,2)
+  status: 'present' | 'late' | 'early' | 'absent';
+  selfieImagePath: string | null;
+  selfieTakenAt: string | null;
+}
+
+export interface LeaveRequest {
+  id: string;
+  employeeId: string;
+  leaveType: 'vacation' | 'sick' | 'maternity' | 'other';
+  startDate: string; // DATE
+  endDate: string; // DATE
+  status: 'pending' | 'approved' | 'rejected';
+  approverId: string | null;
+  approvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LeaveBalance {
+  id: string;
+  employeeId: string;
+  leaveType: 'vacation' | 'sick' | 'maternity' | 'other';
+  balance: number; // DECIMAL(5,2)
+  updatedAt: string;
+}
+
+export interface PayrollRecord {
+  id: string;
+  payrollPeriodId: string;
+  employeeId: string;
+  baseSalary: number; // DECIMAL(10,2)
+  hourlyRate: number; // DECIMAL(10,2)
+  totalWorkedHours: number; // DECIMAL(5,2)
+  totalRegularHours: number; // DECIMAL(5,2)
+  totalOvertimeHours: number; // DECIMAL(5,2)
+  totalLateHours: number; // DECIMAL(5,2)
+  lateDeductions: number; // DECIMAL(10,2)
+  grossPay: number; // DECIMAL(10,2)
+  netPay: number; // DECIMAL(10,2)
+  totalDeductions: number; // DECIMAL(10,2)
+  status: 'draft' | 'processed' | 'paid';
+  deductions: PayrollDeduction[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PayrollDeduction {
+  id: string;
+  deductionTypeId: string;
+  deductionTypeName: string;
+  amount: number; // DECIMAL(10,2)
+  description: string | null;
+}
+
+export interface TimeCorrectionRequest {
+  id: string;
+  employeeId: string;
+  attendanceSessionId: string | null;
+  correctionDate: string; // DATE
+  sessionType: string;
+  requestedClockIn: string | null; // TIMESTAMP
+  requestedClockOut: string | null; // TIMESTAMP
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approverId: string | null;
+  approvedAt: string | null;
+  comments: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OvertimeRequest {
+  id: string;
+  employeeId: string;
+  requestDate: string; // DATE
+  overtimeDate: string; // DATE
+  startTime: string; // TIME
+  endTime: string; // TIME
+  requestedHours: number; // DECIMAL(5,2)
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approverId: string | null;
+  approvedAt: string | null;
+  comments: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// API Request/Response Types
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  data: {
+    accessToken: string;
+    refreshToken: string;
+    user: User;
+  };
+}
+
+export interface CreateEmployeeRequest {
+  email: string;
+  firstName: string;
+  lastName: string;
+  departmentId: string;
+  position: string;
+  employmentType: 'regular' | 'contractual' | 'jo';
+  hireDate: string;
+  baseSalary: number;
+}
+
+export interface UpdateEmployeeRequest {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  departmentId?: string;
+  position?: string;
+  employmentType?: 'regular' | 'contractual' | 'jo';
+  baseSalary?: number;
+  status?: 'active' | 'inactive' | 'terminated' | 'on_leave';
+}
+
+export interface CreateLeaveRequest {
+  employeeId: string;
+  leaveType: 'vacation' | 'sick' | 'maternity' | 'other';
+  startDate: string;
+  endDate: string;
+}
+
+export interface EmployeeFilters {
+  search?: string;
+  department?: string;
+  status?: string;
+  employmentType?: string;
+}
+
+export interface PaginationConfig {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+}
+
+export interface SortingConfig {
+  field: string;
+  direction: 'asc' | 'desc';
+  onSort: (field: string, direction: 'asc' | 'desc') => void;
+}
+
+export interface FilteringConfig {
+  filters: Record<string, any>;
+  onFilter: (filters: Record<string, any>) => void;
+}
+
+// Component Props Types
+export interface AppLayoutProps {
+  children: React.ReactNode;
+  role: UserRole;
+  className?: string;
+}
+
+export interface HeaderProps {
+  role: UserRole;
+  className?: string;
+}
+
+export interface SidebarProps {
+  role: UserRole;
+  isCollapsed?: boolean;
+  onToggle?: () => void;
+  className?: string;
+}
+
+export interface PageLayoutProps {
+  title?: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export interface ButtonProps {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  loading?: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+  type?: 'button' | 'submit' | 'reset';
+  className?: string;
+  icon?: React.ReactNode;
+  iconPosition?: 'left' | 'right';
+}
+
+export interface InputProps {
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search' | 'month';
+  label?: string;
+  placeholder?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  error?: string;
+  disabled?: boolean;
+  required?: boolean;
+  className?: string;
+  id?: string;
+  name?: string;
+  autoComplete?: string;
+  maxLength?: number;
+  minLength?: number;
+  pattern?: string;
+  icon?: React.ReactNode;
+  iconPosition?: 'left' | 'right';
+  step?: string;
+  min?: string;
+  max?: string;
+  // React Hook Form compatibility
+  onBlur?: (event: any) => void;
+  ref?: any;
+}
+
+export interface CardProps {
+  title?: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+  className?: string;
+  padding?: 'none' | 'sm' | 'md' | 'lg';
+  shadow?: 'none' | 'sm' | 'md' | 'lg';
+  border?: boolean;
+  hover?: boolean;
+}
+
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  closable?: boolean;
+  className?: string;
+  footer?: React.ReactNode;
+}
+
+export interface TableProps<T> {
+  data: T[];
+  columns: Column<T>[];
+  loading?: boolean;
+  pagination?: PaginationConfig;
+  sorting?: SortingConfig;
+  filtering?: FilteringConfig;
+  onRowClick?: (row: T) => void;
+  className?: string;
+  emptyState?: React.ReactNode;
+}
+
+export interface Column<T> {
+  key: keyof T | string;
+  title: string;
+  sortable?: boolean;
+  filterable?: boolean;
+  render?: (value: any, row: T) => React.ReactNode;
+  width?: string;
+  align?: 'left' | 'center' | 'right';
+}
+
+export interface BadgeProps {
+  variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
+  size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode;
+  className?: string;
+  dot?: boolean;
+}
+
+export interface LoadingSpinnerProps {
+  size?: 'sm' | 'md' | 'lg';
+  color?: 'primary' | 'secondary' | 'white';
+  className?: string;
+}
+
+// Error Types
+
+export interface ErrorState {
+  id: string;
+  code: string;
+  message: string;
+  type: 'error' | 'warning' | 'info';
+  details?: any;
+  timestamp: Date;
+}
+
+// Notification Types
+export interface Notification {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+}
+
+// Dashboard Types
+export interface DashboardStats {
+  totalEmployees: number;
+  activeEmployees: number;
+  totalDepartments: number;
+  pendingRequests: number;
+  todayAttendance: number;
+  monthlyPayroll: number;
+}
+
+export interface AttendanceStats {
+  present: number;
+  late: number;
+  absent: number;
+  total: number;
+}
+
+export interface LeaveStats {
+  pending: number;
+  approved: number;
+  rejected: number;
+  total: number;
+}
+
+// Additional Types for New Pages
+export interface PayrollPeriod {
+  id: string;
+  name: string;
+  periodName: string;
+  startDate: string;
+  endDate: string;
+  status: 'draft' | 'processing' | 'completed' | 'cancelled';
+  totalEmployees: number;
+  totalAmount: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PayrollRecord {
+  id: string;
+  payrollPeriodId: string;
+  employeeId: string;
+  employee: { name: string };
+  baseSalary: number;
+  hourlyRate: number;
+  totalWorkedHours: number;
+  totalRegularHours: number;
+  totalOvertimeHours: number;
+  regularPay: number;
+  overtimePay: number;
+  totalPay: number;
+  deductions: PayrollDeduction[];
+  netPay: number;
+  status: 'draft' | 'processed' | 'paid';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SystemSetting {
+  id: string;
+  settingKey: string;
+  settingValue: string;
+  dataType: 'string' | 'number' | 'boolean' | 'json' | 'decimal';
+  description?: string;
+  isEditable: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDepartmentRequest {
+  name: string;
+  description?: string;
+  departmentHeadId?: string;
+}
+
+export interface UpdateDepartmentRequest {
+  name?: string;
+  description?: string;
+  departmentHeadId?: string;
+  isActive?: boolean;
+}
+
+// Employee List Parameters
+export interface EmployeeListParams {
+  page?: number;
+  limit?: number;
+  status?: 'active' | 'inactive' | 'terminated' | 'on_leave';
+  departmentId?: string;
+  search?: string;
+}
