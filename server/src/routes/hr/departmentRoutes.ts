@@ -3,7 +3,7 @@ import { DepartmentController } from '../../controllers/hr/departmentController'
 import { authenticate } from '../../middleware/auth/authenticate';
 import { requireHR } from '../../middleware/auth/authorize';
 import { validateBody, validateQuery, validateParams } from '../../middleware/validation/validate';
-import { createDepartmentSchema, updateDepartmentSchema, departmentParamsSchema, departmentQuerySchema, assignDepartmentHeadSchema, departmentHeadsQuerySchema } from '../../middleware/validation/schemas/departmentSchemas';
+import { createDepartmentSchema, updateDepartmentSchema, departmentParamsSchema, departmentQuerySchema, assignDepartmentHeadSchema, departmentHeadsQuerySchema, createDepartmentHeadSchema } from '../../middleware/validation/schemas/departmentSchemas';
 
 const router = Router();
 const departmentController = new DepartmentController();
@@ -75,6 +75,7 @@ router.get(
  */
 router.post(
   '/heads',
+  validateBody(createDepartmentHeadSchema),
   departmentController.createDepartmentHead
 );
 

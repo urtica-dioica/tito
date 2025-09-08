@@ -37,3 +37,10 @@ export const departmentHeadsQuerySchema = Joi.object({
   search: Joi.string().allow('').optional(),
   status: Joi.string().valid('active', 'inactive', '').allow('').optional()
 });
+
+export const createDepartmentHeadSchema = Joi.object({
+  firstName: Joi.string().min(2).max(100).required(),
+  lastName: Joi.string().min(2).max(100).required(),
+  email: Joi.string().email().required(),
+  departmentId: Joi.string().uuid().optional()
+});

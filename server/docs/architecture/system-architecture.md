@@ -100,7 +100,7 @@ The TITO HR Management System is a comprehensive backend API built with Node.js,
 
 ### **1. Authentication & Authorization**
 - **JWT-based Authentication**: Access and refresh tokens
-- **Role-based Access Control**: HR Admin, HR, Employee, Department Head
+- **Role-based Access Control**: HR, Department Head, Employee
 - **Session Management**: Redis-based session storage
 - **Password Security**: bcrypt hashing with configurable rounds
 
@@ -161,7 +161,7 @@ API Request → Validation → Authorization → Business Logic → Data Process
 - **Session Management**: Redis-based session storage
 
 ### **2. Authorization Security**
-- **Role-based Access**: Granular permission system
+- **Role-based Access**: Three-tier permission system (HR, Department Head, Employee)
 - **Route Protection**: Middleware-based route security
 - **Resource Access**: User-specific data access control
 

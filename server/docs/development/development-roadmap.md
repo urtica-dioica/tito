@@ -474,7 +474,7 @@ POST   /api/auth/reset-password     # Password reset
 POST   /api/auth/change-password    # Change password
 ```
 
-### **HR Admin Routes**
+### **HR Routes**
 ```typescript
 // Employee Management
 GET    /api/hr/employees            # List all employees

@@ -546,6 +546,156 @@ export class DepartmentHeadService {
   }
 
   /**
+   * Get department info for department head
+   */
+  async getDepartmentInfo(userId: string): Promise<any> {
+    return await this.getDepartmentByHead(userId);
+  }
+
+  /**
+   * Get employee statistics for department
+   */
+  async getEmployeeStats(userId: string): Promise<any> {
+    const department = await this.getDepartmentByHead(userId);
+    if (!department) {
+      throw new Error('Department not found');
+    }
+
+    const query = `
+      SELECT 
+        COUNT(*) as total_employees,
+        COUNT(*) FILTER (WHERE status = 'active') as active_employees,
+        COUNT(*) FILTER (WHERE status = 'inactive') as inactive_employees,
+        AVG(base_salary) as average_salary
+      FROM employees 
+      WHERE department_id = $1
+    `;
+    
+    const result = await pool.query(query, [department.id]);
+    return result.rows[0];
+  }
+
+  /**
+   * Get employee performance statistics
+   */
+  async getEmployeePerformance(userId: string): Promise<any[]> {
+    const department = await this.getDepartmentByHead(userId);
+    if (!department) {
+      throw new Error('Department not found');
+    }
+
+    // This would typically join with attendance records
+    // For now, returning empty array as placeholder
+    return [];
+  }
+
+  /**
+   * Get all requests for department head
+   */
+  async getRequests(userId: string, params: {
+    type?: string;
+    status?: string;
+    page: number;
+    limit: number;
+  }): Promise<{ data: any[]; pagination: any }> {
+    const department = await this.getDepartmentByHead(userId);
+    if (!department) {
+      throw new Error('Department not found');
+    }
+
+    // This would typically query all request types
+    // For now, returning empty data as placeholder
+    return {
+      data: [],
+      pagination: {
+        page: params.page,
+        limit: params.limit,
+        total: 0,
+        totalPages: 0
+      }
+    };
+  }
+
+  /**
+   * Get request statistics
+   */
+  async getRequestStats(userId: string): Promise<any> {
+    const department = await this.getDepartmentByHead(userId);
+    if (!department) {
+      throw new Error('Department not found');
+    }
+
+    return await this.getPendingRequestsCount(department.id);
+  }
+
+  /**
+   * Approve a request
+   */
+  async approveRequest(userId: string, requestId: string): Promise<void> {
+    // This would typically update the request status
+    // For now, just logging the action
+    logger.info(`Department head ${userId} approved request ${requestId}`);
+  }
+
+  /**
+   * Reject a request
+   */
+  async rejectRequest(userId: string, requestId: string, reason?: string): Promise<void> {
+    // This would typically update the request status with rejection reason
+    // For now, just logging the action
+    logger.info(`Department head ${userId} rejected request ${requestId} with reason: ${reason || 'No reason provided'}`);
+  }
+
+  /**
+   * Get payroll periods for department
+   */
+  async getPayrollPeriods(userId: string): Promise<any[]> {
+    const department = await this.getDepartmentByHead(userId);
+    if (!department) {
+      throw new Error('Department not found');
+    }
+
+    // This would typically query payroll periods
+    // For now, returning empty array as placeholder
+    return [];
+  }
+
+  /**
+   * Get payroll records for a specific period
+   */
+  async getPayrollRecords(userId: string, periodId: string): Promise<any[]> {
+    const department = await this.getDepartmentByHead(userId);
+    if (!department) {
+      throw new Error('Department not found');
+    }
+
+    // This would typically query payroll records for the period
+    // For now, returning empty array as placeholder
+    // TODO: Implement actual query using periodId
+    console.log(`Getting payroll records for period ${periodId} in department ${department.id}`);
+    return [];
+  }
+
+  /**
+   * Get payroll statistics for department
+   */
+  async getPayrollStats(userId: string): Promise<any> {
+    const department = await this.getDepartmentByHead(userId);
+    if (!department) {
+      throw new Error('Department not found');
+    }
+
+    // This would typically calculate payroll statistics
+    // For now, returning placeholder data
+    return {
+      totalEmployees: 0,
+      totalGrossPay: 0,
+      completedPeriods: 0,
+      processingPeriods: 0
+    };
+  }
+
+  /**
    * Helper method to get period start date
    */
   private getPeriodStart(period: string): string {
