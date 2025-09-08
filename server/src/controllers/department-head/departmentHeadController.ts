@@ -7,6 +7,44 @@ const departmentHeadService = new DepartmentHeadService();
 
 export class DepartmentHeadController {
   /**
+   * Get department head's department info
+   */
+  async getDepartmentInfo(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      const departmentInfo = await departmentHeadService.getDepartmentInfo(userId);
+      
+      res.json({
+        success: true,
+        message: 'Department info retrieved successfully',
+        data: departmentInfo,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error getting department info:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve department info',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
    * Get department head dashboard data
    */
   async getDashboard(req: Request, res: Response): Promise<void> {
@@ -93,6 +131,82 @@ export class DepartmentHeadController {
   }
 
   /**
+   * Get employee statistics for department
+   */
+  async getEmployeeStats(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      const stats = await departmentHeadService.getEmployeeStats(userId);
+      
+      res.json({
+        success: true,
+        message: 'Employee statistics retrieved successfully',
+        data: stats,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error getting employee statistics:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve employee statistics',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Get employee performance statistics
+   */
+  async getEmployeePerformance(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      const performance = await departmentHeadService.getEmployeePerformance(userId);
+      
+      res.json({
+        success: true,
+        message: 'Employee performance retrieved successfully',
+        data: performance,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error getting employee performance:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve employee performance',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
    * Get employee details
    */
   async getEmployeeDetails(req: Request, res: Response): Promise<void> {
@@ -141,6 +255,92 @@ export class DepartmentHeadController {
   }
 
   /**
+   * Get all requests for department head
+   */
+  async getRequests(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+      const { type, status, page = '1', limit = '10' } = req.query;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      const requests = await departmentHeadService.getRequests(
+        userId,
+        {
+          type: type as string,
+          status: status as string,
+          page: parseInt(page as string),
+          limit: parseInt(limit as string)
+        }
+      );
+      
+      res.json({
+        success: true,
+        message: 'Requests retrieved successfully',
+        data: requests.data,
+        pagination: requests.pagination,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error getting requests:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve requests',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Get request statistics
+   */
+  async getRequestStats(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      const stats = await departmentHeadService.getRequestStats(userId);
+      
+      res.json({
+        success: true,
+        message: 'Request statistics retrieved successfully',
+        data: stats,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error getting request statistics:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve request statistics',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
    * Get pending requests for approval
    */
   async getPendingRequests(req: Request, res: Response): Promise<void> {
@@ -181,6 +381,101 @@ export class DepartmentHeadController {
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve pending requests',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Approve a request
+   */
+  async approveRequest(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+      const { id } = req.params;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: 'Request ID is required',
+          requestId
+        });
+        return;
+      }
+
+      await departmentHeadService.approveRequest(userId, id);
+      
+      res.json({
+        success: true,
+        message: 'Request approved successfully',
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error approving request:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to approve request',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Reject a request
+   */
+  async rejectRequest(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: 'Request ID is required',
+          requestId
+        });
+        return;
+      }
+
+      await departmentHeadService.rejectRequest(userId, id, reason);
+      
+      res.json({
+        success: true,
+        message: 'Request rejected successfully',
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error rejecting request:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reject request',
         error: error instanceof Error ? error.message : 'Unknown error',
         requestId
       });
@@ -363,6 +658,130 @@ export class DepartmentHeadController {
       res.status(500).json({
         success: false,
         message: 'Failed to retrieve payroll summary',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Get payroll periods for department
+   */
+  async getPayrollPeriods(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      const periods = await departmentHeadService.getPayrollPeriods(userId);
+      
+      res.json({
+        success: true,
+        message: 'Payroll periods retrieved successfully',
+        data: periods,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error getting payroll periods:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve payroll periods',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Get payroll records for a specific period
+   */
+  async getPayrollRecords(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+      const { id } = req.params;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: 'Period ID is required',
+          requestId
+        });
+        return;
+      }
+
+      const records = await departmentHeadService.getPayrollRecords(userId, id);
+      
+      res.json({
+        success: true,
+        message: 'Payroll records retrieved successfully',
+        data: records,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error getting payroll records:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve payroll records',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Get payroll statistics for department
+   */
+  async getPayrollStats(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      const stats = await departmentHeadService.getPayrollStats(userId);
+      
+      res.json({
+        success: true,
+        message: 'Payroll statistics retrieved successfully',
+        data: stats,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error getting payroll statistics:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve payroll statistics',
         error: error instanceof Error ? error.message : 'Unknown error',
         requestId
       });

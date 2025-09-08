@@ -33,18 +33,18 @@ The backend is now production-ready and all API endpoints have been tested with 
 
 ### **Technology Stack**
 - **Frontend Framework**: React 18 + TypeScript
-- **UI Library**: Material-UI (MUI) v5
-- **State Management**: Zustand (lightweight, performant)
+- **UI Library**: Tailwind CSS (utility-first CSS framework)
+- **State Management**: React Context + TanStack Query
 - **Routing**: React Router v6
 - **HTTP Client**: Axios with interceptors
 - **Forms**: React Hook Form + Zod validation
-- **Date Handling**: Day.js
-- **Styling**: MUI Theme + CSS-in-JS
+- **Icons**: Lucide React
+- **Build Tool**: Vite (modern, fast development)
 - **Testing**: Jest + React Testing Library
 
 ### **Target Users & Roles**
-1. **HR Admin** - Full system access and management
-2. **Department Head** - Department-specific management and approvals
+1. **HR** - Full system access and management
+2. **Department Head** - Department-specific management and approvals (read-only access to employees/payrolls)
 3. **Employee** - Personal dashboard and request management
 4. **Kiosk** - Public attendance system interface
 
@@ -55,15 +55,16 @@ The backend is now production-ready and all API endpoints have been tested with 
 ### **1.1 Project Setup & Configuration**
 ```bash
 # Project initialization
-npx create-react-app tito-hr-frontend --template typescript
+npm create vite@latest tito-hr-frontend -- --template react-ts
 cd tito-hr-frontend
 
 # Install core dependencies
-npm install @mui/material @emotion/react @emotion/styled
-npm install @mui/icons-material @mui/x-data-grid
-npm install zustand react-router-dom axios
+npm install tailwindcss postcss autoprefixer
+npm install @tailwindcss/forms
+npm install react-router-dom axios
+npm install @tanstack/react-query
 npm install react-hook-form @hookform/resolvers zod
-npm install dayjs
+npm install lucide-react
 npm install @types/node
 
 # Install dev dependencies
@@ -83,7 +84,7 @@ src/
 │   └── charts/          # Data visualization components
 ├── pages/               # Page components
 │   ├── auth/            # Authentication pages
-│   ├── hr/              # HR Admin pages
+│   ├── hr/              # HR pages
 │   ├── department/      # Department Head pages
 │   ├── employee/        # Employee pages
 │   └── kiosk/           # Kiosk pages
@@ -102,15 +103,15 @@ src/
 ### **1.3 Environment Configuration**
 ```typescript
 // .env
-REACT_APP_API_URL=http://localhost:3000
-REACT_APP_APP_NAME=TITO HR Management System
-REACT_APP_VERSION=1.0.0
+VITE_API_URL=http://localhost:3000/api/v1
+VITE_APP_NAME=TITO HR Management System
+VITE_APP_VERSION=1.0.0
 ```
 
 ### **1.4 Core Infrastructure**
 - ✅ **TypeScript Configuration**: Strict mode, path mapping
 - ✅ **ESLint & Prettier**: Code quality and formatting
-- ✅ **MUI Theme Setup**: Custom theme with brand colors
+- ✅ **Tailwind CSS Setup**: Custom color palette and design system
 - ✅ **Axios Configuration**: API client with interceptors
 - ✅ **Routing Setup**: React Router v6 configuration
 
@@ -120,7 +121,7 @@ REACT_APP_VERSION=1.0.0
 
 ### **2.1 Authentication System**
 ```typescript
-// src/services/auth/authService.ts
+// src/contexts/AuthContext.tsx
 export interface AuthState {
   user: User | null;
   token: string | null;
@@ -129,25 +130,25 @@ export interface AuthState {
   isLoading: boolean;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  token: localStorage.getItem('auth_token'),
-  refreshToken: localStorage.getItem('refresh_token'),
-  isAuthenticated: false,
-  isLoading: false,
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
-  login: async (credentials) => {
-    // Implementation
-  },
+  const login = async (credentials: LoginCredentials) => {
+    // Implementation with React Context
+  };
   
-  logout: () => {
+  const logout = () => {
     // Implementation
-  },
+  };
   
-  refreshToken: async () => {
-    // Implementation
-  }
-}));
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 ```
 
 ### **2.2 Protected Routes & Role-Based Access**
@@ -164,7 +165,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRoles,
   fallback = <Navigate to="/login" />
 }) => {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated } = useAuth();
   
   if (!isAuthenticated) return fallback;
   if (requiredRoles && !requiredRoles.includes(user?.role)) {
@@ -184,21 +185,28 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 - ✅ **Password Reset** (`/forgot-password`)
   - Email input form
   - Success/error states
+- ✅ **Setup Password Page** (`/setup-password`)
+  - Token-based password setup for new employees/department heads
+  - Email invitation flow integration
+  - Password validation and confirmation
 - ✅ **Unauthorized Page** (`/unauthorized`)
   - Access denied message
   - Return to dashboard link
 
 ### **2.4 API Integration**
 ```typescript
-// src/services/api/apiClient.ts
-const apiClient = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+// src/lib/api.ts
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+
+export const api = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
   timeout: 10000,
 });
 
 // Request interceptor for auth tokens
-apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -206,11 +214,11 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // Response interceptor for token refresh
-apiClient.interceptors.response.use(
+api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      await useAuthStore.getState().refreshToken();
+      // Handle token refresh or redirect to login
     }
     return Promise.reject(error);
   }
@@ -223,36 +231,42 @@ apiClient.interceptors.response.use(
 
 ### **3.1 Design System & Theme**
 ```typescript
-// src/styles/theme.ts
-export const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2', // TITO Blue
-      light: '#42a5f5',
-      dark: '#1565c0',
-    },
-    secondary: {
-      main: '#dc004e', // TITO Red
-    },
-    background: {
-      default: '#f5f5f5',
-      paper: '#ffffff',
-    },
-  },
-  typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h1: { fontSize: '2.5rem', fontWeight: 600 },
-    h2: { fontSize: '2rem', fontWeight: 600 },
-    h3: { fontSize: '1.75rem', fontWeight: 500 },
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: { borderRadius: 8, textTransform: 'none' },
+// tailwind.config.js
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // TITO HR Color Palette
+        text: {
+          primary: '#0F0F0F',    // Main font color
+          secondary: '#DCDCDC',  // Secondary font color
+        },
+        background: {
+          primary: '#FAF9EE',    // Main background color
+          secondary: '#EEEEEE',  // Secondary background color
+        },
+        button: {
+          primary: {
+            background: '#181C14',  // Primary button background
+            text: '#FFFFFF',        // Primary button text (white)
+          },
+          secondary: {
+            background: '#F8FAFC',  // Secondary button background
+            text: '#181C14',        // Secondary button text
+            border: '#181C14',      // Secondary button border
+          },
+        },
       },
     },
   },
-});
+  plugins: [
+    require('@tailwindcss/forms'),
+  ],
+}
 ```
 
 ### **3.2 Layout Components**
@@ -288,9 +302,9 @@ export const theme = createTheme({
 
 ---
 
-## 👑 **Phase 4: HR Admin Interface (Week 3-4)**
+## 👑 **Phase 4: HR Interface (Week 3-4)**
 
-### **4.1 HR Admin Dashboard** (`/hr/dashboard`)
+### **4.1 HR Dashboard** (`/hr/dashboard`)
 ```typescript
 // src/pages/hr/Dashboard.tsx
 const HRDashboard: React.FC = () => {
@@ -298,27 +312,19 @@ const HRDashboard: React.FC = () => {
   const { data: recentActivity } = useRecentActivity();
   
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={3}>
-        <StatCard title="Total Employees" value={stats?.totalEmployees} />
-      </Grid>
-      <Grid item xs={12} md={3}>
-        <StatCard title="Active Departments" value={stats?.activeDepartments} />
-      </Grid>
-      <Grid item xs={12} md={3}>
-        <StatCard title="Pending Requests" value={stats?.pendingRequests} />
-      </Grid>
-      <Grid item xs={12} md={3}>
-        <StatCard title="Active Payroll Periods" value={stats?.activePayrollPeriods} />
-      </Grid>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <StatCard title="Total Employees" value={stats?.totalEmployees} />
+      <StatCard title="Active Departments" value={stats?.activeDepartments} />
+      <StatCard title="Pending Requests" value={stats?.pendingRequests} />
+      <StatCard title="Active Payroll Periods" value={stats?.activePayrollPeriods} />
       
-      <Grid item xs={12} md={8}>
+      <div className="col-span-1 md:col-span-3">
         <QuickActions />
-      </Grid>
-      <Grid item xs={12} md={4}>
+      </div>
+      <div className="col-span-1">
         <RecentActivity activities={recentActivity} />
-      </Grid>
-    </Grid>
+      </div>
+    </div>
   );
 };
 ```
@@ -355,10 +361,18 @@ const HRDashboard: React.FC = () => {
   - General settings
   - Attendance rules
   - Payroll settings
-- ✅ **ID Card Management** (`/hr/id-cards`)
-  - Generate ID cards
+- ✅ **ID Card Management** (integrated within department management)
+  - Generate ID cards for employees
   - Card status management
   - Bulk operations
+
+### **4.5 HR Sidebar Navigation**
+- **Dashboard** - System overview and key metrics
+- **Employees** - Full CRUD for employee management
+- **Departments** - Manage departments and department heads
+- **Payrolls** - Process payroll and manage deductions
+- **Requests** - View all requests (read-only, department heads handle approvals)
+- **Settings** - Configure system parameters
 
 ---
 
@@ -371,33 +385,28 @@ const DepartmentDashboard: React.FC = () => {
   const { data: dashboardData } = useDepartmentHeadDashboard();
   
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <DepartmentInfo department={dashboardData?.department} />
-      </Grid>
+    <div className="space-y-6">
+      <DepartmentInfo department={dashboardData?.department} />
       
-      <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <PendingRequests requests={dashboardData?.pendingRequests} />
-      </Grid>
-      <Grid item xs={12} md={6}>
         <AttendanceSummary summary={dashboardData?.attendanceSummary} />
-      </Grid>
+      </div>
       
-      <Grid item xs={12}>
-        <RecentActivity activities={dashboardData?.recentActivity} />
-      </Grid>
-    </Grid>
+      <RecentActivity activities={dashboardData?.recentActivity} />
+    </div>
   );
 };
 ```
 
 ### **5.2 Department Employee Management** (`/dept/employees`)
 - ✅ **Employee List** (`/dept/employees`)
-  - Department employees only
+  - Department employees only (read-only access)
   - Attendance status
   - Performance indicators
+  - No edit/delete functionality
 - ✅ **Employee Details** (`/dept/employees/:id`)
-  - Employee profile
+  - Employee profile (view-only)
   - Attendance history
   - Request history
 
@@ -412,15 +421,16 @@ const DepartmentDashboard: React.FC = () => {
   - Filter by type/status
   - Search functionality
 
-### **5.4 Department Statistics** (`/dept/stats`)
-- ✅ **Attendance Reports**
-  - Daily/weekly/monthly views
-  - Department comparison
-  - Trend analysis
-- ✅ **Performance Metrics**
-  - Employee productivity
-  - Request patterns
-  - Department KPIs
+### **5.4 Department Payrolls** (`/dept/payrolls`)
+- ✅ **Payroll View** (`/dept/payrolls`)
+  - Department payroll information (read-only)
+  - No edit/delete functionality
+  - View payroll records and history
+
+### **5.5 Department Head Sidebar Navigation**
+- **Employees** - View department employees (read-only)
+- **Payrolls** - View department payroll information (read-only)
+- **Requests** - View and manage employee requests (approve/reject)
 
 ---
 
@@ -433,37 +443,28 @@ const EmployeeDashboard: React.FC = () => {
   const { data: employeeData } = useEmployeeDashboard();
   
   return (
-    <Grid container spacing={3}>
-      <Grid item xs={12} md={4}>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <EmployeeProfile employee={employeeData?.employee} />
-      </Grid>
-      <Grid item xs={12} md={4}>
         <AttendanceStatus status={employeeData?.attendanceStatus} />
-      </Grid>
-      <Grid item xs={12} md={4}>
         <LeaveBalance balance={employeeData?.leaveBalance} />
-      </Grid>
+      </div>
       
-      <Grid item xs={12} md={6}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <RecentAttendance records={employeeData?.recentAttendance} />
-      </Grid>
-      <Grid item xs={12} md={6}>
         <PendingRequests requests={employeeData?.pendingRequests} />
-      </Grid>
-    </Grid>
+      </div>
+    </div>
   );
 };
 ```
 
 ### **6.2 Attendance Management** (`/employee/attendance`)
-- ✅ **Clock In/Out** (`/employee/attendance/clock`)
-  - QR code scanner
-  - Manual time entry
-  - Location verification
-- ✅ **Attendance History** (`/employee/attendance/history`)
-  - Personal attendance records
-  - Time tracking
+- ✅ **Attendance History** (`/employee/attendance`)
+  - View personal attendance records
+  - Time tracking history
   - Overtime summary
+  - No clock in/out functionality (handled by kiosk)
 
 ### **6.3 Request Management** (`/employee/requests`)
 - ✅ **Time Correction** (`/employee/requests/time-correction`)
@@ -479,15 +480,15 @@ const EmployeeDashboard: React.FC = () => {
   - Date range picker
   - Balance checking
 
-### **6.4 Personal Information** (`/employee/profile`)
-- ✅ **Profile Management**
-  - Personal details
-  - Contact information
-  - Emergency contacts
-- ✅ **Leave Balance** (`/employee/leave-balance`)
-  - Available leave days
-  - Used leave tracking
-  - Leave history
+### **6.4 Employee Sidebar Navigation**
+- **Attendance** - View personal attendance records and history
+- **Requests** - Submit and manage requests (time corrections, overtime, leaves)
+  - Leave balance integrated within requests interface
+
+### **6.5 User Menu (All Roles)**
+- **Avatar** - Initials-based avatar
+- **Name** - User full name
+- **Actions** - Profile and logout options
 
 ---
 
@@ -501,18 +502,18 @@ const KioskInterface: React.FC = () => {
   const { verifyQR, clockIn, clockOut } = useKioskAttendance();
   
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="h-screen flex flex-col">
       <Header title="TITO HR - Attendance Kiosk" />
       
-      <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="flex-1 flex items-center justify-center">
         <QRScanner onScan={handleQRScan} />
-      </Box>
+      </div>
       
-      <Box sx={{ p: 3, bgcolor: 'background.paper' }}>
+      <div className="p-6 bg-background-secondary">
         <EmployeeInfo employee={verifiedEmployee} />
         <AttendanceActions onClockIn={handleClockIn} onClockOut={handleClockOut} />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 ```
@@ -651,10 +652,10 @@ describe('EmployeeList', () => {
 ```typescript
 // src/config/environment.ts
 export const config = {
-  apiUrl: process.env.REACT_APP_API_URL || 'http://localhost:3000',
-  appName: process.env.REACT_APP_APP_NAME || 'TITO HR',
-  version: process.env.REACT_APP_VERSION || '1.0.0',
-  environment: process.env.NODE_ENV || 'development',
+  apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1',
+  appName: import.meta.env.VITE_APP_NAME || 'TITO HR',
+  version: import.meta.env.VITE_APP_VERSION || '1.0.0',
+  environment: import.meta.env.MODE || 'development',
 };
 ```
 
@@ -677,7 +678,7 @@ export const config = {
 | **Phase 1** | Week 1 | Project setup, core infrastructure | ✅ Backend API ready |
 | **Phase 2** | Week 1-2 | Authentication system, protected routes | Phase 1 complete |
 | **Phase 3** | Week 2 | UI components, layout system | Phase 2 complete |
-| **Phase 4** | Week 3-4 | HR Admin interface | Phase 3 complete |
+| **Phase 4** | Week 3-4 | HR interface | Phase 3 complete |
 | **Phase 5** | Week 4-5 | Department Head interface | Phase 4 complete |
 | **Phase 6** | Week 5-6 | Employee interface | Phase 5 complete |
 | **Phase 7** | Week 6 | Kiosk interface | Phase 6 complete |

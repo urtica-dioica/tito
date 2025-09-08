@@ -321,7 +321,7 @@ The TITO HR Management System is a comprehensive backend API built with Node.js,
 
 ### **🔒 Security Status**
 - **Authentication**: JWT-based with refresh tokens
-- **Authorization**: Role-based access control (Employee, HR Admin, Department Head, System Admin)
+- **Authorization**: Role-based access control (Employee, HR, Department Head, System Admin)
 - **Validation**: Joi schema validation on all endpoints
 - **Rate Limiting**: Redis-based rate limiting with user/department limits
 - **Caching**: Redis-based response caching with invalidation
@@ -423,21 +423,21 @@ The TITO HR Management System is a comprehensive backend API built with Node.js,
 - `GET /health` - Health check
 - `GET /` - API information
 - `GET /api/v1/redis/health` - Redis health check (Public)
-- `GET /api/v1/redis/stats` - Redis statistics (HR Admin only)
+- `GET /api/v1/redis/stats` - Redis statistics (HR only)
 - `GET /api/v1/redis/test` - Redis connection test (Public)
-- `GET /api/v1/redis/keys` - List Redis keys (HR Admin only)
-- `GET /api/v1/redis/cache/:key` - Get cache value (HR Admin only)
-- `POST /api/v1/redis/cache/:key` - Set cache value (HR Admin only)
-- `DELETE /api/v1/redis/cache/:key` - Delete cache key (HR Admin only)
-- `DELETE /api/v1/redis/cache` - Clear all cache (HR Admin only)
-- `DELETE /api/v1/redis/cache/user/:userId` - Invalidate user cache (HR Admin only)
-- `DELETE /api/v1/redis/cache/department/:departmentId` - Invalidate department cache (HR Admin only)
-- `DELETE /api/v1/redis/cache/system` - Invalidate system cache (HR Admin only)
+- `GET /api/v1/redis/keys` - List Redis keys (HR only)
+- `GET /api/v1/redis/cache/:key` - Get cache value (HR only)
+- `POST /api/v1/redis/cache/:key` - Set cache value (HR only)
+- `DELETE /api/v1/redis/cache/:key` - Delete cache key (HR only)
+- `DELETE /api/v1/redis/cache` - Clear all cache (HR only)
+- `DELETE /api/v1/redis/cache/user/:userId` - Invalidate user cache (HR only)
+- `DELETE /api/v1/redis/cache/department/:departmentId` - Invalidate department cache (HR only)
+- `DELETE /api/v1/redis/cache/system` - Invalidate system cache (HR only)
 
 ### **📊 Endpoint Status Summary**
 - **Total Endpoints**: 80+ endpoints implemented and tested
 - **Authentication**: ✅ Working (JWT with refresh tokens)
-- **Authorization**: ✅ Role-based access control (Employee, HR Admin, Department Head, System Admin)
+- **Authorization**: ✅ Role-based access control (Employee, HR, Department Head, System Admin)
 - **Validation**: ✅ Joi schema validation on all endpoints
 - **Error Handling**: ✅ Comprehensive error responses with request IDs
 - **Rate Limiting**: ✅ Redis-based rate limiting with user/department limits

@@ -506,20 +506,26 @@ export class EmployeeService {
    * Get employee statistics
    */
   async getEmployeeStats(): Promise<{
-    total: number;
-    active: number;
-    inactive: number;
-    byDepartment: Array<{ departmentName: string; count: number }>;
-    byEmploymentType: Array<{ employmentType: string; count: number }>;
+    totalEmployees: number;
+    activeEmployees: number;
+    inactiveEmployees: number;
+    terminatedEmployees: number;
+    onLeaveEmployees: number;
+    averageSalary: number;
+    employeesByDepartment: Array<{
+      departmentId: string;
+      departmentName: string;
+      count: number;
+    }>;
   }> {
     const query = `
       SELECT 
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE e.status = 'active') as active,
         COUNT(*) FILTER (WHERE e.status = 'inactive') as inactive,
-        COUNT(*) FILTER (WHERE e.employment_type = 'regular') as regular,
-        COUNT(*) FILTER (WHERE e.employment_type = 'contractual') as contractual,
-        COUNT(*) FILTER (WHERE e.employment_type = 'jo') as jo
+        COUNT(*) FILTER (WHERE e.status = 'terminated') as terminated,
+        COUNT(*) FILTER (WHERE e.status = 'on_leave') as on_leave,
+        AVG(e.base_salary) as avg_salary
       FROM employees e
       JOIN users u ON e.user_id = u.id
       WHERE u.is_active = true
@@ -527,13 +533,14 @@ export class EmployeeService {
 
     const deptQuery = `
       SELECT 
+        d.id as department_id,
         COALESCE(d.name, 'Unassigned') as department_name,
         COUNT(*) as count
       FROM employees e
       JOIN users u ON e.user_id = u.id
       LEFT JOIN departments d ON e.department_id = d.id
       WHERE u.is_active = true AND e.status = 'active'
-      GROUP BY d.name
+      GROUP BY d.id, d.name
       ORDER BY count DESC
     `;
 
@@ -543,18 +550,20 @@ export class EmployeeService {
     ]);
 
     const stats = statsResult.rows[0];
-    const byDepartment = deptResult.rows;
+    const employeesByDepartment = deptResult.rows.map(row => ({
+      departmentId: row.department_id || '',
+      departmentName: row.department_name,
+      count: parseInt(row.count)
+    }));
 
     return {
-      total: parseInt(stats.total),
-      active: parseInt(stats.active),
-      inactive: parseInt(stats.inactive),
-      byDepartment,
-      byEmploymentType: [
-        { employmentType: 'regular', count: parseInt(stats.regular) },
-        { employmentType: 'contractual', count: parseInt(stats.contractual) },
-        { employmentType: 'jo', count: parseInt(stats.jo) }
-      ]
+      totalEmployees: parseInt(stats.total),
+      activeEmployees: parseInt(stats.active),
+      inactiveEmployees: parseInt(stats.inactive),
+      terminatedEmployees: parseInt(stats.terminated),
+      onLeaveEmployees: parseInt(stats.on_leave),
+      averageSalary: parseFloat(stats.avg_salary) || 0,
+      employeesByDepartment
     };
   }
 
