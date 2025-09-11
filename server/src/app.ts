@@ -29,10 +29,11 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", "data:", "https:", "http://localhost:3000", "http://localhost:5173"],
     },
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
 // CORS configuration
@@ -51,6 +52,79 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Request logging
 app.use(morgan('combined'));
 
+// Serve static files from uploads directory with proper CORS
+app.use('/uploads', (req, res, next) => {
+  // Set CORS headers for static files
+  const origin = req.headers.origin;
+  const allowedOrigins = ['http://localhost:3001', 'http://localhost:5173'];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  next();
+}, express.static('uploads'));
+
+// Image API endpoint - returns image as base64 to avoid CORS issues
+app.get('/api/image/*', (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  // Set CORS headers - use the same origin logic as main CORS config
+  const origin = req.headers.origin;
+  const allowedOrigins = ['http://localhost:3001', 'http://localhost:5173'];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  try {
+    // Extract the file path from the request
+    let filePath = req.path.replace('/api/image', '');
+    
+    // Remove leading slash if present
+    if (filePath.startsWith('/')) {
+      filePath = filePath.substring(1);
+    }
+    
+    // Construct the full file path
+    const fullPath = path.join(__dirname, '..', filePath);
+    
+    // Check if file exists
+    if (!fs.existsSync(fullPath)) {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+    
+    // Read file and determine MIME type
+    const fileBuffer = fs.readFileSync(fullPath);
+    const ext = path.extname(fullPath).toLowerCase();
+    let mimeType = 'image/jpeg'; // Default
+    
+    if (ext === '.png') mimeType = 'image/png';
+    else if (ext === '.gif') mimeType = 'image/gif';
+    else if (ext === '.webp') mimeType = 'image/webp';
+    
+    // Set appropriate headers and return image directly
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Length', fileBuffer.length);
+    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    
+    return res.send(fileBuffer);
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to load image' });
+  }
+});
+
 // Request ID middleware
 app.use((req, _res, next) => {
   req.requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -61,16 +135,28 @@ app.use((req, _res, next) => {
 // Redis-based rate limiting
 app.use(createRedisRateLimit(rateLimitConfigs.api));
 
-// Redis-based session management
-app.use(sessionMiddleware);
+// Redis-based session management (exclude kiosk routes, uploads, and image proxy)
+app.use((req, res, next) => {
+  // Skip session middleware for kiosk routes, uploads, and image proxy
+  if (req.path.startsWith('/api/v1/kiosk') || req.path.startsWith('/uploads') || req.path.startsWith('/api/images')) {
+    return next();
+  }
+  return sessionMiddleware(req, res, next);
+});
 
 // Redis-based response caching for static data
 app.use('/api/hr/departments', createCacheMiddleware(cacheConfigs.medium));
 app.use('/api/hr/employees', createCacheMiddleware(cacheConfigs.short));
 app.use('/api/dept/employees', createCacheMiddleware(cacheConfigs.short));
 
-// Session activity tracking
-app.use(trackSessionActivity);
+// Session activity tracking (exclude kiosk routes, uploads, and image proxy)
+app.use((req, res, next) => {
+  // Skip session activity tracking for kiosk routes, uploads, and image proxy
+  if (req.path.startsWith('/api/v1/kiosk') || req.path.startsWith('/uploads') || req.path.startsWith('/api/images')) {
+    return next();
+  }
+  return trackSessionActivity(req, res, next);
+});
 
 // Health check endpoint
 app.get('/health', async (_req, res) => {

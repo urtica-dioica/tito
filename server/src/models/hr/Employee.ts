@@ -514,6 +514,19 @@ export class EmployeeModel {
       throw error;
     }
   }
+
+  async getAverageSalary(): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      const query = 'SELECT COALESCE(AVG(base_salary), 0) as average FROM employees WHERE status = $1';
+      const result = await client.query(query, ['active']);
+      return parseFloat(result.rows[0].average) || 0;
+    } catch (error) {
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }
 
 // Export singleton instance

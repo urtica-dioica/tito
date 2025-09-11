@@ -5,8 +5,8 @@ export interface SystemSetting {
   id: string;
   setting_key: string;
   setting_value: string;
+  data_type: string;
   description: string | null;
-  is_active: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -14,14 +14,14 @@ export interface SystemSetting {
 export interface CreateSystemSettingData {
   setting_key: string;
   setting_value: string;
+  data_type: string;
   description?: string | null;
-  is_active?: boolean;
 }
 
 export interface UpdateSystemSettingData {
   setting_value?: string;
+  data_type?: string;
   description?: string | null;
-  is_active?: boolean;
 }
 
 class SystemSettingsModel {
@@ -31,15 +31,15 @@ class SystemSettingsModel {
     const client = await this.pool.connect();
     try {
       const query = `
-        INSERT INTO system_settings (setting_key, setting_value, description, is_active)
+        INSERT INTO system_settings (setting_key, setting_value, data_type, description)
         VALUES ($1, $2, $3, $4)
         RETURNING *
       `;
       const values = [
         data.setting_key,
         data.setting_value,
-        data.description || null,
-        data.is_active !== undefined ? data.is_active : true
+        data.data_type,
+        data.description || null
       ];
       
       const result = await client.query(query, values);
@@ -75,7 +75,7 @@ class SystemSettingsModel {
   async findByKey(key: string): Promise<SystemSetting | null> {
     const client = await this.pool.connect();
     try {
-      const query = 'SELECT * FROM system_settings WHERE setting_key = $1 AND is_active = true';
+      const query = 'SELECT * FROM system_settings WHERE setting_key = $1';
       const result = await client.query(query, [key]);
       return result.rows[0] || null;
     } catch (error) {
@@ -91,7 +91,6 @@ class SystemSettingsModel {
     try {
       const query = `
         SELECT * FROM system_settings 
-        WHERE is_active = true
         ORDER BY setting_key ASC
       `;
       const result = await client.query(query);
@@ -116,14 +115,14 @@ class SystemSettingsModel {
         values.push(data.setting_value);
       }
 
+      if (data.data_type !== undefined) {
+        fields.push(`data_type = $${paramIndex++}`);
+        values.push(data.data_type);
+      }
+
       if (data.description !== undefined) {
         fields.push(`description = $${paramIndex++}`);
         values.push(data.description);
-      }
-
-      if (data.is_active !== undefined) {
-        fields.push(`is_active = $${paramIndex++}`);
-        values.push(data.is_active);
       }
 
       if (fields.length === 0) {
@@ -195,31 +194,6 @@ class SystemSettingsModel {
       return deleted;
     } catch (error) {
       logger.error('Error deleting system setting', { error: (error as Error).message, id });
-      throw error;
-    } finally {
-      client.release();
-    }
-  }
-
-  async deactivate(id: string): Promise<SystemSetting | null> {
-    const client = await this.pool.connect();
-    try {
-      const query = `
-        UPDATE system_settings 
-        SET is_active = false, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $1
-        RETURNING *
-      `;
-      const result = await client.query(query, [id]);
-      
-      if (result.rows.length === 0) {
-        return null;
-      }
-
-      logger.info('System setting deactivated', { settingId: id });
-      return result.rows[0];
-    } catch (error) {
-      logger.error('Error deactivating system setting', { error: (error as Error).message, id });
       throw error;
     } finally {
       client.release();

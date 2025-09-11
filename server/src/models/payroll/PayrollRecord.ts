@@ -6,19 +6,25 @@ export interface PayrollRecord {
   payroll_period_id: string;
   employee_id: string;
   base_salary: number;
-  regular_hours: number;
+  total_worked_hours: number;
   hourly_rate: number;
-  regular_pay: number;
-  overtime_hours: number;
-  overtime_pay: number;
-  total_pay: number;
+  total_regular_hours: number;
+  total_overtime_hours: number;
+  total_late_hours: number;
+  late_deductions: number;
+  gross_pay: number;
   net_pay: number;
+  total_deductions: number;
+  total_benefits: number;
   status: 'draft' | 'processed' | 'paid';
   created_at: Date;
   updated_at: Date;
 }
 
 export interface PayrollRecordWithEmployee extends PayrollRecord {
+  period_name?: string;
+  department_id?: string;
+  department_name?: string;
   employee: {
     employee_id: string;
     user: {
@@ -26,6 +32,7 @@ export interface PayrollRecordWithEmployee extends PayrollRecord {
       last_name: string;
     };
     department: {
+      id?: string;
       name: string;
     };
   };
@@ -35,25 +42,31 @@ export interface CreatePayrollRecordData {
   payroll_period_id: string;
   employee_id: string;
   base_salary: number;
-  regular_hours?: number;
+  total_worked_hours?: number;
   hourly_rate?: number;
-  regular_pay?: number;
-  overtime_hours?: number;
-  overtime_pay?: number;
-  total_pay?: number;
+  total_regular_hours?: number;
+  total_overtime_hours?: number;
+  total_late_hours?: number;
+  late_deductions?: number;
+  gross_pay?: number;
   net_pay?: number;
+  total_deductions?: number;
+  total_benefits?: number;
   status?: 'draft' | 'processed' | 'paid';
 }
 
 export interface UpdatePayrollRecordData {
   base_salary?: number;
-  regular_hours?: number;
+  total_worked_hours?: number;
   hourly_rate?: number;
-  regular_pay?: number;
-  overtime_hours?: number;
-  overtime_pay?: number;
-  total_pay?: number;
+  total_regular_hours?: number;
+  total_overtime_hours?: number;
+  total_late_hours?: number;
+  late_deductions?: number;
+  gross_pay?: number;
   net_pay?: number;
+  total_deductions?: number;
+  total_benefits?: number;
   status?: 'draft' | 'processed' | 'paid';
 }
 
@@ -73,24 +86,27 @@ class PayrollRecordModel {
     try {
       const query = `
         INSERT INTO payroll_records (
-          payroll_period_id, employee_id, base_salary, regular_hours, 
-          hourly_rate, regular_pay, overtime_hours, overtime_pay, 
-          total_pay, net_pay, status
+          payroll_period_id, employee_id, base_salary, total_worked_hours, 
+          hourly_rate, total_regular_hours, total_overtime_hours, total_late_hours,
+          late_deductions, gross_pay, net_pay, total_deductions, total_benefits, status
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *
       `;
       const values = [
         data.payroll_period_id,
         data.employee_id,
         data.base_salary,
-        data.regular_hours || 176,
+        data.total_worked_hours || 176,
         data.hourly_rate || 0,
-        data.regular_pay || 0,
-        data.overtime_hours || 0,
-        data.overtime_pay || 0,
-        data.total_pay || 0,
+        data.total_regular_hours || 176,
+        data.total_overtime_hours || 0,
+        data.total_late_hours || 0,
+        data.late_deductions || 0,
+        data.gross_pay || 0,
         data.net_pay || 0,
+        data.total_deductions || 0,
+        data.total_benefits || 0,
         data.status || 'draft'
       ];
       
@@ -247,13 +263,16 @@ class PayrollRecordModel {
         SELECT 
           pr.*,
           e.employee_id,
+          e.department_id,
           u.first_name,
           u.last_name,
-          d.name as department_name
+          d.name as department_name,
+          pp.period_name
         FROM payroll_records pr
         JOIN employees e ON pr.employee_id = e.id
         JOIN users u ON e.user_id = u.id
         LEFT JOIN departments d ON e.department_id = d.id
+        LEFT JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
         ${whereClause}
         ORDER BY pr.created_at DESC
         LIMIT $${paramIndex++} OFFSET $${paramIndex++}
@@ -266,14 +285,20 @@ class PayrollRecordModel {
         id: row.id,
         payroll_period_id: row.payroll_period_id,
         employee_id: row.employee_id,
+        period_name: row.period_name,
+        department_id: row.department_id,
+        department_name: row.department_name,
         base_salary: row.base_salary,
-        regular_hours: row.regular_hours,
+        total_worked_hours: row.total_worked_hours,
         hourly_rate: row.hourly_rate,
-        regular_pay: row.regular_pay,
-        overtime_hours: row.overtime_hours,
-        overtime_pay: row.overtime_pay,
-        total_pay: row.total_pay,
+        total_regular_hours: row.total_regular_hours,
+        total_overtime_hours: row.total_overtime_hours,
+        total_late_hours: row.total_late_hours,
+        late_deductions: row.late_deductions,
+        gross_pay: row.gross_pay,
         net_pay: row.net_pay,
+        total_deductions: row.total_deductions,
+        total_benefits: row.total_benefits,
         status: row.status,
         created_at: row.created_at,
         updated_at: row.updated_at,
@@ -284,6 +309,7 @@ class PayrollRecordModel {
             last_name: row.last_name
           },
           department: {
+            id: row.department_id,
             name: row.department_name
           }
         }
@@ -313,9 +339,9 @@ class PayrollRecordModel {
         values.push(data.base_salary);
       }
 
-      if (data.regular_hours !== undefined) {
-        fields.push(`regular_hours = $${paramIndex++}`);
-        values.push(data.regular_hours);
+      if (data.total_worked_hours !== undefined) {
+        fields.push(`total_worked_hours = $${paramIndex++}`);
+        values.push(data.total_worked_hours);
       }
 
       if (data.hourly_rate !== undefined) {
@@ -323,29 +349,44 @@ class PayrollRecordModel {
         values.push(data.hourly_rate);
       }
 
-      if (data.regular_pay !== undefined) {
-        fields.push(`regular_pay = $${paramIndex++}`);
-        values.push(data.regular_pay);
+      if (data.total_regular_hours !== undefined) {
+        fields.push(`total_regular_hours = $${paramIndex++}`);
+        values.push(data.total_regular_hours);
       }
 
-      if (data.overtime_hours !== undefined) {
-        fields.push(`overtime_hours = $${paramIndex++}`);
-        values.push(data.overtime_hours);
+      if (data.total_overtime_hours !== undefined) {
+        fields.push(`total_overtime_hours = $${paramIndex++}`);
+        values.push(data.total_overtime_hours);
       }
 
-      if (data.overtime_pay !== undefined) {
-        fields.push(`overtime_pay = $${paramIndex++}`);
-        values.push(data.overtime_pay);
+      if (data.total_late_hours !== undefined) {
+        fields.push(`total_late_hours = $${paramIndex++}`);
+        values.push(data.total_late_hours);
       }
 
-      if (data.total_pay !== undefined) {
-        fields.push(`total_pay = $${paramIndex++}`);
-        values.push(data.total_pay);
+      if (data.late_deductions !== undefined) {
+        fields.push(`late_deductions = $${paramIndex++}`);
+        values.push(data.late_deductions);
+      }
+
+      if (data.gross_pay !== undefined) {
+        fields.push(`gross_pay = $${paramIndex++}`);
+        values.push(data.gross_pay);
       }
 
       if (data.net_pay !== undefined) {
         fields.push(`net_pay = $${paramIndex++}`);
         values.push(data.net_pay);
+      }
+
+      if (data.total_deductions !== undefined) {
+        fields.push(`total_deductions = $${paramIndex++}`);
+        values.push(data.total_deductions);
+      }
+
+      if (data.total_benefits !== undefined) {
+        fields.push(`total_benefits = $${paramIndex++}`);
+        values.push(data.total_benefits);
       }
 
       if (data.status !== undefined) {
@@ -418,6 +459,34 @@ class PayrollRecordModel {
         error: (error as Error).message, 
         payrollPeriodId 
       });
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getTotalNetPay(): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      const query = 'SELECT COALESCE(SUM(net_pay), 0) as total FROM payroll_records WHERE status = $1';
+      const result = await client.query(query, ['paid']);
+      return parseFloat(result.rows[0].total) || 0;
+    } catch (error) {
+      logger.error('Error getting total net pay', { error: (error as Error).message });
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getTotalDeductions(): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      const query = 'SELECT COALESCE(SUM(total_deductions), 0) as total FROM payroll_records WHERE status = $1';
+      const result = await client.query(query, ['paid']);
+      return parseFloat(result.rows[0].total) || 0;
+    } catch (error) {
+      logger.error('Error getting total deductions', { error: (error as Error).message });
       throw error;
     } finally {
       client.release();

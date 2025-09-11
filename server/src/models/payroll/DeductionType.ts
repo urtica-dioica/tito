@@ -97,7 +97,7 @@ class DeductionTypeModel {
     }
   }
 
-  async findAll(params: DeductionTypeListParams = {}): Promise<{ deductionTypes: DeductionType[]; total: number }> {
+  async findAll(params: DeductionTypeListParams = {}): Promise<{ records: DeductionType[]; total: number }> {
     const client = await this.pool.connect();
     try {
       const { page = 1, limit = 10, is_active } = params;
@@ -134,7 +134,7 @@ class DeductionTypeModel {
       const result = await client.query(query, values);
       
       return {
-        deductionTypes: result.rows,
+        records: result.rows,
         total
       };
     } catch (error) {

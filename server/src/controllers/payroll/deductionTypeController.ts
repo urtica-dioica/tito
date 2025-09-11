@@ -94,7 +94,7 @@ export class DeductionTypeController {
       res.json({
         success: true,
         message: 'Deduction types retrieved successfully',
-        data: result.deductionTypes,
+        data: result.records,
         pagination: {
           page: parseInt(page as string) || 1,
           limit: parseInt(limit as string) || 10,

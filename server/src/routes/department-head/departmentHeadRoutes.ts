@@ -35,6 +35,8 @@ router.post('/requests/:id/reject', departmentHeadController.rejectRequest);
 router.get('/payrolls/periods', departmentHeadController.getPayrollPeriods);
 router.get('/payrolls/stats', departmentHeadController.getPayrollStats);
 router.get('/payrolls/periods/:id/records', departmentHeadController.getPayrollRecords);
+router.get('/payrolls/approvals', departmentHeadController.getPayrollApprovals);
+router.put('/payrolls/approvals/:approvalId/approve', departmentHeadController.approvePayrollApproval);
 
 // Statistics and reporting routes
 router.get('/stats', departmentHeadController.getDepartmentStats);

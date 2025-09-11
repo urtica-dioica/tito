@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Clock, DollarSign, User, Shield, Database } from 'lucide-react';
-import Button from '../../components/shared/Button';
 import Card from '../../components/shared/Card';
 import Input from '../../components/shared/Input';
 import PageLayout from '../../components/layout/PageLayout';
@@ -10,7 +9,6 @@ import LoadingSpinner from '../../components/shared/LoadingSpinner';
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState('general');
-  const [isLoading, setIsLoading] = useState(false);
   
   // Fetch settings from API
   const { data: settingsData, isLoading: settingsLoading, error: settingsError } = useSettings();
@@ -38,23 +36,12 @@ const Settings: React.FC = () => {
 
   const settings = settingsData || [];
 
-  const handleSaveSettings = async () => {
-    setIsLoading(true);
-    try {
-      // TODO: Implement API call to save settings
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Mock delay
-      console.log('Settings saved:', settings);
-    } catch (error) {
-      console.error('Error saving settings:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Remove the handleSaveSettings function since settings are saved individually
 
-  const handleSettingChange = async (settingId: string, value: string) => {
+  const handleSettingChange = async (settingKey: string, value: string) => {
     try {
       await updateSettingMutation.mutateAsync({
-        id: settingId,
+        key: settingKey,
         data: { settingValue: value }
       });
     } catch (error) {
@@ -71,143 +58,138 @@ const Settings: React.FC = () => {
     { id: 'system', label: 'System', icon: Database },
   ];
 
-  const renderGeneralSettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-text-primary">System Configuration</h3>
-          <p className="text-sm text-text-secondary">
-            Configure core system settings and parameters
-          </p>
-        </div>
-        <div className="p-6 space-y-4">
-          {settings.map((setting) => (
-            <div key={setting.id} className="flex items-center justify-between">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-text-primary mb-1">
-                  {setting.settingKey.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase())}
-                </label>
-                <p className="text-sm text-text-secondary">{setting.description}</p>
-              </div>
-              <div className="w-48">
-                <Input
-                  type={setting.dataType === 'number' || setting.dataType === 'decimal' ? 'number' : 'text'}
-                  value={setting.settingValue}
-                  onChange={(value: string) => handleSettingChange(setting.id, value)}
-                  className="text-right"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-    </div>
-  );
+  const renderGeneralSettings = () => {
+    const generalSettings = settings.filter(setting => 
+      !setting.settingKey.includes('attendance') && 
+      !setting.settingKey.includes('grace') && 
+      !setting.settingKey.includes('late') && 
+      !setting.settingKey.includes('early') &&
+      !setting.settingKey.includes('payroll') && 
+      !setting.settingKey.includes('overtime') && 
+      !setting.settingKey.includes('monthly') &&
+      !setting.settingKey.includes('max_overtime')
+    );
 
-  const renderAttendanceSettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-text-primary">Attendance Rules</h3>
-          <p className="text-sm text-text-secondary">
-            Configure attendance tracking and validation rules
-          </p>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">
-                Late Arrival Threshold (minutes)
-              </label>
-              <p className="text-sm text-text-secondary">
-                Minutes after scheduled start time to mark as late
-              </p>
-            </div>
-            <div className="w-48">
-              <Input
-                type="number"
-                value="15"
-                onChange={() => {}}
-                className="text-right"
-              />
-            </div>
+    return (
+      <div className="space-y-6">
+        <Card>
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-text-primary">System Configuration</h3>
+            <p className="text-sm text-text-secondary">
+              Configure core system settings and parameters
+            </p>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">
-                Early Departure Threshold (minutes)
-              </label>
-              <p className="text-sm text-text-secondary">
-                Minutes before scheduled end time to mark as early departure
-              </p>
-            </div>
-            <div className="w-48">
-              <Input
-                type="number"
-                value="30"
-                onChange={() => {}}
-                className="text-right"
-              />
-            </div>
+          <div className="p-6 space-y-4">
+            {generalSettings.map((setting) => (
+              <div key={setting.id} className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    {setting.settingKey.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase())}
+                  </label>
+                  <p className="text-sm text-text-secondary">{setting.description}</p>
+                </div>
+                <div className="w-48">
+                  <Input
+                    type={setting.dataType === 'number' || setting.dataType === 'decimal' ? 'number' : 'text'}
+                    value={setting.settingValue}
+                    onChange={(value: string) => handleSettingChange(setting.settingKey, value)}
+                    className="text-right"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      </Card>
-    </div>
-  );
+        </Card>
+      </div>
+    );
+  };
 
-  const renderPayrollSettings = () => (
-    <div className="space-y-6">
-      <Card>
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-text-primary">Payroll Configuration</h3>
-          <p className="text-sm text-text-secondary">
-            Configure payroll processing and calculation settings
-          </p>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">
-                Default Overtime Rate
-              </label>
-              <p className="text-sm text-text-secondary">
-                Multiplier for overtime hours (1.5 = time and a half)
-              </p>
-            </div>
-            <div className="w-48">
-              <Input
-                type="number"
-                step="0.1"
-                value="1.5"
-                onChange={() => {}}
-                className="text-right"
-              />
-            </div>
+  const renderAttendanceSettings = () => {
+    const attendanceSettings = settings.filter(setting => 
+      setting.settingKey.includes('attendance') || 
+      setting.settingKey.includes('grace') || 
+      setting.settingKey.includes('late') || 
+      setting.settingKey.includes('early')
+    );
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-text-primary">Attendance Rules</h3>
+            <p className="text-sm text-text-secondary">
+              Configure attendance tracking and validation rules
+            </p>
           </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">
-                Payroll Processing Day
-              </label>
-              <p className="text-sm text-text-secondary">
-                Day of the month when payroll is processed
-              </p>
-            </div>
-            <div className="w-48">
-              <Input
-                type="number"
-                min="1"
-                max="31"
-                value="25"
-                onChange={() => {}}
-                className="text-right"
-              />
-            </div>
+          <div className="p-6 space-y-4">
+            {attendanceSettings.map((setting) => (
+              <div key={setting.id} className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    {setting.settingKey.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase())}
+                  </label>
+                  <p className="text-sm text-text-secondary">{setting.description}</p>
+                </div>
+                <div className="w-48">
+                  <Input
+                    type={setting.dataType === 'number' || setting.dataType === 'decimal' ? 'number' : 'text'}
+                    value={setting.settingValue}
+                    onChange={(value: string) => handleSettingChange(setting.settingKey, value)}
+                    className="text-right"
+                  />
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      </Card>
-    </div>
-  );
+        </Card>
+      </div>
+    );
+  };
+
+  const renderPayrollSettings = () => {
+    const payrollSettings = settings.filter(setting => 
+      setting.settingKey.includes('payroll') || 
+      setting.settingKey.includes('overtime') || 
+      setting.settingKey.includes('monthly') ||
+      setting.settingKey.includes('max_overtime')
+    );
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-text-primary">Payroll Configuration</h3>
+            <p className="text-sm text-text-secondary">
+              Configure payroll processing and calculation settings
+            </p>
+          </div>
+          <div className="p-6 space-y-4">
+            {payrollSettings.map((setting) => (
+              <div key={setting.id} className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    {setting.settingKey.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase())}
+                  </label>
+                  <p className="text-sm text-text-secondary">{setting.description}</p>
+                </div>
+                <div className="w-48">
+                  <Input
+                    type={setting.dataType === 'number' || setting.dataType === 'decimal' ? 'number' : 'text'}
+                    value={setting.settingValue}
+                    onChange={(value: string) => handleSettingChange(setting.settingKey, value)}
+                    className="text-right"
+                    step={setting.dataType === 'decimal' ? '0.1' : undefined}
+                    min={setting.settingKey.includes('day') ? '1' : undefined}
+                    max={setting.settingKey.includes('day') ? '31' : undefined}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -262,15 +244,6 @@ const Settings: React.FC = () => {
     <PageLayout
       title="System Settings"
       subtitle="Configure system parameters and preferences"
-      actions={
-        <Button 
-          variant="primary" 
-          onClick={handleSaveSettings}
-          loading={isLoading}
-        >
-          Save Settings
-        </Button>
-      }
     >
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Sidebar */}

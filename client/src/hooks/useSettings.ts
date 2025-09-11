@@ -26,8 +26,8 @@ export const useUpdateSetting = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateSettingRequest }) => 
-      SettingsService.updateSetting(id, data),
+    mutationFn: ({ key, data }: { key: string; data: UpdateSettingRequest }) => 
+      SettingsService.updateSetting(key, data),
     onSuccess: () => {
       // Invalidate and refetch settings
       queryClient.invalidateQueries({ queryKey: ['settings'] });
@@ -51,7 +51,7 @@ export const useDeleteSetting = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: string) => SettingsService.deleteSetting(id),
+    mutationFn: (key: string) => SettingsService.deleteSetting(key),
     onSuccess: () => {
       // Invalidate and refetch settings
       queryClient.invalidateQueries({ queryKey: ['settings'] });

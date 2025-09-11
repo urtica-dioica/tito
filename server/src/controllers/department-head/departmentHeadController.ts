@@ -787,6 +787,101 @@ export class DepartmentHeadController {
       });
     }
   }
+
+  /**
+   * Get payroll approvals for department
+   */
+  async getPayrollApprovals(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      const approvals = await departmentHeadService.getPayrollApprovals(userId);
+      
+      res.json({
+        success: true,
+        message: 'Payroll approvals retrieved successfully',
+        data: approvals,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error getting payroll approvals:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve payroll approvals',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Approve or reject payroll approval
+   */
+  async approvePayrollApproval(req: Request, res: Response): Promise<void> {
+    try {
+      const requestId = getRequestId(req);
+      const userId = req.user?.userId;
+      const { approvalId } = req.params;
+      const { status, comments } = req.body;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User not authenticated',
+          requestId
+        });
+        return;
+      }
+
+      if (!approvalId || !status || !['approved', 'rejected'].includes(status)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid approval ID or status',
+          requestId
+        });
+        return;
+      }
+
+      const success = await departmentHeadService.approvePayrollApproval(userId, approvalId, status, comments);
+      
+      if (success) {
+        res.json({
+          success: true,
+          message: `Payroll ${status} successfully`,
+          requestId
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'Failed to update payroll approval',
+          requestId
+        });
+      }
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Error approving payroll:', { error, requestId });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to approve payroll',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
 }
 
 export const departmentHeadController = new DepartmentHeadController();

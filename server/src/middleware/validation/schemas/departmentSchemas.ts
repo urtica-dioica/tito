@@ -10,7 +10,7 @@ export const createDepartmentSchema = Joi.object({
 export const updateDepartmentSchema = Joi.object({
   name: Joi.string().min(2).max(100).optional(),
   description: Joi.string().max(500).optional(),
-  departmentHeadUserId: Joi.string().uuid().optional(),
+  departmentHeadUserId: Joi.string().uuid().allow(null).optional(),
   isActive: Joi.boolean().optional()
 });
 

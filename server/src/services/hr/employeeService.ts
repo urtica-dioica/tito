@@ -24,6 +24,7 @@ export interface UpdateEmployeeData {
   departmentId?: string;
   position?: string;
   employmentType?: 'regular' | 'contractual' | 'jo';
+  hireDate?: string;
   baseSalary?: number;
   status?: 'active' | 'inactive' | 'terminated' | 'on_leave';
 }
@@ -394,6 +395,7 @@ export class EmployeeService {
       }
       if (data.position) employeeUpdateData.position = data.position;
       if (data.employmentType) employeeUpdateData.employment_type = data.employmentType;
+      if (data.hireDate) employeeUpdateData.hire_date = data.hireDate;
       if (data.baseSalary !== undefined) employeeUpdateData.base_salary = data.baseSalary;
       if (data.status) employeeUpdateData.status = data.status;
 

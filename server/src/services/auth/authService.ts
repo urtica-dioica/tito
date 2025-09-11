@@ -514,6 +514,66 @@ export class AuthService {
       };
     }
   }
+
+  /**
+   * Update user (HR only)
+   */
+  async updateUser(userId: string, userData: { firstName?: string; lastName?: string; email?: string; role?: string; isActive?: boolean }): Promise<AuthResult> {
+    try {
+      const user = await userModel.findById(userId);
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+          error: 'USER_NOT_FOUND'
+        };
+      }
+
+      // Check if email is already taken by another user
+      if (userData.email && userData.email !== user.email) {
+        const existingUser = await userModel.findByEmail(userData.email);
+        if (existingUser && existingUser.id !== userId) {
+          return {
+            success: false,
+            message: 'Email is already taken',
+            error: 'EMAIL_ALREADY_EXISTS'
+          };
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {};
+      if (userData.firstName !== undefined) updateData.first_name = userData.firstName;
+      if (userData.lastName !== undefined) updateData.last_name = userData.lastName;
+      if (userData.email !== undefined) updateData.email = userData.email;
+      if (userData.role !== undefined) updateData.role = userData.role;
+      if (userData.isActive !== undefined) updateData.is_active = userData.isActive;
+
+      // Update user
+      const updatedUser = await userModel.updateUser(userId, updateData);
+
+      if (!updatedUser) {
+        return {
+          success: false,
+          message: 'Failed to update user',
+          error: 'UPDATE_FAILED'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'User updated successfully',
+        data: { user: updatedUser }
+      };
+    } catch (error) {
+      logger.error('Failed to update user', { error: (error as Error).message, userId, userData });
+      return {
+        success: false,
+        message: 'Failed to update user',
+        error: 'INTERNAL_SERVER_ERROR'
+      };
+    }
+  }
 }
 
 // Export singleton instance

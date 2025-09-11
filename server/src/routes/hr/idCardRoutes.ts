@@ -54,6 +54,17 @@ router.get(
 );
 
 /**
+ * @route GET /api/v1/hr/id-cards/:id/qr-code
+ * @desc Get QR code data for ID card
+ * @access HR Admin only
+ */
+router.get(
+  '/:id/qr-code',
+  validateParams(idCardParamsSchema),
+  idCardController.getQrCodeData
+);
+
+/**
  * @route DELETE /api/v1/hr/id-cards/:id
  * @desc Deactivate ID card
  * @access HR Admin only

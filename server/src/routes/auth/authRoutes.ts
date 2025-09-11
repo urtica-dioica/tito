@@ -24,5 +24,6 @@ router.post('/logout', requireAuth, authController.logout.bind(authController));
 // HR-only routes
 router.post('/users', requireRole(USER_ROLES.HR), authController.createUser.bind(authController));
 router.get('/users', requireRole(USER_ROLES.HR), authController.getAllUsers.bind(authController));
+router.put('/users/:id', requireRole(USER_ROLES.HR), authController.updateUser.bind(authController));
 
 export default router; 

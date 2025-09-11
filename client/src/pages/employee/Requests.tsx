@@ -5,25 +5,9 @@ import Badge from '../../components/shared/Badge';
 import Button from '../../components/shared/Button';
 import Modal from '../../components/shared/Modal';
 import PageLayout from '../../components/layout/PageLayout';
-
-// Mock data types - TODO: Replace with actual types from API
-interface Request {
-  id: string;
-  type: 'time_correction' | 'overtime' | 'leave';
-  status: 'pending' | 'approved' | 'rejected';
-  submittedAt: string;
-  approverName?: string;
-  approvedAt?: string;
-  rejectionReason?: string;
-  details: any;
-}
-
-interface LeaveBalance {
-  vacation: number;
-  sick: number;
-  personal: number;
-  emergency: number;
-}
+import LoadingSpinner from '../../components/shared/LoadingSpinner';
+import { useEmployeeRequests, useRequestStats, useLeaveBalance } from '../../hooks/useEmployee';
+import type { Request } from '../../services/employeeService';
 
 const EmployeeRequests: React.FC = () => {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
@@ -33,76 +17,37 @@ const EmployeeRequests: React.FC = () => {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
-  // Mock data - TODO: Replace with actual API calls
-  const requests: Request[] = [
-    {
-      id: '1',
-      type: 'leave',
-      status: 'pending',
-      submittedAt: '2025-01-14T16:45:00Z',
-      details: {
-        leaveType: 'vacation',
-        startDate: '2025-01-20',
-        endDate: '2025-01-24',
-        reason: 'Family vacation',
-        days: 5,
-      },
-    },
-    {
-      id: '2',
-      type: 'overtime',
-      status: 'approved',
-      submittedAt: '2025-01-12T15:30:00Z',
-      approverName: 'Jane Smith (Department Head)',
-      approvedAt: '2025-01-13T10:15:00Z',
-      details: {
-        requestDate: '2025-01-12',
-        overtimeDate: '2025-01-13',
-        startTime: '17:00',
-        endTime: '21:00',
-        requestedHours: 4,
-        reason: 'Client presentation preparation',
-      },
-    },
-    {
-      id: '3',
-      type: 'time_correction',
-      status: 'rejected',
-      submittedAt: '2025-01-10T09:30:00Z',
-      approverName: 'Jane Smith (Department Head)',
-      approvedAt: '2025-01-11T14:20:00Z',
-      rejectionReason: 'Insufficient documentation provided',
-      details: {
-        correctionDate: '2025-01-09',
-        sessionType: 'morning',
-        requestedClockIn: '2025-01-09T08:00:00Z',
-        requestedClockOut: '2025-01-09T17:00:00Z',
-        reason: 'Forgot to clock in due to emergency meeting',
-      },
-    },
-    {
-      id: '4',
-      type: 'leave',
-      status: 'approved',
-      submittedAt: '2025-01-08T14:20:00Z',
-      approverName: 'Jane Smith (Department Head)',
-      approvedAt: '2025-01-09T09:30:00Z',
-      details: {
-        leaveType: 'sick',
-        startDate: '2025-01-15',
-        endDate: '2025-01-15',
-        reason: 'Medical appointment',
-        days: 1,
-      },
-    },
-  ];
+  // Fetch data from API
+  const { data: requests = [], isLoading: requestsLoading, error: requestsError } = useEmployeeRequests({
+    type: filterType || undefined,
+    status: filterStatus || undefined,
+    limit: 50
+  });
+  
+  const { data: requestStats, isLoading: statsLoading, error: statsError } = useRequestStats();
+  const { data: leaveBalance, isLoading: leaveLoading, error: leaveError } = useLeaveBalance();
 
-  const leaveBalance: LeaveBalance = {
-    vacation: 12,
-    sick: 8,
-    personal: 3,
-    emergency: 2,
-  };
+  // Show loading state
+  if (requestsLoading || statsLoading || leaveLoading) {
+    return (
+      <PageLayout title="My Requests" subtitle="Loading request data...">
+        <div className="flex justify-center items-center h-64">
+          <LoadingSpinner size="lg" />
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Show error state
+  if (requestsError || statsError || leaveError) {
+    return (
+      <PageLayout title="My Requests" subtitle="Error loading request data">
+        <Card className="p-6 text-center">
+          <p className="text-red-600">Failed to load request data. Please try again later.</p>
+        </Card>
+      </PageLayout>
+    );
+  }
 
   const getRequestTypeIcon = (type: string) => {
     switch (type) {
@@ -149,18 +94,8 @@ const EmployeeRequests: React.FC = () => {
     }
   };
 
-  const filteredRequests = requests.filter(request => {
-    const matchesType = !filterType || request.type === filterType;
-    const matchesStatus = !filterStatus || request.status === filterStatus;
-    return matchesType && matchesStatus;
-  });
-
-  const requestStats = {
-    total: requests.length,
-    pending: requests.filter(r => r.status === 'pending').length,
-    approved: requests.filter(r => r.status === 'approved').length,
-    rejected: requests.filter(r => r.status === 'rejected').length,
-  };
+  // Since we're filtering on the backend, we can use the requests directly
+  const filteredRequests = requests;
 
   const handleViewRequest = (request: Request) => {
     setSelectedRequest(request);
@@ -199,24 +134,30 @@ const EmployeeRequests: React.FC = () => {
               </p>
             </div>
             <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">{leaveBalance.vacation}</p>
-                  <p className="text-sm text-text-secondary">Vacation Days</p>
+              {leaveBalance ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <p className="text-2xl font-bold text-blue-600">{leaveBalance.vacation.available}</p>
+                    <p className="text-sm text-text-secondary">Vacation Days</p>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">{leaveBalance.sick.available}</p>
+                    <p className="text-sm text-text-secondary">Sick Days</p>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <p className="text-2xl font-bold text-purple-600">{leaveBalance.other.available}</p>
+                    <p className="text-sm text-text-secondary">Personal Days</p>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-lg">
+                    <p className="text-2xl font-bold text-red-600">{leaveBalance.maternity.available}</p>
+                    <p className="text-sm text-text-secondary">Maternity Days</p>
+                  </div>
                 </div>
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">{leaveBalance.sick}</p>
-                  <p className="text-sm text-text-secondary">Sick Days</p>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-text-secondary">Leave balance not available</p>
                 </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600">{leaveBalance.personal}</p>
-                  <p className="text-sm text-text-secondary">Personal Days</p>
-                </div>
-                <div className="text-center p-4 bg-red-50 rounded-lg">
-                  <p className="text-2xl font-bold text-red-600">{leaveBalance.emergency}</p>
-                  <p className="text-sm text-text-secondary">Emergency Days</p>
-                </div>
-              </div>
+              )}
             </div>
           </Card>
 
@@ -229,57 +170,65 @@ const EmployeeRequests: React.FC = () => {
               </p>
             </div>
             <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <FileText className="h-5 w-5 text-blue-600" />
+              {requestStats ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-text-primary">Total Requests</p>
+                        <p className="text-xs text-text-secondary">All time</p>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-text-primary">{requestStats.total}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">Total Requests</p>
-                    <p className="text-xs text-text-secondary">All time</p>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-yellow-100 rounded-lg">
+                        <Clock className="h-5 w-5 text-yellow-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-text-primary">Pending</p>
+                        <p className="text-xs text-text-secondary">Awaiting approval</p>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-text-primary">{requestStats.pending}</p>
                   </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Calendar className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-text-primary">Approved</p>
+                        <p className="text-xs text-text-secondary">Successfully processed</p>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-text-primary">{requestStats.approved}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-red-100 rounded-lg">
+                        <FileText className="h-5 w-5 text-red-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-text-primary">Rejected</p>
+                        <p className="text-xs text-text-secondary">Not approved</p>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold text-text-primary">{requestStats.rejected}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-text-secondary">Request statistics not available</p>
                 </div>
-                <p className="text-2xl font-bold text-text-primary">{requestStats.total}</p>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-yellow-100 rounded-lg">
-                    <Clock className="h-5 w-5 text-yellow-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">Pending</p>
-                    <p className="text-xs text-text-secondary">Awaiting approval</p>
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-text-primary">{requestStats.pending}</p>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Calendar className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">Approved</p>
-                    <p className="text-xs text-text-secondary">Successfully processed</p>
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-text-primary">{requestStats.approved}</p>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <FileText className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">Rejected</p>
-                    <p className="text-xs text-text-secondary">Not approved</p>
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-text-primary">{requestStats.rejected}</p>
-              </div>
+              )}
             </div>
           </Card>
         </div>

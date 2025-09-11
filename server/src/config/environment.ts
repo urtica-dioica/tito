@@ -80,7 +80,7 @@ export const config = {
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       const allowedOrigins = process.env['CORS_ORIGIN'] 
         ? process.env['CORS_ORIGIN'].split(',').map(origin => origin.trim())
-        : ['http://localhost:3001'];
+        : ['http://localhost:3001', 'http://localhost:5173'];
       
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);

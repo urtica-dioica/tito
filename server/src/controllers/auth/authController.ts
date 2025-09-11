@@ -623,6 +623,56 @@ export class AuthController {
       });
     }
   }
+
+  /**
+   * Update user (HR only)
+   */
+  async updateUser(req: Request, res: Response<ApiResponse>): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { firstName, lastName, email, role, isActive } = req.body;
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: 'User ID is required',
+          error: 'MISSING_USER_ID',
+          timestamp: new Date().toISOString(),
+          requestId: this.getRequestId(req)
+        });
+        return;
+      }
+
+      const result = await authService.updateUser(id, { firstName, lastName, email, role, isActive });
+
+      if (!result.success) {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+          error: result.error || 'UPDATE_FAILED',
+          timestamp: new Date().toISOString(),
+          requestId: this.getRequestId(req)
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: result.data,
+        timestamp: new Date().toISOString(),
+        requestId: this.getRequestId(req)
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update user',
+        error: 'INTERNAL_SERVER_ERROR',
+        timestamp: new Date().toISOString(),
+        requestId: this.getRequestId(req)
+      });
+    }
+  }
 }
 
 // Export singleton instance

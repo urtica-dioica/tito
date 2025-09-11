@@ -213,10 +213,10 @@ const DepartmentEmployees: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <div className="text-right">
                           <p className="text-sm font-medium text-text-primary">
-                            {employee.employmentType}
+                            {employee.position}
                           </p>
                           <p className="text-xs text-text-secondary">
-                            {employee.position}
+                            {employee.employeeId}
                           </p>
                         </div>
                         {getStatusBadge(employee.status)}
@@ -350,7 +350,7 @@ const DepartmentEmployees: React.FC = () => {
                 <label className="block text-sm font-medium text-text-secondary mb-1">
                   Employment Type
                 </label>
-                <p className="text-text-primary">{selectedEmployee.employmentType}</p>
+                <p className="text-text-primary capitalize">{selectedEmployee.employmentType}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
@@ -362,9 +362,9 @@ const DepartmentEmployees: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-1">
-                  Employment Type
+                  Base Salary
                 </label>
-                <p className="text-text-primary capitalize">{selectedEmployee.employmentType}</p>
+                <p className="text-text-primary">₱{selectedEmployee.baseSalary?.toLocaleString() || 'N/A'}</p>
               </div>
             </div>
           </div>

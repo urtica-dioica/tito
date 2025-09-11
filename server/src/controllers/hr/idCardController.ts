@@ -28,6 +28,11 @@ export class IdCardController {
         return;
       }
 
+      // Add current user ID as issuedBy
+      if (req.user?.userId) {
+        data.issuedBy = req.user.userId;
+      }
+
       const idCard = await this.idCardService.createIdCard(data);
 
       res.status(201).json({
@@ -226,6 +231,44 @@ export class IdCardController {
       res.status(400).json({
         success: false,
         message: (error as Error).message || 'Failed to get ID card statistics',
+        requestId
+      });
+    }
+  };
+
+  /**
+   * Get QR code data for ID card
+   */
+  getQrCodeData = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const requestId = getRequestId(req);
+      const { id } = req.params;
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: 'ID card ID is required',
+          requestId
+        });
+        return;
+      }
+
+      const qrCodeData = await this.idCardService.getQrCodeData(id);
+
+      res.status(200).json({
+        success: true,
+        message: 'QR code data retrieved successfully',
+        data: qrCodeData,
+        requestId
+      });
+    } catch (error) {
+      const requestId = getRequestId(req);
+      logger.error('Failed to get QR code data', { error: (error as Error).message, requestId });
+      
+      const statusCode = (error as Error).message === 'ID card not found' ? 404 : 400;
+      res.status(statusCode).json({
+        success: false,
+        message: (error as Error).message || 'Failed to get QR code data',
         requestId
       });
     }

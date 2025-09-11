@@ -7,6 +7,8 @@ export interface PayrollPeriod {
   start_date: Date;
   end_date: Date;
   status: 'draft' | 'processing' | 'sent_for_review' | 'completed';
+  working_days?: number;
+  expected_hours?: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -16,6 +18,8 @@ export interface CreatePayrollPeriodData {
   start_date: Date;
   end_date: Date;
   status?: 'draft' | 'processing' | 'sent_for_review' | 'completed';
+  working_days?: number;
+  expected_hours?: number;
 }
 
 export interface UpdatePayrollPeriodData {
@@ -23,6 +27,8 @@ export interface UpdatePayrollPeriodData {
   start_date?: Date;
   end_date?: Date;
   status?: 'draft' | 'processing' | 'sent_for_review' | 'completed';
+  working_days?: number;
+  expected_hours?: number;
 }
 
 export interface PayrollPeriodListParams {
@@ -40,16 +46,28 @@ class PayrollPeriodModel {
     const client = await this.pool.connect();
     try {
       const query = `
-        INSERT INTO payroll_periods (period_name, start_date, end_date, status)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO payroll_periods (period_name, start_date, end_date, status, working_days, expected_hours)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
       `;
-      const values = [data.period_name, data.start_date, data.end_date, data.status || 'draft'];
+      const values = [
+        data.period_name, 
+        data.start_date, 
+        data.end_date, 
+        data.status || 'draft',
+        data.working_days || null,
+        data.expected_hours || null
+      ];
       
       const result = await client.query(query, values);
       const period = result.rows[0];
       
-      logger.info('Payroll period created', { periodId: period.id, periodName: period.period_name });
+      logger.info('Payroll period created', { 
+        periodId: period.id, 
+        periodName: period.period_name,
+        workingDays: period.working_days,
+        expectedHours: period.expected_hours
+      });
       return period;
     } catch (error) {
       logger.error('Error creating payroll period', { error: (error as Error).message, data });
@@ -243,6 +261,35 @@ class PayrollPeriodModel {
         startDate, 
         endDate 
       });
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async count(): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      const query = 'SELECT COUNT(*) FROM payroll_periods';
+      const result = await client.query(query);
+      return parseInt(result.rows[0].count);
+    } catch (error) {
+      logger.error('Error counting payroll periods', { error: (error as Error).message });
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async countByStatus(statuses: string[]): Promise<number> {
+    const client = await this.pool.connect();
+    try {
+      const placeholders = statuses.map((_, index) => `$${index + 1}`).join(',');
+      const query = `SELECT COUNT(*) FROM payroll_periods WHERE status IN (${placeholders})`;
+      const result = await client.query(query, statuses);
+      return parseInt(result.rows[0].count);
+    } catch (error) {
+      logger.error('Error counting payroll periods by status', { error: (error as Error).message, statuses });
       throw error;
     } finally {
       client.release();

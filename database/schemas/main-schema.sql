@@ -1,7 +1,12 @@
 -- TITO HR Management System - Complete Database Schema
 -- Includes: Core HR, Attendance, Leave, Payroll, Time Correction, Selfie Verification, ID Card Management
--- Version: 2.0 (Complete with all features)
+-- Version: 2.1 (Updated with dynamic payroll period calculation)
 -- Last Updated: 2025
+-- 
+-- Recent Updates:
+-- - Added working_days and expected_hours fields to payroll_periods table
+-- - Updated calculate_payroll() function to use period-specific expected hours
+-- - Enhanced system to calculate actual working days per month (excluding weekends)
 
 /* === ENUM Type Definitions === */
 CREATE TYPE user_role AS ENUM ('hr', 'employee', 'department_head');
@@ -40,20 +45,28 @@ RETURNS TRIGGER AS $$
 DECLARE
     v_old_data JSONB;
     v_new_data JSONB;
+    v_user_id UUID;
 BEGIN
+    -- Get user ID, handle case when setting doesn't exist
+    BEGIN
+        v_user_id := current_setting('app.current_user_id', TRUE)::UUID;
+    EXCEPTION WHEN OTHERS THEN
+        v_user_id := NULL;
+    END;
+    
     IF (TG_OP = 'INSERT') THEN
         v_new_data := to_jsonb(NEW);
         INSERT INTO audit_log (table_name, record_id, action, new_data, changed_by_user_id)
-        VALUES (TG_TABLE_NAME, NEW.id, TG_OP, v_new_data, current_setting('app.current_user_id', TRUE)::UUID);
+        VALUES (TG_TABLE_NAME, NEW.id, TG_OP, v_new_data, v_user_id);
     ELSIF (TG_OP = 'UPDATE') THEN
         v_old_data := to_jsonb(OLD);
         v_new_data := to_jsonb(NEW);
         INSERT INTO audit_log (table_name, record_id, action, old_data, new_data, changed_by_user_id)
-        VALUES (TG_TABLE_NAME, NEW.id, TG_OP, v_old_data, v_new_data, current_setting('app.current_user_id', TRUE)::UUID);
+        VALUES (TG_TABLE_NAME, NEW.id, TG_OP, v_old_data, v_new_data, v_user_id);
     ELSIF (TG_OP = 'DELETE') THEN
         v_old_data := to_jsonb(OLD);
         INSERT INTO audit_log (table_name, record_id, action, old_data, changed_by_user_id)
-        VALUES (TG_TABLE_NAME, OLD.id, TG_OP, v_old_data, current_setting('app.current_user_id', TRUE)::UUID);
+        VALUES (TG_TABLE_NAME, OLD.id, TG_OP, v_old_data, v_user_id);
     END IF;
     RETURN NULL;
 END;
@@ -140,7 +153,7 @@ CREATE TABLE attendance_records (
 CREATE TABLE attendance_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     attendance_record_id UUID NOT NULL REFERENCES attendance_records(id) ON DELETE CASCADE,
-    session_type VARCHAR(50) NOT NULL,
+    session_type VARCHAR(50) NOT NULL CHECK (session_type IN ('morning_in', 'morning_out', 'afternoon_in', 'afternoon_out', 'overtime')),
     clock_in TIMESTAMP,
     clock_out TIMESTAMP,
     calculated_hours DECIMAL(4,2) GENERATED ALWAYS AS ( 
@@ -148,11 +161,17 @@ CREATE TABLE attendance_sessions (
         THEN EXTRACT(EPOCH FROM (clock_out - clock_in)) / 3600.0 
         ELSE 0 END 
     ) STORED,
+    regular_hours DECIMAL(4,2) DEFAULT 0,
+    overtime_hours DECIMAL(4,2) DEFAULT 0,
+    late_minutes INTEGER DEFAULT 0,
     late_hours DECIMAL(4,2) DEFAULT 0,
     status attendance_status_enum DEFAULT 'present',
     selfie_image_path VARCHAR(500),
     selfie_taken_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    selfie_image_url VARCHAR(500),
+    qr_code_hash VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(attendance_record_id, session_type)
 );
 CREATE TRIGGER attendance_records_updated_at BEFORE UPDATE ON attendance_records FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER attendance_records_audit_log AFTER INSERT OR UPDATE OR DELETE ON attendance_records FOR EACH ROW EXECUTE FUNCTION log_audit_event();
@@ -265,12 +284,60 @@ CREATE TABLE deduction_types (
 CREATE TRIGGER deduction_types_updated_at BEFORE UPDATE ON deduction_types FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER deduction_types_audit_log AFTER INSERT OR UPDATE OR DELETE ON deduction_types FOR EACH ROW EXECUTE FUNCTION log_audit_event();
 
+/* === Employee Deduction Balances === */
+CREATE TABLE employee_deduction_balances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    deduction_type_id UUID NOT NULL REFERENCES deduction_types(id) ON DELETE CASCADE,
+    original_amount DECIMAL(10,2) NOT NULL CHECK (original_amount > 0),
+    remaining_balance DECIMAL(10,2) NOT NULL CHECK (remaining_balance >= 0),
+    monthly_deduction_amount DECIMAL(10,2) NOT NULL CHECK (monthly_deduction_amount > 0),
+    start_date DATE NOT NULL,
+    end_date DATE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(employee_id, deduction_type_id, start_date)
+);
+CREATE TRIGGER employee_deduction_balances_updated_at BEFORE UPDATE ON employee_deduction_balances FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER employee_deduction_balances_audit_log AFTER INSERT OR UPDATE OR DELETE ON employee_deduction_balances FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+
+/* === Benefits System === */
+CREATE TABLE benefit_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (amount > 0),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TRIGGER benefit_types_updated_at BEFORE UPDATE ON benefit_types FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER benefit_types_audit_log AFTER INSERT OR UPDATE OR DELETE ON benefit_types FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+
+CREATE TABLE employee_benefits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    benefit_type_id UUID NOT NULL REFERENCES benefit_types(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+    start_date DATE NOT NULL,
+    end_date DATE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(employee_id, benefit_type_id, start_date)
+);
+CREATE TRIGGER employee_benefits_updated_at BEFORE UPDATE ON employee_benefits FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER employee_benefits_audit_log AFTER INSERT OR UPDATE OR DELETE ON employee_benefits FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+
 CREATE TABLE payroll_periods (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     period_name VARCHAR(50) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     status payroll_period_status_enum DEFAULT 'draft',
+    working_days INTEGER, -- Actual working days in the month (excluding weekends)
+    expected_hours DECIMAL(6,2), -- Expected hours for the month (working_days * 8)
     created_by UUID REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -291,10 +358,11 @@ CREATE TABLE payroll_records (
     total_deductions DECIMAL(10,2) DEFAULT 0,
     status payroll_record_status_enum DEFAULT 'draft',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total_benefits DECIMAL(10,2) DEFAULT 0
 );
 CREATE TRIGGER payroll_records_updated_at BEFORE UPDATE ON payroll_records FOR EACH ROW EXECUTE FUNCTION update_updated_at();
-CREATE TRIGGER payroll_records_audit_log AFTER INSERT OR UPDATE OR DELETE ON payroll_records FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+-- CREATE TRIGGER payroll_records_audit_log AFTER INSERT OR UPDATE OR DELETE ON payroll_records FOR EACH ROW EXECUTE FUNCTION log_audit_event();
 
 CREATE TABLE payroll_deductions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -398,10 +466,64 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+/* === Employee Deduction and Benefits Functions === */
+CREATE OR REPLACE FUNCTION apply_employee_deductions(p_payroll_record_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    v_employee_id UUID;
+    v_deduction_record RECORD;
+    v_actual_deduction DECIMAL(10,2);
+BEGIN
+    -- Get employee ID from payroll record
+    SELECT employee_id INTO v_employee_id
+    FROM payroll_records 
+    WHERE id = p_payroll_record_id;
+    
+    -- Apply each active deduction
+    FOR v_deduction_record IN 
+        SELECT edb.*, dt.name as deduction_name
+        FROM employee_deduction_balances edb
+        JOIN deduction_types dt ON edb.deduction_type_id = dt.id
+        WHERE edb.employee_id = v_employee_id 
+        AND edb.is_active = true
+        AND edb.remaining_balance > 0
+    LOOP
+        -- Calculate actual deduction (minimum of monthly amount or remaining balance)
+        v_actual_deduction := LEAST(
+            v_deduction_record.monthly_deduction_amount,
+            v_deduction_record.remaining_balance
+        );
+        
+        -- Insert payroll deduction record
+        INSERT INTO payroll_deductions (
+            payroll_record_id,
+            deduction_type_id,
+            name,
+            amount
+        ) VALUES (
+            p_payroll_record_id,
+            v_deduction_record.deduction_type_id,
+            v_deduction_record.deduction_name,
+            v_actual_deduction
+        );
+        
+        -- Update remaining balance
+        UPDATE employee_deduction_balances 
+        SET 
+            remaining_balance = remaining_balance - v_actual_deduction,
+            is_active = CASE WHEN (remaining_balance - v_actual_deduction) <= 0 THEN false ELSE true END,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = v_deduction_record.id;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+
 CREATE OR REPLACE FUNCTION calculate_payroll()
 RETURNS TRIGGER AS $$
 DECLARE
     v_expected_monthly_hours INTEGER;
+    v_period_expected_hours DECIMAL(6,2);
     v_hourly_rate DECIMAL(8,2);
     v_regular_pay DECIMAL(10,2);
     v_total_pay DECIMAL(10,2);
@@ -417,10 +539,24 @@ BEGIN
         RETURN NEW;
     END IF;
     
-    SELECT CAST(setting_value AS INTEGER)
-    INTO v_expected_monthly_hours
-    FROM system_settings 
-    WHERE setting_key = 'expected_monthly_hours';
+    -- Apply deductions
+    PERFORM apply_employee_deductions(NEW.id);
+    
+    -- Get period-specific expected hours, fallback to system setting
+    SELECT pp.expected_hours
+    INTO v_period_expected_hours
+    FROM payroll_periods pp
+    WHERE pp.id = NEW.payroll_period_id;
+    
+    -- Use period-specific hours if available, otherwise use system setting
+    IF v_period_expected_hours IS NOT NULL THEN
+        v_expected_monthly_hours := v_period_expected_hours;
+    ELSE
+        SELECT CAST(setting_value AS INTEGER)
+        INTO v_expected_monthly_hours
+        FROM system_settings 
+        WHERE setting_key = 'expected_monthly_hours';
+    END IF;
     
     v_hourly_rate := NEW.base_salary / v_expected_monthly_hours;
     v_regular_pay := v_hourly_rate * NEW.total_regular_hours;
@@ -632,6 +768,153 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+/* === Time-Based Attendance Validation Functions === */
+
+-- Function to validate attendance time windows
+CREATE OR REPLACE FUNCTION validate_attendance_time_window(
+    p_session_type VARCHAR(50),
+    p_timestamp TIMESTAMP
+) RETURNS BOOLEAN AS $$
+DECLARE
+    v_current_time TIME;
+    v_is_valid BOOLEAN := FALSE;
+BEGIN
+    -- Convert timestamp to Manila timezone before validation
+    v_current_time := (p_timestamp AT TIME ZONE 'Asia/Manila')::TIME;
+    
+    CASE p_session_type
+        WHEN 'morning_in' THEN
+            -- Morning clock-in: 7:00 AM to 12:00 PM
+            v_is_valid := v_current_time >= '07:00:00' AND v_current_time <= '12:00:00';
+        WHEN 'morning_out' THEN
+            -- Morning clock-out: 8:00 AM to 12:00 PM
+            v_is_valid := v_current_time >= '08:00:00' AND v_current_time <= '12:00:00';
+        WHEN 'afternoon_in' THEN
+            -- Afternoon clock-in: 1:00 PM to 5:00 PM
+            v_is_valid := v_current_time >= '13:00:00' AND v_current_time <= '17:00:00';
+        WHEN 'afternoon_out' THEN
+            -- Afternoon clock-out: 1:00 PM to 6:00 PM
+            v_is_valid := v_current_time >= '13:00:00' AND v_current_time <= '18:00:00';
+        WHEN 'overtime' THEN
+            -- Overtime: after 5:00 PM
+            v_is_valid := v_current_time >= '17:00:00';
+        ELSE
+            v_is_valid := FALSE;
+    END CASE;
+    
+    RETURN v_is_valid;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to determine next expected session type
+CREATE OR REPLACE FUNCTION get_next_session_type(
+    p_employee_id UUID,
+    p_date DATE
+) RETURNS VARCHAR(50) AS $$
+DECLARE
+    v_morning_in_exists BOOLEAN := FALSE;
+    v_morning_out_exists BOOLEAN := FALSE;
+    v_afternoon_in_exists BOOLEAN := FALSE;
+    v_afternoon_out_exists BOOLEAN := FALSE;
+    v_current_time TIME;
+    v_next_session VARCHAR(50);
+BEGIN
+    -- Use Manila timezone for current time
+    v_current_time := (NOW() AT TIME ZONE 'Asia/Manila')::TIME;
+    
+    -- Check existing sessions for the day
+    SELECT 
+        EXISTS(SELECT 1 FROM attendance_sessions s 
+               JOIN attendance_records ar ON s.attendance_record_id = ar.id 
+               WHERE ar.employee_id = p_employee_id AND ar.date = p_date 
+               AND s.session_type = 'morning_in' AND s.clock_in IS NOT NULL),
+        EXISTS(SELECT 1 FROM attendance_sessions s 
+               JOIN attendance_records ar ON s.attendance_record_id = ar.id 
+               WHERE ar.employee_id = p_employee_id AND ar.date = p_date 
+               AND s.session_type = 'morning_out' AND s.clock_out IS NOT NULL),
+        EXISTS(SELECT 1 FROM attendance_sessions s 
+               JOIN attendance_records ar ON s.attendance_record_id = ar.id 
+               WHERE ar.employee_id = p_employee_id AND ar.date = p_date 
+               AND s.session_type = 'afternoon_in' AND s.clock_in IS NOT NULL),
+        EXISTS(SELECT 1 FROM attendance_sessions s 
+               JOIN attendance_records ar ON s.attendance_record_id = ar.id 
+               WHERE ar.employee_id = p_employee_id AND ar.date = p_date 
+               AND s.session_type = 'afternoon_out' AND s.clock_out IS NOT NULL)
+    INTO v_morning_in_exists, v_morning_out_exists, v_afternoon_in_exists, v_afternoon_out_exists;
+    
+    -- Determine next session based on current time and existing sessions
+    IF v_current_time < '12:00:00' THEN
+        -- Morning session
+        IF NOT v_morning_in_exists THEN
+            v_next_session := 'morning_in';
+        ELSIF v_morning_in_exists AND NOT v_morning_out_exists THEN
+            v_next_session := 'morning_out';
+        ELSE
+            v_next_session := NULL; -- Morning session complete
+        END IF;
+    ELSIF v_current_time >= '13:00:00' AND v_current_time < '18:00:00' THEN
+        -- Afternoon session
+        IF NOT v_afternoon_in_exists THEN
+            v_next_session := 'afternoon_in';
+        ELSIF v_afternoon_in_exists AND NOT v_afternoon_out_exists THEN
+            v_next_session := 'afternoon_out';
+        ELSE
+            v_next_session := NULL; -- Afternoon session complete
+        END IF;
+    ELSE
+        -- Break time (12:00 PM - 1:00 PM) or after hours
+        v_next_session := NULL;
+    END IF;
+    
+    RETURN v_next_session;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to check if employee can clock in/out during break period
+CREATE OR REPLACE FUNCTION is_break_period(p_timestamp TIMESTAMP) RETURNS BOOLEAN AS $$
+BEGIN
+    -- Convert timestamp to Manila timezone before checking break period
+    RETURN (p_timestamp AT TIME ZONE 'Asia/Manila')::TIME >= '12:00:00' AND (p_timestamp AT TIME ZONE 'Asia/Manila')::TIME < '13:00:00';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to validate attendance session creation
+CREATE OR REPLACE FUNCTION validate_attendance_session()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_is_valid BOOLEAN;
+    v_next_expected_session VARCHAR(50);
+    v_is_break BOOLEAN;
+BEGIN
+    -- Check if it's break period
+    v_is_break := is_break_period(NEW.clock_in);
+    IF v_is_break AND NEW.session_type IN ('morning_out', 'afternoon_in') THEN
+        -- Allow morning_out and afternoon_in during break period
+        v_is_valid := TRUE;
+    ELSE
+        -- Validate time window for other sessions
+        v_is_valid := validate_attendance_time_window(NEW.session_type, NEW.clock_in);
+    END IF;
+    
+    IF NOT v_is_valid THEN
+        RAISE EXCEPTION 'Invalid attendance time for session type % at time %', 
+            NEW.session_type, NEW.clock_in;
+    END IF;
+    
+    -- Check if this is the expected next session
+    SELECT get_next_session_type(
+        (SELECT ar.employee_id FROM attendance_records ar WHERE ar.id = NEW.attendance_record_id),
+        (SELECT ar.date FROM attendance_records ar WHERE ar.id = NEW.attendance_record_id)
+    ) INTO v_next_expected_session;
+    
+    IF v_next_expected_session IS NOT NULL AND NEW.session_type != v_next_expected_session THEN
+        RAISE EXCEPTION 'Expected session type % but got %', v_next_expected_session, NEW.session_type;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 /* === Business Logic Triggers === */
 CREATE TRIGGER update_attendance_overall_status 
     AFTER INSERT OR UPDATE ON attendance_sessions 
@@ -641,13 +924,73 @@ CREATE TRIGGER process_overtime_to_leave
     AFTER INSERT OR UPDATE ON attendance_sessions 
     FOR EACH ROW EXECUTE FUNCTION convert_overtime_to_leave();
 
-CREATE TRIGGER calculate_payroll_trigger 
-    AFTER INSERT OR UPDATE ON payroll_records 
-    FOR EACH ROW EXECUTE FUNCTION calculate_payroll();
+CREATE TRIGGER validate_attendance_session_trigger
+    BEFORE INSERT OR UPDATE ON attendance_sessions
+    FOR EACH ROW EXECUTE FUNCTION validate_attendance_session();
+
+-- CREATE TRIGGER calculate_payroll_trigger 
+--     AFTER INSERT OR UPDATE ON payroll_records 
+--     FOR EACH ROW EXECUTE FUNCTION calculate_payroll();
 
 CREATE TRIGGER process_time_correction_approval_trigger
     AFTER UPDATE ON time_correction_requests
     FOR EACH ROW EXECUTE FUNCTION process_time_correction_approval();
+
+-- Function to calculate session hours for payroll
+CREATE OR REPLACE FUNCTION calculate_session_payroll_data()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_regular_hours DECIMAL(4,2) := 0;
+    v_overtime_hours DECIMAL(4,2) := 0;
+    v_late_minutes INTEGER := 0;
+    v_expected_daily_hours DECIMAL(4,2) := 8.0;
+    v_clock_in_time TIME;
+    v_clock_out_time TIME;
+    v_expected_start_time TIME := '08:00:00';
+    v_grace_period_minutes INTEGER := 15;
+BEGIN
+    -- Only calculate when both clock_in and clock_out are present
+    IF NEW.clock_in IS NOT NULL AND NEW.clock_out IS NOT NULL THEN
+        v_clock_in_time := NEW.clock_in::TIME;
+        v_clock_out_time := NEW.clock_out::TIME;
+        
+        -- Calculate total hours
+        v_regular_hours := EXTRACT(EPOCH FROM (NEW.clock_out - NEW.clock_in)) / 3600;
+        
+        -- Calculate late minutes (after grace period)
+        IF v_clock_in_time > (v_expected_start_time + (v_grace_period_minutes || ' minutes')::INTERVAL) THEN
+            v_late_minutes := EXTRACT(EPOCH FROM (v_clock_in_time - (v_expected_start_time + (v_grace_period_minutes || ' minutes')::INTERVAL))) / 60;
+        END IF;
+        
+        -- Calculate late hours (rounded up to nearest hour)
+        IF v_late_minutes > 0 THEN
+            v_regular_hours := v_regular_hours - CEIL(v_late_minutes / 60.0);
+        END IF;
+        
+        -- Calculate overtime hours (hours beyond expected daily hours)
+        IF v_regular_hours > v_expected_daily_hours THEN
+            v_overtime_hours := v_regular_hours - v_expected_daily_hours;
+            v_regular_hours := v_expected_daily_hours;
+        END IF;
+        
+        -- Ensure regular hours is not negative
+        v_regular_hours := GREATEST(0, v_regular_hours);
+        
+        -- Update the record
+        NEW.regular_hours := v_regular_hours;
+        NEW.overtime_hours := v_overtime_hours;
+        NEW.late_minutes := v_late_minutes;
+        NEW.late_hours := CEIL(v_late_minutes / 60.0);
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for payroll calculation
+CREATE TRIGGER calculate_payroll_session_data
+    BEFORE INSERT OR UPDATE ON attendance_sessions
+    FOR EACH ROW EXECUTE FUNCTION calculate_session_payroll_data();
 
 CREATE TRIGGER process_overtime_request_approval_trigger
     AFTER UPDATE ON overtime_requests

@@ -68,11 +68,25 @@ router.get('/periods/:id/summary', authorize(['hr']), payrollController.getPayro
 router.get('/records', authorize(['hr']), payrollController.getPayrollRecords.bind(payrollController));
 
 /**
+ * @route GET /api/v1/payroll/records/export
+ * @desc Export payroll records
+ * @access HR Admin
+ */
+router.get('/records/export', authorize(['hr']), payrollController.exportPayrollRecords.bind(payrollController));
+
+/**
  * @route GET /api/v1/payroll/records/:id
  * @desc Get payroll record by ID
  * @access HR Admin
  */
 router.get('/records/:id', authorize(['hr']), payrollController.getPayrollRecord.bind(payrollController));
+
+/**
+ * @route GET /api/v1/payroll/stats
+ * @desc Get payroll statistics
+ * @access HR Admin
+ */
+router.get('/stats', authorize(['hr']), payrollController.getPayrollStats.bind(payrollController));
 
 /**
  * @route PUT /api/v1/payroll/records/:id
@@ -215,5 +229,129 @@ router.get('/periods/:payrollPeriodId/approvals/workflow', authorize(['hr']), pa
  * @access HR Admin
  */
 router.delete('/approvals/:id', authorize(['hr']), payrollApprovalController.deletePayrollApproval.bind(payrollApprovalController));
+
+// ===== NEW PAYROLL SYSTEM ROUTES =====
+
+// New routes for benefit types management
+/**
+ * @route POST /api/v1/payroll/benefit-types
+ * @desc Create a new benefit type
+ * @access HR Admin
+ */
+router.post('/benefit-types', authorize(['hr']), payrollController.createBenefitType.bind(payrollController));
+
+/**
+ * @route GET /api/v1/payroll/benefit-types
+ * @desc Get all benefit types
+ * @access HR Admin
+ */
+router.get('/benefit-types', authorize(['hr']), payrollController.getBenefitTypes.bind(payrollController));
+
+/**
+ * @route PUT /api/v1/payroll/benefit-types/:id
+ * @desc Update benefit type
+ * @access HR Admin
+ */
+router.put('/benefit-types/:id', authorize(['hr']), payrollController.updateBenefitType.bind(payrollController));
+
+/**
+ * @route DELETE /api/v1/payroll/benefit-types/:id
+ * @desc Delete benefit type
+ * @access HR Admin
+ */
+router.delete('/benefit-types/:id', authorize(['hr']), payrollController.deleteBenefitType.bind(payrollController));
+
+// New routes for employee deduction balances management
+/**
+ * @route GET /api/v1/payroll/employee-deduction-balances
+ * @desc Get employee deduction balances
+ * @access HR Admin
+ */
+router.get('/employee-deduction-balances', authorize(['hr']), payrollController.getEmployeeDeductionBalances.bind(payrollController));
+
+/**
+ * @route POST /api/v1/payroll/employee-deduction-balances
+ * @desc Create employee deduction balance
+ * @access HR Admin
+ */
+router.post('/employee-deduction-balances', authorize(['hr']), payrollController.createEmployeeDeductionBalance.bind(payrollController));
+
+/**
+ * @route POST /api/v1/payroll/employee-deduction-balances/upload
+ * @desc Upload employee deduction balances from CSV
+ * @access HR Admin
+ */
+router.post('/employee-deduction-balances/upload', authorize(['hr']), payrollController.uploadEmployeeDeductionBalances.bind(payrollController));
+
+/**
+ * @route DELETE /api/v1/payroll/employee-deduction-balances/:id
+ * @desc Delete employee deduction balance
+ * @access HR Admin
+ */
+router.delete('/employee-deduction-balances/:id', authorize(['hr']), payrollController.deleteEmployeeDeductionBalance.bind(payrollController));
+
+// New routes for employee benefits management
+/**
+ * @route GET /api/v1/payroll/employee-benefits
+ * @desc Get employee benefits
+ * @access HR Admin
+ */
+router.get('/employee-benefits', authorize(['hr']), payrollController.getEmployeeBenefits.bind(payrollController));
+
+/**
+ * @route POST /api/v1/payroll/employee-benefits
+ * @desc Create employee benefit
+ * @access HR Admin
+ */
+router.post('/employee-benefits', authorize(['hr']), payrollController.createEmployeeBenefit.bind(payrollController));
+
+/**
+ * @route POST /api/v1/payroll/employee-benefits/upload
+ * @desc Upload employee benefits from CSV
+ * @access HR Admin
+ */
+router.post('/employee-benefits/upload', authorize(['hr']), payrollController.uploadEmployeeBenefits.bind(payrollController));
+
+/**
+ * @route PUT /api/v1/payroll/employee-benefits/:id
+ * @desc Update employee benefit
+ * @access HR Admin
+ */
+router.put('/employee-benefits/:id', authorize(['hr']), payrollController.updateEmployeeBenefit.bind(payrollController));
+
+/**
+ * @route DELETE /api/v1/payroll/employee-benefits/:id
+ * @desc Delete employee benefit
+ * @access HR Admin
+ */
+router.delete('/employee-benefits/:id', authorize(['hr']), payrollController.deleteEmployeeBenefit.bind(payrollController));
+
+/**
+ * @route POST /api/v1/payroll/initialize-periods
+ * @desc Initialize payroll periods for the current year
+ * @access HR Admin
+ */
+router.post('/initialize-periods', authorize(['hr']), payrollController.initializePayrollPeriods.bind(payrollController));
+
+/**
+ * @route POST /api/v1/payroll/generate-current-month
+ * @desc Generate payroll period for the current month only
+ * @access HR Admin
+ */
+router.post('/generate-current-month', authorize(['hr']), payrollController.generateCurrentMonthPeriod.bind(payrollController));
+
+/**
+ * @route GET /api/v1/payroll/expected-hours
+ * @desc Get expected monthly hours from system settings
+ * @access HR Admin
+ */
+router.get('/expected-hours', authorize(['hr']), payrollController.getExpectedMonthlyHours.bind(payrollController));
+
+/**
+ * @route GET /api/v1/payroll/paystubs/department/:departmentId/period/:periodId
+ * @desc Generate PDF paystubs for a department's employees for a specific period
+ * @access HR Admin
+ */
+router.get('/paystubs/department/:departmentId/period/:periodId', authorize(['hr']), payrollController.generateDepartmentPaystubs.bind(payrollController));
 
 export default router;
