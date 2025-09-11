@@ -1,383 +1,252 @@
 import React, { useState } from 'react';
-import { DollarSign, Calendar, Users, FileText, Download, Plus, Eye } from 'lucide-react';
-import Button from '../../components/shared/Button';
+import { DollarSign, Calendar, Users, FileText, CheckCircle, AlertCircle, CreditCard, Gift, Zap, Receipt } from 'lucide-react';
 import Card from '../../components/shared/Card';
-import Badge from '../../components/shared/Badge';
-import Modal from '../../components/shared/Modal';
 import PageLayout from '../../components/layout/PageLayout';
-import type { PayrollPeriod } from '../../types';
+import { usePayrollStats, usePayrollPeriods } from '../../hooks/usePayroll';
+import { 
+  DeductionTypeManagement, 
+  BenefitTypeManagement, 
+  EmployeeDeductionBalanceManagement, 
+  EmployeeBenefitManagement,
+  PayrollPeriodManagement,
+  PayrollApprovalManagement,
+  PayrollProcessingManagement,
+  PayrollRecordsManagement,
+  PayrollHistoryManagement
+} from '../../components/features/payroll';
 
 const PayrollManagement: React.FC = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
-  const [isCreatePeriodModalOpen, setIsCreatePeriodModalOpen] = useState(false);
-  const [isViewRecordsModalOpen, setIsViewRecordsModalOpen] = useState(false);
-  const [isProcessingModalOpen, setIsProcessingModalOpen] = useState(false);
-
-  // Mock data - TODO: Replace with actual API calls
-  const payrollPeriods: PayrollPeriod[] = [
-    {
-      id: '1',
-      name: 'January 2025',
-      periodName: 'January 2025',
-      startDate: '2025-01-01',
-      endDate: '2025-01-31',
-      status: 'completed',
-      totalEmployees: 25,
-      totalAmount: 150000,
-      createdBy: 'hr-user-1',
-      createdAt: '2025-01-01T00:00:00Z',
-      updatedAt: '2025-01-31T23:59:59Z',
-    },
-    {
-      id: '2',
-      name: 'February 2025',
-      periodName: 'February 2025',
-      startDate: '2025-02-01',
-      endDate: '2025-02-28',
-      status: 'processing',
-      totalEmployees: 25,
-      totalAmount: 150000,
-      createdBy: 'hr-user-1',
-      createdAt: '2025-02-01T00:00:00Z',
-      updatedAt: '2025-02-15T10:30:00Z',
-    },
-    {
-      id: '3',
-      name: 'March 2025',
-      periodName: 'March 2025',
-      startDate: '2025-03-01',
-      endDate: '2025-03-31',
-      status: 'draft',
-      totalEmployees: 25,
-      totalAmount: 150000,
-      createdBy: 'hr-user-1',
-      createdAt: '2025-03-01T00:00:00Z',
-      updatedAt: '2025-03-01T00:00:00Z',
-    },
+  const [activeTab, setActiveTab] = useState<'overview' | 'payroll-periods' | 'payroll-processing' | 'payroll-records' | 'payroll-approvals' | 'payroll-history' | 'deduction-types' | 'benefit-types' | 'employee-deductions' | 'employee-benefits'>('overview');
+  
+  // Fetch real data for overview
+  const { data: statsData } = usePayrollStats();
+  const { data: periodsData } = usePayrollPeriods({ page: 1, limit: 100 });
+  
+  const stats = statsData || { totalEmployees: 0, totalPayroll: 0, processedPeriods: 0, pendingPeriods: 0 };
+  const periods = periodsData?.periods || [];
+  const currentPeriod = periods.find(p => p.status === 'processing') || periods[0];
+  const pendingApprovals = periods.filter(p => p.status === 'draft').length;
+  
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: DollarSign },
+    { id: 'payroll-periods', label: 'Payroll Periods', icon: Calendar },
+    { id: 'payroll-processing', label: 'Processing', icon: Zap },
+    { id: 'payroll-records', label: 'Payroll Records', icon: Receipt },
+    { id: 'payroll-approvals', label: 'Approvals', icon: CheckCircle },
+    { id: 'payroll-history', label: 'History', icon: FileText },
+    { id: 'deduction-types', label: 'Deduction Types', icon: CreditCard },
+    { id: 'benefit-types', label: 'Benefit Types', icon: Gift },
+    { id: 'employee-deductions', label: 'Employee Deductions', icon: AlertCircle },
+    { id: 'employee-benefits', label: 'Employee Benefits', icon: CheckCircle },
   ];
 
-  const handleCreatePeriod = () => {
-    setIsCreatePeriodModalOpen(true);
-  };
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <Users className="h-8 w-8 text-blue-500" />
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Total Employees</h3>
+                    <p className="text-2xl font-bold text-blue-600">{stats.totalEmployees || 0}</p>
+                  </div>
+                </div>
+              </Card>
 
-  const handleViewRecords = (period: PayrollPeriod) => {
-    setSelectedPeriod(period);
-    setIsViewRecordsModalOpen(true);
-  };
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <DollarSign className="h-8 w-8 text-green-500" />
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Total Payroll</h3>
+                    <p className="text-2xl font-bold text-green-600">₱{stats.totalPayroll || 0}</p>
+                  </div>
+                </div>
+              </Card>
 
-  const handleProcessPayroll = (period: PayrollPeriod) => {
-    setSelectedPeriod(period);
-    setIsProcessingModalOpen(true);
-  };
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <Calendar className="h-8 w-8 text-purple-500" />
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Current Period</h3>
+                    <p className="text-2xl font-bold text-purple-600">{currentPeriod?.periodName || '-'}</p>
+                  </div>
+                </div>
+              </Card>
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return 'default';
-      case 'processing': return 'warning';
-      case 'sent_for_review': return 'info';
-      case 'completed': return 'success';
-      default: return 'default';
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <FileText className="h-8 w-8 text-orange-500" />
+                  <div className="ml-4">
+                    <h3 className="text-lg font-medium text-gray-900">Pending</h3>
+                    <p className="text-2xl font-bold text-orange-600">{pendingApprovals}</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Payroll System Overview</h3>
+              <p className="text-gray-600 mb-4">
+                The payroll system follows a comprehensive workflow for managing employee compensation:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Setup Phase (HR Admin)</h4>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                    <li>Create deduction types (percentage or fixed amount)</li>
+                    <li>Create benefit types for employee benefits</li>
+                    <li>Upload employee deduction balances via CSV</li>
+                    <li>Assign benefits to employees</li>
+                    <li>Auto-generate monthly payroll periods with actual working days calculated</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-2">Processing Phase (System)</h4>
+                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                    <li>Automatic monthly payroll period generation</li>
+                    <li>Base salary calculation (176 hours = full salary)</li>
+                    <li>Automatic deduction application until balance reaches zero</li>
+                    <li>Benefits addition to net pay</li>
+                    <li>Late deduction calculation based on attendance</li>
+                    <li>Send payroll to departments for review and approval</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Payroll Calculation Formula</h4>
+                <p className="text-sm text-blue-800">
+                  <strong>Net Pay = Base Salary - Deductions - Late Deductions + Benefits</strong>
+                </p>
+                <p className="text-xs text-blue-700 mt-1">
+                  Where: Base Salary is paid based on actual working days in the month (excluding weekends), 
+                  deductions are automatically applied from employee balances, 
+                  late deductions are calculated based on attendance, 
+                  and benefits are added to the final amount.
+                </p>
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <button
+                  onClick={() => setActiveTab('payroll-periods')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
+                  <Calendar className="h-6 w-6 text-blue-500 mb-2" />
+                  <h4 className="font-medium text-gray-900">Payroll Periods</h4>
+                  <p className="text-sm text-gray-600">Create and manage payroll periods</p>
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('payroll-approvals')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
+                  <CheckCircle className="h-6 w-6 text-green-500 mb-2" />
+                  <h4 className="font-medium text-gray-900">Approvals</h4>
+                  <p className="text-sm text-gray-600">Track department approval status</p>
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('deduction-types')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
+                  <CreditCard className="h-6 w-6 text-purple-500 mb-2" />
+                  <h4 className="font-medium text-gray-900">Deduction Types</h4>
+                  <p className="text-sm text-gray-600">Create and configure deduction types</p>
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('benefit-types')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
+                  <Gift className="h-6 w-6 text-pink-500 mb-2" />
+                  <h4 className="font-medium text-gray-900">Benefit Types</h4>
+                  <p className="text-sm text-gray-600">Create and configure benefit types</p>
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('employee-deductions')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
+                  <AlertCircle className="h-6 w-6 text-orange-500 mb-2" />
+                  <h4 className="font-medium text-gray-900">Employee Deductions</h4>
+                  <p className="text-sm text-gray-600">Upload and manage employee deduction balances</p>
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab('employee-benefits')}
+                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                >
+                  <CheckCircle className="h-6 w-6 text-emerald-500 mb-2" />
+                  <h4 className="font-medium text-gray-900">Employee Benefits</h4>
+                  <p className="text-sm text-gray-600">Assign and manage employee benefits</p>
+                </button>
+              </div>
+            </Card>
+          </div>
+        );
+      case 'payroll-periods':
+        return <PayrollPeriodManagement />;
+      case 'payroll-processing':
+        return <PayrollProcessingManagement />;
+      case 'payroll-records':
+        return <PayrollRecordsManagement />;
+      case 'payroll-approvals':
+        return <PayrollApprovalManagement />;
+      case 'payroll-history':
+        return <PayrollHistoryManagement />;
+      case 'deduction-types':
+        return <DeductionTypeManagement />;
+      case 'benefit-types':
+        return <BenefitTypeManagement />;
+      case 'employee-deductions':
+        return <EmployeeDeductionBalanceManagement />;
+      case 'employee-benefits':
+        return <EmployeeBenefitManagement />;
+      default:
+        return null;
     }
   };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'draft': return 'Draft';
-      case 'processing': return 'Processing';
-      case 'sent_for_review': return 'Under Review';
-      case 'completed': return 'Completed';
-      default: return status;
-    }
-  };
-
-  const totalEmployees = 150; // Mock data
-  const totalGrossPay = 125000; // Mock data
-  const totalNetPay = 100000; // Mock data
-  const totalDeductions = 25000; // Mock data
 
   return (
     <PageLayout
       title="Payroll Management"
-      subtitle="Process payroll and manage employee compensation"
-      actions={
-        <div className="flex items-center space-x-3">
-          <Button variant="secondary" icon={<Download className="h-4 w-4" />}>
-            Export Reports
-          </Button>
-          <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={handleCreatePeriod}>
-            Create Payroll Period
-          </Button>
-        </div>
-      }
+      subtitle="Process payroll and manage employee compensation with the comprehensive system"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Payroll Statistics */}
-        <Card>
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-text-primary">Payroll Overview</h3>
-            <p className="text-sm text-text-secondary">
-              Current payroll statistics and financial summary
-            </p>
-          </div>
-          <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-primary">Total Employees</p>
-                  <p className="text-xs text-text-secondary">Active employees</p>
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-text-primary">{totalEmployees}</p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-primary">Total Gross Pay</p>
-                  <p className="text-xs text-text-secondary">Before deductions</p>
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-text-primary">
-                ${totalGrossPay.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-primary">Total Net Pay</p>
-                  <p className="text-xs text-text-secondary">After deductions</p>
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-text-primary">
-                ${totalNetPay.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-primary">Total Deductions</p>
-                  <p className="text-xs text-text-secondary">Taxes and benefits</p>
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-text-primary">
-                ${totalDeductions.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Right Column - Payroll Periods */}
-        <Card>
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-text-primary">Payroll Periods</h3>
-            <p className="text-sm text-text-secondary">
-              Manage payroll periods and process employee compensation
-            </p>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {payrollPeriods.map((period) => (
-                <div
-                  key={period.id}
-                  className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+      {/* Tab Navigation */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Calendar className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-text-primary">{period.periodName}</h4>
-                        <p className="text-xs text-text-secondary">
-                          {new Date(period.startDate).toLocaleDateString()} - {new Date(period.endDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant={getStatusColor(period.status)}>
-                      {getStatusLabel(period.status)}
-                    </Badge>
-                  </div>
-
-                  <div className="text-sm text-text-secondary mb-3">
-                    <p>{period.totalEmployees} employees • ${period.totalAmount?.toLocaleString() || '0'}</p>
-                    <p className="text-xs">Created by: {period.createdBy}</p>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-text-secondary">
-                      Period ID: {period.id}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={<Eye className="h-3 w-3" />}
-                        onClick={() => handleViewRecords(period)}
-                      >
-                        View
-                      </Button>
-                      {period.status === 'draft' && (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleProcessPayroll(period)}
-                        >
-                          Process
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
       </div>
 
-      {/* Recent Activity */}
-      <Card className="mt-6">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-text-primary">Recent Activity</h3>
-          <p className="text-sm text-text-secondary">
-            Latest payroll processing activities and updates
-          </p>
-        </div>
-        <div className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <FileText className="h-4 w-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-text-primary">
-                  Payroll for February 2025 completed successfully
-                </p>
-                <p className="text-xs text-text-secondary">2 hours ago</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-4 w-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-text-primary">
-                  New employee added to payroll system
-                </p>
-                <p className="text-xs text-text-secondary">1 day ago</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <DollarSign className="h-4 w-4 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-text-primary">
-                  Deduction type updated: Health Insurance
-                </p>
-                <p className="text-xs text-text-secondary">3 days ago</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Create Payroll Period Modal */}
-      <Modal
-        isOpen={isCreatePeriodModalOpen}
-        onClose={() => setIsCreatePeriodModalOpen(false)}
-        title="Create Payroll Period"
-        size="lg"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-text-secondary">
-            Create a new payroll period for processing employee compensation.
-          </p>
-          {/* TODO: Implement PayrollPeriodForm component */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" onClick={() => setIsCreatePeriodModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary">
-              Create Period
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* View Records Modal */}
-      <Modal
-        isOpen={isViewRecordsModalOpen}
-        onClose={() => setIsViewRecordsModalOpen(false)}
-        title="Payroll Records"
-        size="xl"
-      >
-        <div className="space-y-4">
-          {selectedPeriod && (
-            <div className="mb-4">
-              <h4 className="font-medium text-text-primary">{selectedPeriod.periodName}</h4>
-              <p className="text-sm text-text-secondary">
-                {new Date(selectedPeriod.startDate).toLocaleDateString()} - {new Date(selectedPeriod.endDate).toLocaleDateString()}
-              </p>
-            </div>
-          )}
-          {/* TODO: Implement PayrollRecordsTable component */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" onClick={() => setIsViewRecordsModalOpen(false)}>
-              Close
-            </Button>
-            <Button variant="primary" icon={<Download className="h-4 w-4" />}>
-              Export Records
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Process Payroll Modal */}
-      <Modal
-        isOpen={isProcessingModalOpen}
-        onClose={() => setIsProcessingModalOpen(false)}
-        title="Process Payroll"
-        size="lg"
-      >
-        <div className="space-y-4">
-          {selectedPeriod && (
-            <div className="mb-4">
-              <h4 className="font-medium text-text-primary">{selectedPeriod.periodName}</h4>
-              <p className="text-sm text-text-secondary">
-                This will calculate payroll for all active employees in this period.
-              </p>
-            </div>
-          )}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
-              <strong>Warning:</strong> This action will process payroll for all employees. 
-              Make sure all attendance and leave data is accurate before proceeding.
-            </p>
-          </div>
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" onClick={() => setIsProcessingModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary">
-              Process Payroll
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Tab Content */}
+      <div className="transition-all duration-300 ease-in-out">
+        {renderTabContent()}
+      </div>
     </PageLayout>
   );
 };

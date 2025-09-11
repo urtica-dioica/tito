@@ -15,7 +15,8 @@ import {
   LogOut,
   User,
   Bell,
-  MoreVertical
+  MoreVertical,
+  Calendar
 } from 'lucide-react';
 import type { SidebarProps } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -42,6 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, isCollapsed, onToggle, classNam
           { path: '/hr/dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { path: '/hr/employees', label: 'Employees', icon: Users },
           { path: '/hr/departments', label: 'Departments', icon: Building },
+          { path: '/hr/leave-balances', label: 'Leave Balances', icon: Calendar },
           { path: '/hr/payroll', label: 'Payrolls', icon: DollarSign },
           { path: '/hr/requests', label: 'Requests', icon: FileText },
           { path: '/hr/settings', label: 'Settings', icon: Settings },

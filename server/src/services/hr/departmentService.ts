@@ -326,7 +326,7 @@ export class DepartmentService {
       const modelData = {
         name: data.name,
         description: data.description,
-        department_head_user_id: data.departmentHeadUserId,
+        department_head_user_id: data.departmentHeadUserId === undefined ? null : data.departmentHeadUserId,
         is_active: data.isActive
       };
       await this.departmentModel.updateDepartment(departmentId, modelData);

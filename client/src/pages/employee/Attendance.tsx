@@ -5,117 +5,45 @@ import Badge from '../../components/shared/Badge';
 import Button from '../../components/shared/Button';
 import Input from '../../components/shared/Input';
 import PageLayout from '../../components/layout/PageLayout';
-
-// Mock data types - TODO: Replace with actual types from API
-interface AttendanceRecord {
-  id: string;
-  date: string;
-  clockIn: string | null;
-  clockOut: string | null;
-  totalHours: number | null;
-  status: 'present' | 'absent' | 'late' | 'half_day' | 'holiday';
-  overtimeHours?: number;
-  notes?: string;
-}
-
-interface AttendanceSummary {
-  totalDays: number;
-  presentDays: number;
-  absentDays: number;
-  lateDays: number;
-  totalHours: number;
-  averageHours: number;
-  overtimeHours: number;
-}
+import LoadingSpinner from '../../components/shared/LoadingSpinner';
+import { useAttendanceHistory, useAttendanceSummary } from '../../hooks/useEmployee';
+// import type { AttendanceRecord, AttendanceSummary } from '../../services/employeeService';
 
 const EmployeeAttendance: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [filterStatus, setFilterStatus] = useState('');
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
 
-  // Mock data - TODO: Replace with actual API calls
-  const attendanceRecords: AttendanceRecord[] = [
-    {
-      id: '1',
-      date: '2025-01-15',
-      clockIn: '2025-01-15T08:30:00Z',
-      clockOut: null,
-      totalHours: null,
-      status: 'present',
-      overtimeHours: 0,
-    },
-    {
-      id: '2',
-      date: '2025-01-14',
-      clockIn: '2025-01-14T08:45:00Z',
-      clockOut: '2025-01-14T17:30:00Z',
-      totalHours: 8.75,
-      status: 'late',
-      overtimeHours: 0.75,
-    },
-    {
-      id: '3',
-      date: '2025-01-13',
-      clockIn: '2025-01-13T08:00:00Z',
-      clockOut: '2025-01-13T17:00:00Z',
-      totalHours: 9,
-      status: 'present',
-      overtimeHours: 1,
-    },
-    {
-      id: '4',
-      date: '2025-01-12',
-      clockIn: '2025-01-12T08:15:00Z',
-      clockOut: '2025-01-12T17:15:00Z',
-      totalHours: 9,
-      status: 'present',
-      overtimeHours: 1,
-    },
-    {
-      id: '5',
-      date: '2025-01-11',
-      clockIn: null,
-      clockOut: null,
-      totalHours: 0,
-      status: 'absent',
-    },
-    {
-      id: '6',
-      date: '2025-01-10',
-      clockIn: '2025-01-10T08:00:00Z',
-      clockOut: '2025-01-10T12:00:00Z',
-      totalHours: 4,
-      status: 'half_day',
-    },
-    {
-      id: '7',
-      date: '2025-01-09',
-      clockIn: '2025-01-09T08:00:00Z',
-      clockOut: '2025-01-09T17:00:00Z',
-      totalHours: 9,
-      status: 'present',
-      overtimeHours: 1,
-    },
-    {
-      id: '8',
-      date: '2025-01-08',
-      clockIn: '2025-01-08T08:30:00Z',
-      clockOut: '2025-01-08T17:30:00Z',
-      totalHours: 9,
-      status: 'present',
-      overtimeHours: 1,
-    },
-  ];
+  // Fetch attendance data from API
+  const { data: attendanceRecords = [], isLoading: recordsLoading, error: recordsError } = useAttendanceHistory({
+    month: selectedMonth
+  });
+  
+  const { data: attendanceSummary, isLoading: summaryLoading, error: summaryError } = useAttendanceSummary({
+    month: selectedMonth
+  });
 
-  const attendanceSummary: AttendanceSummary = {
-    totalDays: 22,
-    presentDays: 18,
-    absentDays: 1,
-    lateDays: 2,
-    totalHours: 144.5,
-    averageHours: 8.2,
-    overtimeHours: 4.75,
-  };
+  // Show loading state
+  if (recordsLoading || summaryLoading) {
+    return (
+      <PageLayout title="My Attendance" subtitle="Loading attendance data...">
+        <div className="flex justify-center items-center h-64">
+          <LoadingSpinner size="lg" />
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Show error state
+  if (recordsError || summaryError) {
+    return (
+      <PageLayout title="My Attendance" subtitle="Error loading attendance data">
+        <Card className="p-6 text-center">
+          <p className="text-red-600">Failed to load attendance data. Please try again later.</p>
+        </Card>
+      </PageLayout>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -169,61 +97,63 @@ const EmployeeAttendance: React.FC = () => {
       subtitle="Track your daily attendance and working hours"
     >
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-green-600" />
+      {attendanceSummary && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Calendar className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-text-secondary">Present Days</p>
+                <p className="text-2xl font-bold text-text-primary">{attendanceSummary.presentDays}</p>
+                <p className="text-xs text-text-secondary">
+                  of {attendanceSummary.totalDays} days
+                </p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-text-secondary">Present Days</p>
-              <p className="text-2xl font-bold text-text-primary">{attendanceSummary.presentDays}</p>
-              <p className="text-xs text-text-secondary">
-                of {attendanceSummary.totalDays} days
-              </p>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <Clock className="h-6 w-6 text-red-600" />
+          <Card className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <Clock className="h-6 w-6 text-red-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-text-secondary">Absent Days</p>
+                <p className="text-2xl font-bold text-text-primary">{attendanceSummary.absentDays}</p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-text-secondary">Absent Days</p>
-              <p className="text-2xl font-bold text-text-primary">{attendanceSummary.absentDays}</p>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-blue-600" />
+          <Card className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-text-secondary">Total Hours</p>
+                <p className="text-2xl font-bold text-text-primary">{attendanceSummary.totalHours.toFixed(1)}</p>
+                <p className="text-xs text-text-secondary">
+                  Avg: {attendanceSummary.averageHours.toFixed(1)}h/day
+                </p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-text-secondary">Total Hours</p>
-              <p className="text-2xl font-bold text-text-primary">{attendanceSummary.totalHours}</p>
-              <p className="text-xs text-text-secondary">
-                Avg: {attendanceSummary.averageHours}h/day
-              </p>
-            </div>
-          </div>
-        </Card>
+          </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Clock className="h-6 w-6 text-yellow-600" />
+          <Card className="p-6">
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Clock className="h-6 w-6 text-yellow-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-text-secondary">Overtime Hours</p>
+                <p className="text-2xl font-bold text-text-primary">{attendanceSummary.overtimeHours.toFixed(1)}</p>
+              </div>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-text-secondary">Overtime Hours</p>
-              <p className="text-2xl font-bold text-text-primary">{attendanceSummary.overtimeHours}</p>
-            </div>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </div>
+      )}
 
       {/* Filters and Controls */}
       <Card className="mb-6">

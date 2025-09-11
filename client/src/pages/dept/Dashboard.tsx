@@ -1,22 +1,18 @@
 import React from 'react';
-import { Users, DollarSign, FileText, Clock, TrendingUp } from 'lucide-react';
+import { Users, DollarSign, FileText, Clock, TrendingUp, Calendar, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/shared/Button';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import { 
-  useDepartmentInfo, 
-  useDepartmentHeadEmployeeStats, 
-  useDepartmentHeadRequestStats 
+  useDepartmentHeadDashboard
 } from '../../hooks/useDepartmentHead';
 
 const DepartmentHeadDashboard: React.FC = () => {
   const navigate = useNavigate();
   
-  // Fetch real data from API
-  const { data: department, isLoading: departmentLoading, error: departmentError } = useDepartmentInfo();
-  const { data: employeeStats, isLoading: statsLoading, error: statsError } = useDepartmentHeadEmployeeStats();
-  const { data: requestStats, isLoading: requestStatsLoading, error: requestStatsError } = useDepartmentHeadRequestStats();
+  // Fetch dashboard data from API
+  const { data: dashboard, isLoading, error } = useDepartmentHeadDashboard();
 
   const handleViewEmployees = () => {
     navigate('/dept/employees');
@@ -36,7 +32,7 @@ const DepartmentHeadDashboard: React.FC = () => {
   };
 
   // Loading state
-  if (departmentLoading || statsLoading || requestStatsLoading) {
+  if (isLoading) {
     return (
       <PageLayout title="Department Dashboard" subtitle="Loading department information...">
         <div className="flex justify-center items-center h-64">
@@ -47,12 +43,12 @@ const DepartmentHeadDashboard: React.FC = () => {
   }
 
   // Error state
-  if (departmentError || statsError || requestStatsError) {
+  if (error) {
     return (
       <PageLayout title="Department Dashboard" subtitle="Error loading dashboard data">
         <div className="text-center py-12">
           <p className="text-red-600">
-            Error loading dashboard data: {departmentError?.message || statsError?.message || requestStatsError?.message}
+            Error loading dashboard data: {error.message}
           </p>
         </div>
       </PageLayout>
@@ -62,7 +58,7 @@ const DepartmentHeadDashboard: React.FC = () => {
   return (
     <PageLayout
       title="Department Dashboard"
-      subtitle={`Welcome to ${department?.name || 'Department'} management`}
+      subtitle={`Welcome to ${dashboard?.department?.name || 'Department'} management`}
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Quick Actions */}
@@ -122,50 +118,88 @@ const DepartmentHeadDashboard: React.FC = () => {
               Latest updates and activities in your department
             </p>
           </div>
-          <div className="flex-1 p-6">
-            <div className="space-y-4 h-full">
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Users className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-text-primary">
-                    Total employees: {employeeStats?.totalEmployees || 0}
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    {employeeStats?.activeEmployees || 0} active employees
-                  </p>
-                </div>
-              </div>
+          <div className="flex-1 p-6 overflow-y-auto">
+            {dashboard?.recentActivity && dashboard.recentActivity.length > 0 ? (
+              <div className="space-y-3">
+                {dashboard.recentActivity.map((activity, index) => {
+                  const getActivityIcon = () => {
+                    switch (activity.type) {
+                      case 'time_correction':
+                        return <Clock className="h-4 w-4 text-blue-600" />;
+                      case 'overtime':
+                        return <TrendingUp className="h-4 w-4 text-green-600" />;
+                      case 'leave':
+                        return <Calendar className="h-4 w-4 text-purple-600" />;
+                      default:
+                        return <FileText className="h-4 w-4 text-gray-600" />;
+                    }
+                  };
 
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-text-primary">
-                    Pending requests: {requestStats?.pending || 0}
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    {requestStats?.total || 0} total requests this month
-                  </p>
-                </div>
-              </div>
+                  const getStatusIcon = () => {
+                    switch (activity.status) {
+                      case 'pending':
+                        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+                      case 'approved':
+                        return <CheckCircle className="h-4 w-4 text-green-500" />;
+                      case 'rejected':
+                        return <XCircle className="h-4 w-4 text-red-500" />;
+                      default:
+                        return <AlertCircle className="h-4 w-4 text-gray-500" />;
+                    }
+                  };
 
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-text-primary">
-                    Average salary: ${employeeStats?.averageSalary ? Math.round(employeeStats.averageSalary).toLocaleString() : 0}
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    Based on {employeeStats?.totalEmployees || 0} employees
-                  </p>
-                </div>
+                  const getActivityTypeLabel = () => {
+                    switch (activity.type) {
+                      case 'time_correction':
+                        return 'Time Correction';
+                      case 'overtime':
+                        return 'Overtime Request';
+                      case 'leave':
+                        return 'Leave Request';
+                      default:
+                        return 'Request';
+                    }
+                  };
+
+                  return (
+                    <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex-shrink-0 mt-1">
+                        {getActivityIcon()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-text-primary">
+                            {getActivityTypeLabel()}
+                          </p>
+                          <div className="flex items-center space-x-1">
+                            {getStatusIcon()}
+                            <span className="text-xs text-text-secondary capitalize">
+                              {activity.status}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-text-secondary">
+                          {activity.employeeName}
+                        </p>
+                        <p className="text-xs text-text-secondary">
+                          {new Date(activity.date).toLocaleDateString()} at {new Date(activity.date).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <FileText className="h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-sm text-text-secondary">
+                  No recent activity found
+                </p>
+                <p className="text-xs text-text-secondary mt-1">
+                  Activity will appear here as employees submit requests
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

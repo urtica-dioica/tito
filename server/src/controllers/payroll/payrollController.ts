@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { payrollService } from '../../services/payroll/payrollService';
+import { autoPayrollService } from '../../services/payroll/autoPayrollService';
 import { getRequestId } from '../../utils/types/express';
 import logger from '../../utils/logger';
 
@@ -245,8 +246,21 @@ export class PayrollController {
     
     try {
       const { id } = req.params;
+      const { departmentId } = req.query;
 
-      const records = await payrollService.generatePayrollRecords(id);
+      let records;
+      if (departmentId) {
+        // Generate records for specific department
+        records = await payrollService.generatePayrollRecords(id, departmentId as string);
+      } else {
+        // Generate records for all departments
+        const departmentResults = await payrollService.generatePayrollRecordsForAllDepartments(id);
+        records = departmentResults.flatMap(result => result.records);
+        
+        // Create department-specific approvals after generating records
+        const { payrollApprovalService } = await import('../../services/payroll/payrollApprovalService');
+        await payrollApprovalService.createApprovalsForPayrollPeriod(id);
+      }
 
       res.status(201).json({
         success: true,
@@ -540,6 +554,807 @@ export class PayrollController {
       res.status(500).json({
         success: false,
         message: 'Failed to mark payroll as paid',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route GET /api/v1/payroll/records/export
+   * @desc Export payroll records
+   * @access HR Admin
+   */
+  async exportPayrollRecords(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { format = 'csv', payroll_period_id, status } = req.query;
+      
+      const params = {
+        payroll_period_id: payroll_period_id as string,
+        status: status as string
+      };
+
+      const result = await payrollService.exportPayrollRecords(format as 'csv' | 'pdf', params);
+
+      if (format === 'csv') {
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="payroll-records-${new Date().toISOString().split('T')[0]}.csv"`);
+        res.send(result);
+      } else {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="payroll-records-${new Date().toISOString().split('T')[0]}.pdf"`);
+        res.send(result);
+      }
+    } catch (error) {
+      logger.error('Error exporting payroll records', { 
+        error: (error as Error).message,
+        requestId 
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export payroll records',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route GET /api/v1/payroll/stats
+   * @desc Get payroll statistics
+   * @access HR Admin
+   */
+  async getPayrollStats(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const stats = await payrollService.getPayrollStats();
+
+      res.json({
+        success: true,
+        message: 'Payroll statistics retrieved successfully',
+        data: stats,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error getting payroll statistics', { 
+        error: (error as Error).message, 
+        requestId
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get payroll statistics',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  // New endpoints for deduction types management
+  async createDeductionType(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const deductionType = await payrollService.createDeductionType(req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'Deduction type created successfully',
+        data: deductionType,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error creating deduction type', { 
+        error: (error as Error).message, 
+        requestId,
+        body: req.body
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create deduction type',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async getDeductionTypes(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const result = await payrollService.getDeductionTypes(req.query);
+
+      res.status(200).json({
+        success: true,
+        message: 'Deduction types retrieved successfully',
+        data: result,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error getting deduction types', { 
+        error: (error as Error).message, 
+        requestId,
+        query: req.query
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get deduction types',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async updateDeductionType(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+      const deductionType = await payrollService.updateDeductionType(id, req.body);
+
+      if (!deductionType) {
+        res.status(404).json({
+          success: false,
+          message: 'Deduction type not found',
+          requestId
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Deduction type updated successfully',
+        data: deductionType,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error updating deduction type', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params,
+        body: req.body
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update deduction type',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async deleteDeductionType(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+      const deleted = await payrollService.deleteDeductionType(id);
+
+      if (!deleted) {
+        res.status(404).json({
+          success: false,
+          message: 'Deduction type not found',
+          requestId
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Deduction type deleted successfully',
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error deleting deduction type', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete deduction type',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  // New endpoints for benefit types management
+  async createBenefitType(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const benefitType = await payrollService.createBenefitType(req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'Benefit type created successfully',
+        data: benefitType,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error creating benefit type', { 
+        error: (error as Error).message, 
+        requestId,
+        body: req.body
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create benefit type',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async getBenefitTypes(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const result = await payrollService.getBenefitTypes(req.query);
+
+      res.status(200).json({
+        success: true,
+        message: 'Benefit types retrieved successfully',
+        data: result,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error getting benefit types', { 
+        error: (error as Error).message, 
+        requestId,
+        query: req.query
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get benefit types',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async updateBenefitType(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      const benefitType = await payrollService.updateBenefitType(id, updateData);
+
+      if (!benefitType) {
+        res.status(404).json({
+          success: false,
+          message: 'Benefit type not found',
+          requestId
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Benefit type updated successfully',
+        data: benefitType,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error updating benefit type', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params,
+        body: req.body
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update benefit type',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async deleteBenefitType(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+
+      const deleted = await payrollService.deleteBenefitType(id);
+
+      if (!deleted) {
+        res.status(404).json({
+          success: false,
+          message: 'Benefit type not found',
+          requestId
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        message: 'Benefit type deleted successfully',
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error deleting benefit type', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete benefit type',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  // New endpoints for employee deduction balances management
+  async getEmployeeDeductionBalances(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const result = await payrollService.getEmployeeDeductionBalances(req.query);
+
+      res.status(200).json({
+        success: true,
+        message: 'Employee deduction balances retrieved successfully',
+        data: result,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error getting employee deduction balances', { 
+        error: (error as Error).message, 
+        requestId,
+        query: req.query
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get employee deduction balances',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async createEmployeeDeductionBalance(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const balance = await payrollService.createEmployeeDeductionBalance(req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'Employee deduction balance created successfully',
+        data: balance,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error creating employee deduction balance', { 
+        error: (error as Error).message, 
+        requestId,
+        body: req.body
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create employee deduction balance',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  // CSV upload endpoint for employee deduction balances
+  async uploadEmployeeDeductionBalances(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      // Assuming CSV data is parsed and passed in req.body as an array
+      const csvData = req.body;
+      
+      if (!Array.isArray(csvData)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid CSV data format',
+          requestId
+        });
+        return;
+      }
+
+      const result = await payrollService.uploadEmployeeDeductionBalances(csvData);
+
+      res.status(200).json({
+        success: true,
+        message: 'Employee deduction balances uploaded successfully',
+        data: {
+          successCount: result.success,
+          errorCount: result.errors.length,
+          errors: result.errors
+        },
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error uploading employee deduction balances', { 
+        error: (error as Error).message, 
+        requestId
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload employee deduction balances',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  // Delete employee deduction balance
+  async deleteEmployeeDeductionBalance(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+      
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: 'Employee deduction balance ID is required',
+          requestId
+        });
+        return;
+      }
+
+      const deleted = await payrollService.deleteEmployeeDeductionBalance(id);
+      
+      if (!deleted) {
+        res.status(404).json({
+          success: false,
+          message: 'Employee deduction balance not found',
+          requestId
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Employee deduction balance deleted successfully',
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error deleting employee deduction balance', { 
+        error: (error as Error).message, 
+        requestId,
+        id: req.params.id
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete employee deduction balance',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  // CSV upload endpoint for employee benefits
+  async uploadEmployeeBenefits(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      // Assuming CSV data is parsed and passed in req.body as an array
+      const csvData = req.body;
+      
+      if (!Array.isArray(csvData)) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid CSV data format',
+          requestId
+        });
+        return;
+      }
+
+      const result = await payrollService.uploadEmployeeBenefits(csvData);
+
+      res.status(200).json({
+        success: true,
+        message: 'Employee benefits uploaded successfully',
+        data: {
+          successCount: result.success,
+          errorCount: result.errors.length,
+          errors: result.errors
+        },
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error uploading employee benefits', { 
+        error: (error as Error).message, 
+        requestId
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload employee benefits',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  // New endpoints for employee benefits management
+  async getEmployeeBenefits(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const result = await payrollService.getEmployeeBenefits(req.query);
+
+      res.status(200).json({
+        success: true,
+        message: 'Employee benefits retrieved successfully',
+        data: result,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error getting employee benefits', { 
+        error: (error as Error).message, 
+        requestId,
+        query: req.query
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get employee benefits',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async createEmployeeBenefit(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const benefit = await payrollService.createEmployeeBenefit(req.body);
+
+      res.status(201).json({
+        success: true,
+        message: 'Employee benefit created successfully',
+        data: benefit,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error creating employee benefit', { 
+        error: (error as Error).message, 
+        requestId,
+        body: req.body
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create employee benefit',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async updateEmployeeBenefit(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    const { id } = req.params;
+    
+    try {
+      const benefit = await payrollService.updateEmployeeBenefit(id, req.body);
+
+      res.status(200).json({
+        success: true,
+        message: 'Employee benefit updated successfully',
+        data: benefit,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error updating employee benefit', { 
+        error: (error as Error).message, 
+        requestId,
+        id,
+        body: req.body
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update employee benefit',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  async deleteEmployeeBenefit(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    const { id } = req.params;
+    
+    try {
+      const deleted = await payrollService.deleteEmployeeBenefit(id);
+
+      if (deleted) {
+        res.status(200).json({
+          success: true,
+          message: 'Employee benefit deleted successfully',
+          requestId
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'Employee benefit not found',
+          requestId
+        });
+      }
+    } catch (error) {
+      logger.error('Error deleting employee benefit', { 
+        error: (error as Error).message, 
+        requestId,
+        id
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete employee benefit',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route POST /api/v1/payroll/initialize-periods
+   * @desc Initialize payroll periods for the current year
+   * @access HR Admin
+   */
+  async initializePayrollPeriods(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      await autoPayrollService.initializePayrollPeriods();
+      
+      res.json({
+        success: true,
+        message: 'Payroll periods initialized successfully for the current year',
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error initializing payroll periods', { 
+        error: (error as Error).message, 
+        requestId
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to initialize payroll periods',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route POST /api/v1/payroll/generate-current-month
+   * @desc Generate payroll period for the current month only
+   * @access HR Admin
+   */
+  async generateCurrentMonthPeriod(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      await autoPayrollService.generateCurrentMonthPeriod();
+      
+      res.json({
+        success: true,
+        message: 'Current month payroll period generated successfully',
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error generating current month payroll period', { 
+        error: (error as Error).message, 
+        requestId
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate current month payroll period',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route GET /api/v1/payroll/expected-hours
+   * @desc Get expected monthly hours from system settings
+   * @access HR Admin
+   */
+  async getExpectedMonthlyHours(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const expectedHours = await autoPayrollService.getExpectedMonthlyHours();
+      
+      res.json({
+        success: true,
+        message: 'Expected monthly hours retrieved successfully',
+        data: { expectedHours },
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error getting expected monthly hours', { 
+        error: (error as Error).message, 
+        requestId
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get expected monthly hours',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route GET /api/v1/payroll/paystubs/department/:departmentId/period/:periodId
+   * @desc Generate PDF paystubs for a department's employees for a specific period
+   * @access HR Admin
+   */
+  async generateDepartmentPaystubs(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { departmentId, periodId } = req.params;
+
+      // Get payroll records for the department and period
+      const records = await payrollService.getPayrollRecordsByDepartmentAndPeriod(departmentId, periodId);
+      
+      if (!records || records.length === 0) {
+        res.status(404).json({
+          success: false,
+          message: 'No payroll records found for this department and period',
+          requestId
+        });
+        return;
+      }
+
+      // Generate PDF paystubs
+      const pdfBuffer = await payrollService.generatePaystubsPDF(records);
+
+      // Set response headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="paystubs-${departmentId}-${periodId}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+
+      res.send(pdfBuffer);
+    } catch (error) {
+      logger.error('Error generating department paystubs', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate paystubs',
         error: (error as Error).message,
         requestId
       });

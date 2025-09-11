@@ -4,17 +4,17 @@ import logger from '../../utils/logger';
 export interface PayrollDeduction {
   id: string;
   payroll_record_id: string;
-  deduction_type: string;
+  deduction_type_id: string;
+  name: string;
   amount: number;
-  percentage: number | null;
   created_at: Date;
 }
 
 export interface CreatePayrollDeductionData {
   payroll_record_id: string;
-  deduction_type: string;
+  deduction_type_id: string;
+  name: string;
   amount: number;
-  percentage?: number | null;
 }
 
 export interface UpdatePayrollDeductionData {
@@ -37,11 +37,11 @@ class PayrollDeductionModel {
     const client = await this.pool.connect();
     try {
       const query = `
-        INSERT INTO payroll_deductions (payroll_record_id, deduction_type, amount, percentage)
+        INSERT INTO payroll_deductions (payroll_record_id, deduction_type_id, name, amount)
         VALUES ($1, $2, $3, $4)
         RETURNING *
       `;
-      const values = [data.payroll_record_id, data.deduction_type, data.amount, data.percentage || null];
+      const values = [data.payroll_record_id, data.deduction_type_id, data.name, data.amount];
       
       const result = await client.query(query, values);
       const deduction = result.rows[0];

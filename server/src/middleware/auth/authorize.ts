@@ -17,6 +17,12 @@ export interface AuthenticatedRequest extends Request {
 export const authorize = (roles: string[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     try {
+      // Handle CORS preflight requests
+      if (req.method === 'OPTIONS') {
+        next();
+        return;
+      }
+
       // Check if user exists in request (set by authenticate middleware)
       if (!req.user) {
         res.status(401).json({

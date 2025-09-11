@@ -290,17 +290,15 @@ export class OvertimeService {
     const overtimeToLeaveRatio = result.rows.length > 0 ? parseFloat(result.rows[0].setting_value) : 0.125; // Default: 1 day per 8 hours
 
     const leaveDaysAccrued = overtimeHours * overtimeToLeaveRatio;
-    const currentYear = new Date().getFullYear();
 
     // Add leave days to vacation balance
-    await leaveBalanceModel.addLeaveDays(employeeId, 'vacation', leaveDaysAccrued, currentYear);
+    await leaveBalanceModel.addLeaveDays(employeeId, 'vacation', leaveDaysAccrued);
 
     logger.info('Leave days accrued from overtime', {
       employeeId,
       overtimeHours,
       leaveDaysAccrued,
-      overtimeToLeaveRatio,
-      year: currentYear
+      overtimeToLeaveRatio
     });
   }
 

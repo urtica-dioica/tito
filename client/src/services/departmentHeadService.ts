@@ -72,7 +72,39 @@ export interface DepartmentHeadPayrollRecord {
   updatedAt: string;
 }
 
+export interface DepartmentHeadDashboard {
+  department: {
+    id: string;
+    name: string;
+    description: string;
+    employeeCount: number;
+  };
+  pendingRequests: {
+    timeCorrections: number;
+    overtime: number;
+    leaves: number;
+    total: number;
+  };
+  recentActivity: Array<{
+    type: 'time_correction' | 'overtime' | 'leave';
+    employeeName: string;
+    date: string;
+    status: string;
+  }>;
+  attendanceSummary: {
+    presentToday: number;
+    absentToday: number;
+    lateToday: number;
+  };
+}
+
 export class DepartmentHeadService {
+  // Get department head dashboard data
+  static async getDashboard(): Promise<DepartmentHeadDashboard> {
+    const response = await apiMethods.get<{ data: DepartmentHeadDashboard }>('/department-head/dashboard');
+    return response.data;
+  }
+
   // Get department head's department info
   static async getDepartmentInfo(): Promise<Department> {
     const response = await apiMethods.get<{ data: Department }>('/department-head/department');
@@ -81,8 +113,15 @@ export class DepartmentHeadService {
 
   // Get department head's employee statistics
   static async getEmployeeStats(): Promise<DepartmentHeadStats> {
-    const response = await apiMethods.get<{ data: DepartmentHeadStats }>('/department-head/employees/stats');
-    return response.data;
+    const response = await apiMethods.get<{ data: any }>('/department-head/employees/stats');
+    // Map backend snake_case to frontend camelCase
+    return {
+      totalEmployees: parseInt(response.data.total_employees) || 0,
+      activeEmployees: parseInt(response.data.active_employees) || 0,
+      inactiveEmployees: parseInt(response.data.inactive_employees) || 0,
+      averageSalary: parseFloat(response.data.average_salary) || 0,
+      employeesByPosition: response.data.employees_by_position || []
+    };
   }
 
   // Get department head's employees
@@ -154,4 +193,20 @@ export class DepartmentHeadService {
     const response = await apiMethods.get<{ data: any }>('/department-head/payrolls/stats');
     return response.data;
   }
+
+  // Get payroll approvals
+  static async getPayrollApprovals(): Promise<any[]> {
+    const response = await apiMethods.get<{ data: any[] }>('/department-head/payrolls/approvals');
+    return response.data;
+  }
+
+  // Approve payroll approval
+  static async approvePayrollApproval(approvalId: string, status: 'approved' | 'rejected', comments?: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiMethods.put<{ success: boolean; message: string }>(`/department-head/payrolls/approvals/${approvalId}/approve`, {
+      status,
+      comments
+    });
+    return response;
+  }
+
 }

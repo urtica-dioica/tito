@@ -408,7 +408,7 @@ interface HRInterface {
     employeeManagement: 'Add, edit, view, delete employee records',
     departmentManagement: 'Manage departments and department heads',
     idCardManagement: 'Generate and manage employee ID cards (within departments)',
-    payrollManagement: 'Process payroll and manage deductions',
+    payrollManagement: 'Setup deduction types, benefits, upload employee deduction balances, and manage automatic payroll generation',
     requestsView: 'View all requests (read-only, department heads handle approvals)',
     systemSettings: 'Configure system parameters',
   },
@@ -440,7 +440,7 @@ interface DepartmentHeadInterface {
   },
   features: {
     employees: 'View department employees (read-only, no edit/delete)',
-    payrolls: 'View department payroll information (read-only, no edit/delete)',
+    payrolls: 'Review and approve department payroll records (read-only, approve/reject only)',
     requests: 'View and manage employee requests (approve/reject)',
   },
   userMenu: {
@@ -671,6 +671,317 @@ const tables = {
     actions: true,
   },
 };
+```
+
+## 💰 **Payroll Process Components**
+
+### **HR Admin Payroll Interface**
+
+#### **1. Deduction Types Management**
+```typescript
+interface DeductionTypesInterface {
+  components: {
+    listView: {
+      table: {
+        columns: ['Name', 'Type', 'Value', 'Status', 'Actions'],
+        actions: ['Edit', 'Delete', 'Toggle Status'],
+      },
+      filters: ['Status', 'Type'],
+      search: 'Search by name or description',
+    },
+    createForm: {
+      fields: [
+        { name: 'name', type: 'text', required: true },
+        { name: 'description', type: 'textarea' },
+        { name: 'type', type: 'radio', options: ['percentage', 'fixed'] },
+        { name: 'value', type: 'number', required: true },
+        { name: 'isActive', type: 'checkbox', default: true },
+      ],
+      validation: 'Either percentage or fixed amount, not both',
+    },
+  },
+  layout: {
+    header: 'Deduction Types Management',
+    actions: ['Create New', 'Bulk Actions'],
+    pagination: true,
+  },
+}
+```
+
+#### **2. Benefits Management**
+```typescript
+interface BenefitsInterface {
+  components: {
+    listView: {
+      table: {
+        columns: ['Name', 'Description', 'Status', 'Actions'],
+        actions: ['Edit', 'Delete', 'Toggle Status'],
+      },
+      filters: ['Status'],
+      search: 'Search by name or description',
+    },
+    createForm: {
+      fields: [
+        { name: 'name', type: 'text', required: true },
+        { name: 'description', type: 'textarea' },
+        { name: 'isActive', type: 'checkbox', default: true },
+      ],
+    },
+  },
+  layout: {
+    header: 'Benefits Management',
+    actions: ['Create New', 'Bulk Actions'],
+    pagination: true,
+  },
+}
+```
+
+#### **3. Employee Deduction Balances Upload**
+```typescript
+interface DeductionUploadInterface {
+  components: {
+    uploadArea: {
+      dragDrop: true,
+      fileTypes: ['.csv'],
+      maxSize: '10MB',
+      validation: 'CSV format validation',
+    },
+    csvTemplate: {
+      download: 'Download CSV template',
+      columns: [
+        'employee_name',
+        'employee_id', 
+        'deduction_type_name',
+        'deduction_type_id',
+        'remaining_balance'
+      ],
+      example: 'Sample data preview',
+    },
+    progressIndicator: {
+      uploadProgress: 'Real-time upload progress',
+      processingStatus: 'Row-by-row processing status',
+      errorReporting: 'Detailed error messages for failed rows',
+    },
+    results: {
+      successCount: 'Successfully processed records',
+      errorCount: 'Failed records with reasons',
+      errorDetails: 'Downloadable error report',
+    },
+  },
+  layout: {
+    header: 'Upload Employee Deduction Balances',
+    steps: ['Select File', 'Validate', 'Upload', 'Review Results'],
+  },
+}
+```
+
+#### **4. Employee Benefits Assignment**
+```typescript
+interface EmployeeBenefitsInterface {
+  components: {
+    employeeSelector: {
+      search: 'Search by employee name or ID',
+      filters: ['Department', 'Status'],
+      multiSelect: true,
+    },
+    benefitAssignment: {
+      benefitTypes: 'Available benefit types dropdown',
+      amount: 'Benefit amount input',
+      startDate: 'Start date picker',
+      endDate: 'End date picker (optional)',
+      isActive: 'Active status toggle',
+    },
+    bulkAssignment: {
+      selectAll: 'Select all employees',
+      bulkAmount: 'Set amount for all selected',
+      bulkStartDate: 'Set start date for all selected',
+    },
+  },
+  layout: {
+    header: 'Employee Benefits Assignment',
+    sections: ['Select Employees', 'Assign Benefits', 'Review & Save'],
+  },
+}
+```
+
+#### **5. Automatic Payroll Generation**
+```typescript
+interface PayrollGenerationInterface {
+  components: {
+    periodOverview: {
+      currentPeriod: 'Current month period display',
+      status: 'Generation status indicator',
+      employeeCount: 'Total employees count',
+      lastGenerated: 'Last generation timestamp',
+    },
+    generationControls: {
+      generateButton: 'Generate Monthly Payroll',
+      forceRegenerate: 'Force regenerate (if already exists)',
+      previewMode: 'Preview before generation',
+    },
+    progressIndicator: {
+      steps: [
+        'Create Payroll Period',
+        'Calculate Attendance Hours',
+        'Apply Deductions',
+        'Apply Benefits',
+        'Generate Records',
+        'Complete'
+      ],
+      realTimeProgress: 'Step-by-step progress',
+      errorHandling: 'Error reporting and recovery',
+    },
+    results: {
+      summary: 'Generation summary statistics',
+      errors: 'Any errors encountered',
+      nextSteps: 'Recommended next actions',
+    },
+  },
+  layout: {
+    header: 'Automatic Payroll Generation',
+    sections: ['Period Overview', 'Generation Controls', 'Progress', 'Results'],
+  },
+}
+```
+
+### **Department Head Payroll Interface**
+
+#### **1. Payroll Review Dashboard**
+```typescript
+interface PayrollReviewInterface {
+  components: {
+    periodSelector: {
+      dropdown: 'Select payroll period to review',
+      statusFilter: 'Filter by approval status',
+      departmentFilter: 'Filter by department (if multiple)',
+    },
+    summaryCards: {
+      totalEmployees: 'Total employees in department',
+      pendingApprovals: 'Pending approval count',
+      approvedCount: 'Approved count',
+      rejectedCount: 'Rejected count',
+    },
+    payrollTable: {
+      columns: [
+        'Employee Name',
+        'Position',
+        'Base Salary',
+        'Worked Hours',
+        'Regular Hours',
+        'Late Hours',
+        'Gross Pay',
+        'Deductions',
+        'Benefits',
+        'Net Pay',
+        'Status',
+        'Actions'
+      ],
+      sorting: 'Sort by any column',
+      filtering: 'Filter by status, amount ranges',
+      selection: 'Multi-select for bulk actions',
+    },
+    bulkActions: {
+      approveSelected: 'Approve selected records',
+      rejectSelected: 'Reject selected records',
+      exportSelected: 'Export selected records',
+    },
+    individualActions: {
+      viewDetails: 'View detailed breakdown',
+      approve: 'Approve individual record',
+      reject: 'Reject with reason',
+      addComment: 'Add approval comment',
+    },
+  },
+  layout: {
+    header: 'Department Payroll Review',
+    sections: ['Period Selection', 'Summary', 'Payroll Records', 'Actions'],
+  },
+}
+```
+
+#### **2. Payroll Record Details**
+```typescript
+interface PayrollRecordDetailsInterface {
+  components: {
+    employeeInfo: {
+      name: 'Employee full name',
+      position: 'Current position',
+      department: 'Department name',
+      employeeId: 'Employee ID',
+    },
+    attendanceSummary: {
+      totalHours: 'Total worked hours',
+      regularHours: 'Regular hours (capped at 176)',
+      lateHours: 'Late hours with deductions',
+      overtimeHours: 'Overtime hours (converted to leave)',
+    },
+    payrollBreakdown: {
+      baseSalary: 'Monthly base salary',
+      grossPay: 'Base salary + benefits',
+      deductions: 'List of applied deductions',
+      benefits: 'List of applied benefits',
+      lateDeductions: 'Late hour deductions',
+      netPay: 'Final net pay amount',
+    },
+    deductionDetails: {
+      table: {
+        columns: ['Deduction Type', 'Original Balance', 'Applied Amount', 'Remaining Balance'],
+        status: 'Active/Completed indicators',
+      },
+    },
+    benefitDetails: {
+      table: {
+        columns: ['Benefit Type', 'Amount', 'Start Date', 'End Date', 'Status'],
+      },
+    },
+    approvalActions: {
+      approve: 'Approve payroll record',
+      reject: 'Reject with reason',
+      comment: 'Add approval comment',
+      requestChanges: 'Request HR to make changes',
+    },
+  },
+  layout: {
+    header: 'Payroll Record Details',
+    sections: ['Employee Info', 'Attendance', 'Payroll Breakdown', 'Actions'],
+  },
+}
+```
+
+### **Attendance Hour Computation Display**
+
+#### **1. Hour Calculation Component**
+```typescript
+interface AttendanceCalculationInterface {
+  components: {
+    timeDisplay: {
+      clockIn: 'Clock-in time display',
+      clockOut: 'Clock-out time display',
+      workStart: 'Expected work start time',
+      gracePeriod: 'Grace period indicator',
+    },
+    calculationBreakdown: {
+      totalHours: 'Total worked hours',
+      lateHours: 'Late hours (rounded up)',
+      effectiveHours: 'Effective hours after late deduction',
+      regularHours: 'Regular hours (capped at 8)',
+      overtimeHours: 'Overtime hours',
+    },
+    visualIndicator: {
+      status: 'On-time/Late indicator',
+      color: 'Green (on-time), Red (late)',
+      icon: 'Clock icon with status',
+    },
+    gracePeriodInfo: {
+      explanation: 'Grace period explanation',
+      examples: 'Late calculation examples',
+    },
+  },
+  layout: {
+    header: 'Attendance Hour Calculation',
+    sections: ['Time Information', 'Calculation Breakdown', 'Status Indicator'],
+  },
+}
 ```
 
 ## 🎯 **User Experience Guidelines**

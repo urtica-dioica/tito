@@ -4,10 +4,8 @@ export interface LeaveBalance {
   id: string;
   employeeId: string;
   leaveType: 'vacation' | 'sick' | 'maternity' | 'other';
-  totalDays: number;
-  usedDays: number;
-  year: number;
-  createdAt: Date;
+  balance: number;
+  year?: number;
   updatedAt: Date;
 }
 
@@ -15,20 +13,17 @@ export interface LeaveBalanceWithDetails extends LeaveBalance {
   employeeCode: string;
   employeeName: string;
   departmentName: string | null;
-  availableDays: number;
 }
 
 export interface CreateLeaveBalanceData {
   employeeId: string;
   leaveType: 'vacation' | 'sick' | 'maternity' | 'other';
-  totalDays: number;
-  usedDays?: number;
-  year: number;
+  balance: number;
+  year?: number;
 }
 
 export interface UpdateLeaveBalanceData {
-  totalDays?: number;
-  usedDays?: number;
+  balance?: number;
 }
 
 export interface LeaveBalanceListParams {
@@ -37,7 +32,6 @@ export interface LeaveBalanceListParams {
   employeeId?: string | undefined;
   departmentId?: string | undefined;
   leaveType?: 'vacation' | 'sick' | 'maternity' | 'other' | undefined;
-  year?: number | undefined;
   search?: string | undefined;
   sortBy?: string | undefined;
   sortOrder?: 'asc' | 'desc' | undefined;
@@ -49,27 +43,22 @@ export class LeaveBalanceModel {
    */
   async createLeaveBalance(data: CreateLeaveBalanceData): Promise<LeaveBalance> {
     const query = `
-      INSERT INTO leave_balances (employee_id, leave_type, total_days, used_days, year)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO leave_balances (employee_id, leave_type, balance)
+      VALUES ($1, $2, $3)
       RETURNING 
         id,
         employee_id as "employeeId",
         leave_type as "leaveType",
-        total_days as "totalDays",
-        used_days as "usedDays",
-        year,
-        created_at as "createdAt",
+        balance,
         updated_at as "updatedAt"
     `;
-
+    
     const result = await getPool().query(query, [
       data.employeeId,
       data.leaveType,
-      data.totalDays,
-      data.usedDays || 0,
-      data.year
+      data.balance
     ]);
-
+    
     return result.rows[0];
   }
 
@@ -82,158 +71,45 @@ export class LeaveBalanceModel {
         id,
         employee_id as "employeeId",
         leave_type as "leaveType",
-        total_days as "totalDays",
-        used_days as "usedDays",
-        year,
-        created_at as "createdAt",
+        balance,
         updated_at as "updatedAt"
       FROM leave_balances
       WHERE id = $1
     `;
-
+    
     const result = await getPool().query(query, [id]);
-    return result.rows.length > 0 ? result.rows[0] : null;
+    return result.rows[0] || null;
   }
 
   /**
-   * Get leave balance with details
+   * Get leave balance by ID with employee details
    */
   async findByIdWithDetails(id: string): Promise<LeaveBalanceWithDetails | null> {
     const query = `
       SELECT 
         lb.id,
         lb.employee_id as "employeeId",
-        lb.leave_type as "leaveType",
-        lb.total_days as "totalDays",
-        lb.used_days as "usedDays",
-        lb.year,
-        lb.created_at as "createdAt",
-        lb.updated_at as "updatedAt",
         e.employee_id as "employeeCode",
         CONCAT(u.first_name, ' ', u.last_name) as "employeeName",
         d.name as "departmentName",
-        (lb.total_days - lb.used_days) as "availableDays"
+        lb.leave_type as "leaveType",
+        lb.balance,
+        lb.updated_at as "updatedAt"
       FROM leave_balances lb
       JOIN employees e ON lb.employee_id = e.id
       JOIN users u ON e.user_id = u.id
       LEFT JOIN departments d ON e.department_id = d.id
       WHERE lb.id = $1
     `;
-
+    
     const result = await getPool().query(query, [id]);
-    return result.rows.length > 0 ? result.rows[0] : null;
-  }
-
-  /**
-   * Get leave balance by employee, leave type, and year
-   */
-  async findByEmployeeLeaveTypeAndYear(
-    employeeId: string, 
-    leaveType: 'vacation' | 'sick' | 'maternity' | 'other', 
-    year: number
-  ): Promise<LeaveBalance | null> {
-    const query = `
-      SELECT 
-        id,
-        employee_id as "employeeId",
-        leave_type as "leaveType",
-        total_days as "totalDays",
-        used_days as "usedDays",
-        year,
-        created_at as "createdAt",
-        updated_at as "updatedAt"
-      FROM leave_balances
-      WHERE employee_id = $1 AND leave_type = $2 AND year = $3
-    `;
-
-    const result = await getPool().query(query, [employeeId, leaveType, year]);
-    return result.rows.length > 0 ? result.rows[0] : null;
-  }
-
-  /**
-   * Update leave balance
-   */
-  async updateLeaveBalance(id: string, data: UpdateLeaveBalanceData): Promise<LeaveBalance | null> {
-    const updateFields: string[] = [];
-    const updateValues: any[] = [];
-    let paramIndex = 1;
-
-    if (data.totalDays !== undefined) {
-      updateFields.push(`total_days = $${paramIndex}`);
-      updateValues.push(data.totalDays);
-      paramIndex++;
-    }
-
-    if (data.usedDays !== undefined) {
-      updateFields.push(`used_days = $${paramIndex}`);
-      updateValues.push(data.usedDays);
-      paramIndex++;
-    }
-
-    if (updateFields.length === 0) {
-      return this.findById(id);
-    }
-
-    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
-    updateValues.push(id);
-
-    const query = `
-      UPDATE leave_balances 
-      SET ${updateFields.join(', ')}
-      WHERE id = $${paramIndex}
-      RETURNING 
-        id,
-        employee_id as "employeeId",
-        leave_type as "leaveType",
-        total_days as "totalDays",
-        used_days as "usedDays",
-        year,
-        created_at as "createdAt",
-        updated_at as "updatedAt"
-    `;
-
-    const result = await getPool().query(query, updateValues);
-    return result.rows.length > 0 ? result.rows[0] : null;
-  }
-
-  /**
-   * Upsert leave balance (create or update)
-   */
-  async upsertLeaveBalance(data: CreateLeaveBalanceData): Promise<LeaveBalance> {
-    const query = `
-      INSERT INTO leave_balances (employee_id, leave_type, total_days, used_days, year)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (employee_id, leave_type, year)
-      DO UPDATE SET
-        total_days = EXCLUDED.total_days,
-        used_days = EXCLUDED.used_days,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING 
-        id,
-        employee_id as "employeeId",
-        leave_type as "leaveType",
-        total_days as "totalDays",
-        used_days as "usedDays",
-        year,
-        created_at as "createdAt",
-        updated_at as "updatedAt"
-    `;
-
-    const result = await getPool().query(query, [
-      data.employeeId,
-      data.leaveType,
-      data.totalDays,
-      data.usedDays || 0,
-      data.year
-    ]);
-
-    return result.rows[0];
+    return result.rows[0] || null;
   }
 
   /**
    * List leave balances with filtering and pagination
    */
-  async listLeaveBalances(params: LeaveBalanceListParams = {}): Promise<{
+  async listLeaveBalances(params: LeaveBalanceListParams): Promise<{
     balances: LeaveBalanceWithDetails[];
     total: number;
     page: number;
@@ -246,18 +122,15 @@ export class LeaveBalanceModel {
       employeeId,
       departmentId,
       leaveType,
-      year,
       search,
       sortBy = 'updated_at',
       sortOrder = 'desc'
     } = params;
 
-    const offset = (page - 1) * limit;
     const whereConditions: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
 
-    // Build WHERE conditions
     if (employeeId) {
       whereConditions.push(`lb.employee_id = $${paramIndex}`);
       queryParams.push(employeeId);
@@ -276,12 +149,6 @@ export class LeaveBalanceModel {
       paramIndex++;
     }
 
-    if (year) {
-      whereConditions.push(`lb.year = $${paramIndex}`);
-      queryParams.push(year);
-      paramIndex++;
-    }
-
     if (search) {
       whereConditions.push(`(CONCAT(u.first_name, ' ', u.last_name) ILIKE $${paramIndex} OR e.employee_id ILIKE $${paramIndex})`);
       queryParams.push(`%${search}%`);
@@ -296,7 +163,6 @@ export class LeaveBalanceModel {
       FROM leave_balances lb
       JOIN employees e ON lb.employee_id = e.id
       JOIN users u ON e.user_id = u.id
-      LEFT JOIN departments d ON e.department_id = d.id
       ${whereClause}
     `;
 
@@ -304,20 +170,17 @@ export class LeaveBalanceModel {
     const total = parseInt(countResult.rows[0].total);
 
     // Data query
+    const offset = (page - 1) * limit;
     const dataQuery = `
       SELECT 
         lb.id,
         lb.employee_id as "employeeId",
-        lb.leave_type as "leaveType",
-        lb.total_days as "totalDays",
-        lb.used_days as "usedDays",
-        lb.year,
-        lb.created_at as "createdAt",
-        lb.updated_at as "updatedAt",
         e.employee_id as "employeeCode",
         CONCAT(u.first_name, ' ', u.last_name) as "employeeName",
         d.name as "departmentName",
-        (lb.total_days - lb.used_days) as "availableDays"
+        lb.leave_type as "leaveType",
+        lb.balance,
+        lb.updated_at as "updatedAt"
       FROM leave_balances lb
       JOIN employees e ON lb.employee_id = e.id
       JOIN users u ON e.user_id = u.id
@@ -327,11 +190,11 @@ export class LeaveBalanceModel {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-    queryParams.push(limit, offset);
-    const result = await getPool().query(dataQuery, queryParams);
+    const dataParams = [...queryParams, limit, offset];
+    const dataResult = await getPool().query(dataQuery, dataParams);
 
     return {
-      balances: result.rows,
+      balances: dataResult.rows,
       total,
       page,
       limit,
@@ -340,141 +203,83 @@ export class LeaveBalanceModel {
   }
 
   /**
-   * Get leave balances for an employee
+   * Update leave balance
    */
-  async getEmployeeLeaveBalances(employeeId: string, year?: number): Promise<LeaveBalanceWithDetails[]> {
-    const whereConditions = ['lb.employee_id = $1'];
-    const queryParams: any[] = [employeeId];
-    let paramIndex = 2;
+  async updateLeaveBalance(id: string, data: UpdateLeaveBalanceData): Promise<LeaveBalance | null> {
+    const updateFields: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
 
-    if (year) {
-      whereConditions.push(`lb.year = $${paramIndex}`);
-      queryParams.push(year);
+    if (data.balance !== undefined) {
+      updateFields.push(`balance = $${paramIndex}`);
+      values.push(data.balance);
       paramIndex++;
     }
 
+    if (updateFields.length === 0) {
+      return this.findById(id);
+    }
+
+    updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+
     const query = `
-      SELECT 
-        lb.id,
-        lb.employee_id as "employeeId",
-        lb.leave_type as "leaveType",
-        lb.total_days as "totalDays",
-        lb.used_days as "usedDays",
-        lb.year,
-        lb.created_at as "createdAt",
-        lb.updated_at as "updatedAt",
-        e.employee_id as "employeeCode",
-        CONCAT(u.first_name, ' ', u.last_name) as "employeeName",
-        d.name as "departmentName",
-        (lb.total_days - lb.used_days) as "availableDays"
-      FROM leave_balances lb
-      JOIN employees e ON lb.employee_id = e.id
-      JOIN users u ON e.user_id = u.id
-      LEFT JOIN departments d ON e.department_id = d.id
-      WHERE ${whereConditions.join(' AND ')}
-      ORDER BY lb.leave_type, lb.year DESC
+      UPDATE leave_balances
+      SET ${updateFields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING 
+        id,
+        employee_id as "employeeId",
+        leave_type as "leaveType",
+        balance,
+        updated_at as "updatedAt"
     `;
 
-    const result = await getPool().query(query, queryParams);
-    return result.rows;
+    values.push(id);
+    const result = await getPool().query(query, values);
+    return result.rows[0] || null;
   }
 
   /**
-   * Get leave balance summary for an employee
+   * Delete leave balance
    */
-  async getEmployeeLeaveBalanceSummary(employeeId: string, year: number): Promise<{
-    vacation: { total: number; used: number; available: number };
-    sick: { total: number; used: number; available: number };
-    maternity: { total: number; used: number; available: number };
-    other: { total: number; used: number; available: number };
-  }> {
-    const query = `
-      SELECT 
-        leave_type,
-        COALESCE(SUM(total_days), 0) as total,
-        COALESCE(SUM(used_days), 0) as used
-      FROM leave_balances
-      WHERE employee_id = $1 AND year = $2
-      GROUP BY leave_type
-    `;
+  async deleteLeaveBalance(id: string): Promise<boolean> {
+    const query = 'DELETE FROM leave_balances WHERE id = $1';
+    const result = await getPool().query(query, [id]);
+    return (result.rowCount ?? 0) > 0;
+  }
 
-    const result = await getPool().query(query, [employeeId, year]);
+  /**
+   * Upsert leave balance (create or update)
+   */
+  async upsertLeaveBalance(data: CreateLeaveBalanceData): Promise<LeaveBalance> {
+    const query = `
+      INSERT INTO leave_balances (employee_id, leave_type, balance)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (employee_id, leave_type)
+      DO UPDATE SET 
+        balance = EXCLUDED.balance,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING 
+        id,
+        employee_id as "employeeId",
+        leave_type as "leaveType",
+        balance,
+        updated_at as "updatedAt"
+    `;
     
-    const summary = {
-      vacation: { total: 0, used: 0, available: 0 },
-      sick: { total: 0, used: 0, available: 0 },
-      maternity: { total: 0, used: 0, available: 0 },
-      other: { total: 0, used: 0, available: 0 }
-    };
-
-    result.rows.forEach((row: any) => {
-      const leaveType = row.leave_type as keyof typeof summary;
-      if (summary[leaveType]) {
-        summary[leaveType].total = parseFloat(row.total);
-        summary[leaveType].used = parseFloat(row.used);
-        summary[leaveType].available = summary[leaveType].total - summary[leaveType].used;
-      }
-    });
-
-    return summary;
-  }
-
-  /**
-   * Add leave days to balance
-   */
-  async addLeaveDays(employeeId: string, leaveType: 'vacation' | 'sick' | 'maternity' | 'other', days: number, year: number): Promise<LeaveBalance> {
-    const query = `
-      INSERT INTO leave_balances (employee_id, leave_type, total_days, used_days, year)
-      VALUES ($1, $2, $3, 0, $4)
-      ON CONFLICT (employee_id, leave_type, year)
-      DO UPDATE SET
-        total_days = leave_balances.total_days + $3,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING 
-        id,
-        employee_id as "employeeId",
-        leave_type as "leaveType",
-        total_days as "totalDays",
-        used_days as "usedDays",
-        year,
-        created_at as "createdAt",
-        updated_at as "updatedAt"
-    `;
-
-    const result = await getPool().query(query, [employeeId, leaveType, days, year]);
+    const result = await getPool().query(query, [
+      data.employeeId,
+      data.leaveType,
+      data.balance
+    ]);
+    
     return result.rows[0];
-  }
-
-  /**
-   * Use leave days from balance
-   */
-  async useLeaveDays(employeeId: string, leaveType: 'vacation' | 'sick' | 'maternity' | 'other', days: number, year: number): Promise<LeaveBalance | null> {
-    const query = `
-      UPDATE leave_balances 
-      SET 
-        used_days = used_days + $3,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE employee_id = $1 AND leave_type = $2 AND year = $4
-        AND (total_days - used_days) >= $3
-      RETURNING 
-        id,
-        employee_id as "employeeId",
-        leave_type as "leaveType",
-        total_days as "totalDays",
-        used_days as "usedDays",
-        year,
-        created_at as "createdAt",
-        updated_at as "updatedAt"
-    `;
-
-    const result = await getPool().query(query, [employeeId, leaveType, days, year]);
-    return result.rows.length > 0 ? result.rows[0] : null;
   }
 
   /**
    * Get leave balance statistics
    */
-  async getLeaveBalanceStats(departmentId?: string, year?: number): Promise<{
+  async getLeaveBalanceStats(departmentId?: string): Promise<{
     totalEmployees: number;
     totalLeaveDays: number;
     usedLeaveDays: number;
@@ -490,20 +295,14 @@ export class LeaveBalanceModel {
       paramIndex++;
     }
 
-    if (year) {
-      whereConditions.push(`lb.year = $${paramIndex}`);
-      queryParams.push(year);
-      paramIndex++;
-    }
-
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
     const query = `
       SELECT 
         COUNT(DISTINCT lb.employee_id) as total_employees,
-        COALESCE(SUM(lb.total_days), 0) as total_leave_days,
-        COALESCE(SUM(lb.used_days), 0) as used_leave_days,
-        COALESCE(SUM(lb.total_days - lb.used_days), 0) as available_leave_days
+        COALESCE(SUM(lb.balance), 0) as total_leave_days,
+        0 as used_leave_days,
+        COALESCE(SUM(lb.balance), 0) as available_leave_days
       FROM leave_balances lb
       JOIN employees e ON lb.employee_id = e.id
       ${whereClause}
@@ -521,21 +320,219 @@ export class LeaveBalanceModel {
   }
 
   /**
-   * Delete leave balance
+   * Get employee leave balances
    */
-  async deleteLeaveBalance(id: string): Promise<boolean> {
-    const query = 'DELETE FROM leave_balances WHERE id = $1';
-    const result = await getPool().query(query, [id]);
-    return result.rowCount ? result.rowCount > 0 : false;
+  async getEmployeeLeaveBalances(employeeId: string, _year?: number): Promise<LeaveBalanceWithDetails[]> {
+    const query = `
+      SELECT 
+        lb.id,
+        lb.employee_id as "employeeId",
+        e.employee_id as "employeeCode",
+        CONCAT(u.first_name, ' ', u.last_name) as "employeeName",
+        d.name as "departmentName",
+        lb.leave_type as "leaveType",
+        lb.balance,
+        lb.updated_at as "updatedAt"
+      FROM leave_balances lb
+      JOIN employees e ON lb.employee_id = e.id
+      JOIN users u ON e.user_id = u.id
+      LEFT JOIN departments d ON e.department_id = d.id
+      WHERE lb.employee_id = $1
+      ORDER BY lb.leave_type
+    `;
+    
+    const result = await getPool().query(query, [employeeId]);
+    return result.rows;
   }
 
   /**
-   * Get leave balance count
+   * Get employee leave balance summary
    */
-  async getLeaveBalanceCount(): Promise<number> {
-    const query = 'SELECT COUNT(*) as count FROM leave_balances';
+  async getEmployeeLeaveBalanceSummary(employeeId: string): Promise<{
+    vacation: { total: number; used: number; available: number };
+    sick: { total: number; used: number; available: number };
+    maternity: { total: number; used: number; available: number };
+    other: { total: number; used: number; available: number };
+  }> {
+    const query = `
+      SELECT 
+        leave_type,
+        COALESCE(balance, 0) as balance
+      FROM leave_balances
+      WHERE employee_id = $1
+    `;
+    
+    const result = await getPool().query(query, [employeeId]);
+    
+    const summary = {
+      vacation: { total: 0, used: 0, available: 0 },
+      sick: { total: 0, used: 0, available: 0 },
+      maternity: { total: 0, used: 0, available: 0 },
+      other: { total: 0, used: 0, available: 0 }
+    };
+
+    result.rows.forEach((row: any) => {
+      const leaveType = row.leave_type as keyof typeof summary;
+      if (summary[leaveType]) {
+        summary[leaveType].total = parseFloat(row.balance);
+        summary[leaveType].available = parseFloat(row.balance);
+      }
+    });
+
+    return summary;
+  }
+
+  /**
+   * Add leave days to balance
+   */
+  async addLeaveDays(employeeId: string, leaveType: 'vacation' | 'sick' | 'maternity' | 'other', days: number): Promise<LeaveBalance> {
+    const query = `
+      INSERT INTO leave_balances (employee_id, leave_type, balance)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (employee_id, leave_type)
+      DO UPDATE SET 
+        balance = leave_balances.balance + EXCLUDED.balance,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING 
+        id,
+        employee_id as "employeeId",
+        leave_type as "leaveType",
+        balance,
+        updated_at as "updatedAt"
+    `;
+    
+    const result = await getPool().query(query, [employeeId, leaveType, days]);
+    return result.rows[0];
+  }
+
+  /**
+   * Use leave days from balance
+   */
+  async useLeaveDays(employeeId: string, leaveType: 'vacation' | 'sick' | 'maternity' | 'other', days: number, _year?: number): Promise<LeaveBalance | null> {
+    const query = `
+      UPDATE leave_balances
+      SET 
+        balance = GREATEST(0, balance - $3),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE employee_id = $1 AND leave_type = $2 AND balance >= $3
+      RETURNING 
+        id,
+        employee_id as "employeeId",
+        leave_type as "leaveType",
+        balance,
+        updated_at as "updatedAt"
+    `;
+    
+    const result = await getPool().query(query, [employeeId, leaveType, days]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Find leave balance by employee, leave type, and year
+   */
+  async findByEmployeeLeaveTypeAndYear(employeeId: string, leaveType: 'vacation' | 'sick' | 'maternity' | 'other', _year: number): Promise<LeaveBalance | null> {
+    const query = `
+      SELECT 
+        id,
+        employee_id as "employeeId",
+        leave_type as "leaveType",
+        balance,
+        updated_at as "updatedAt"
+      FROM leave_balances
+      WHERE employee_id = $1 AND leave_type = $2
+    `;
+    
+    const result = await getPool().query(query, [employeeId, leaveType]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Get employees without leave balances
+   */
+  async getEmployeesWithoutLeaveBalances(departmentId?: string): Promise<Array<{
+    id: string;
+    employeeId: string;
+    name: string;
+    departmentName: string | null;
+    position: string;
+  }>> {
+    const whereConditions: string[] = ['e.status = \'active\'', 'u.is_active = true'];
+    const queryParams: any[] = [];
+    let paramIndex = 1;
+
+    if (departmentId) {
+      whereConditions.push(`e.department_id = $${paramIndex}`);
+      queryParams.push(departmentId);
+      paramIndex++;
+    }
+
+    const whereClause = whereConditions.join(' AND ');
+
+    const query = `
+      SELECT 
+        e.id,
+        e.employee_id as "employeeId",
+        CONCAT(u.first_name, ' ', u.last_name) as name,
+        d.name as "departmentName",
+        e.position
+      FROM employees e
+      JOIN users u ON e.user_id = u.id
+      LEFT JOIN departments d ON e.department_id = d.id
+      WHERE ${whereClause}
+        AND e.id NOT IN (
+          SELECT DISTINCT employee_id 
+          FROM leave_balances
+        )
+      ORDER BY u.last_name, u.first_name
+    `;
+
+    const result = await getPool().query(query, queryParams);
+
+    return result.rows.map(row => ({
+      id: row.id,
+      employeeId: row.employeeId,
+      name: row.name,
+      departmentName: row.departmentName,
+      position: row.position
+    }));
+  }
+
+  /**
+   * Get leave balance templates by position
+   */
+  async getLeaveBalanceTemplates(): Promise<Array<{
+    position: string;
+    vacationDays: number;
+    sickDays: number;
+    maternityDays: number;
+    otherDays: number;
+    employeeCount: number;
+  }>> {
+    const query = `
+      SELECT 
+        e.position,
+        AVG(CASE WHEN lb.leave_type = 'vacation' THEN lb.balance ELSE 0 END) as vacation_days,
+        AVG(CASE WHEN lb.leave_type = 'sick' THEN lb.balance ELSE 0 END) as sick_days,
+        AVG(CASE WHEN lb.leave_type = 'maternity' THEN lb.balance ELSE 0 END) as maternity_days,
+        AVG(CASE WHEN lb.leave_type = 'other' THEN lb.balance ELSE 0 END) as other_days,
+        COUNT(DISTINCT e.id) as employee_count
+      FROM employees e
+      LEFT JOIN leave_balances lb ON e.id = lb.employee_id
+      WHERE e.status = 'active'
+      GROUP BY e.position
+      ORDER BY e.position
+    `;
+
     const result = await getPool().query(query);
-    return parseInt(result.rows[0].count);
+
+    return result.rows.map(row => ({
+      position: row.position,
+      vacationDays: Math.round(parseFloat(row.vacation_days) || 0),
+      sickDays: Math.round(parseFloat(row.sick_days) || 0),
+      maternityDays: Math.round(parseFloat(row.maternity_days) || 0),
+      otherDays: Math.round(parseFloat(row.other_days) || 0),
+      employeeCount: parseInt(row.employee_count)
+    }));
   }
 }
 

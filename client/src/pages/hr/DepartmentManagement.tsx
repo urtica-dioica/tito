@@ -6,9 +6,10 @@ import Modal from '../../components/shared/Modal';
 import Input from '../../components/shared/Input';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
-import { useDepartments } from '../../hooks/useDepartments';
+import { useDepartments, useUpdateDepartment, useDeleteDepartment, useCreateDepartment } from '../../hooks/useDepartments';
 import { useAvailableDepartmentHeads, useDepartmentHeads } from '../../hooks/useUsers';
-import { DepartmentService, type CreateDepartmentRequest } from '../../services/departmentService';
+import { useQueryClient } from '@tanstack/react-query';
+import type { CreateDepartmentRequest } from '../../services/departmentService';
 import { UserService } from '../../services/userService';
 import type { Department, DepartmentHead } from '../../types';
 
@@ -59,9 +60,30 @@ const DepartmentManagement: React.FC = () => {
   const [isEditHeadSubmitting, setIsEditHeadSubmitting] = useState(false);
   const [editHeadFormError, setEditHeadFormError] = useState<string | null>(null);
 
-  const { data: departments, isLoading, error, refetch } = useDepartments();
-  const { data: departmentHeads, refetch: refetchDepartmentHeads } = useDepartmentHeads();
+  // Assign department head form state
+  const [assignHeadFormData, setAssignHeadFormData] = useState({
+    departmentHeadId: ''
+  });
+  const [isAssignHeadSubmitting, setIsAssignHeadSubmitting] = useState(false);
+  const [assignHeadError, setAssignHeadError] = useState<string | null>(null);
+
+  // Assign department to head form state
+  const [assignDeptFormData, setAssignDeptFormData] = useState({
+    departmentId: ''
+  });
+  const [isAssignDeptSubmitting, setIsAssignDeptSubmitting] = useState(false);
+  const [assignDeptError, setAssignDeptError] = useState<string | null>(null);
+  const [isAssignDeptModalOpen, setIsAssignDeptModalOpen] = useState(false);
+
+  const { data: departments, isLoading, error } = useDepartments();
+  const { data: departmentHeads } = useDepartmentHeads();
   const { data: availableDepartmentHeads } = useAvailableDepartmentHeads();
+  const queryClient = useQueryClient();
+  
+  // Mutations
+  const createDepartmentMutation = useCreateDepartment();
+  const updateDepartmentMutation = useUpdateDepartment();
+  const deleteDepartmentMutation = useDeleteDepartment();
 
   const handleAddDepartment = () => {
     setAddFormData({ name: '', description: '', departmentHeadId: undefined });
@@ -82,13 +104,91 @@ const DepartmentManagement: React.FC = () => {
 
   const handleAssignHead = (department: Department) => {
     setSelectedDepartment(department);
+    setAssignHeadFormData({ departmentHeadId: '' });
+    setAssignHeadError(null);
     setIsAssignHeadModalOpen(true);
+  };
+
+  const handleAssignDepartmentToHead = (head: DepartmentHead) => {
+    setSelectedHead(head);
+    setAssignDeptFormData({ departmentId: '' });
+    setAssignDeptError(null);
+    setIsAssignDeptModalOpen(true);
+  };
+
+  const handleAssignHeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedDepartment || !assignHeadFormData.departmentHeadId) return;
+
+    try {
+      setIsAssignHeadSubmitting(true);
+      setAssignHeadError(null);
+
+      await updateDepartmentMutation.mutateAsync({
+        id: selectedDepartment.id,
+        data: {
+          name: selectedDepartment.name,
+          description: selectedDepartment.description || '',
+          departmentHeadId: assignHeadFormData.departmentHeadId
+        }
+      });
+      
+      // Invalidate related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['users', 'department-heads'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'available-department-heads'] });
+      
+      setIsAssignHeadModalOpen(false);
+    } catch (error: any) {
+      console.error('Error assigning department head:', error);
+      setAssignHeadError(error.response?.data?.message || 'Failed to assign department head. Please try again.');
+    } finally {
+      setIsAssignHeadSubmitting(false);
+    }
+  };
+
+  const handleAssignDeptSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedHead || !assignDeptFormData.departmentId) return;
+
+    try {
+      setIsAssignDeptSubmitting(true);
+      setAssignDeptError(null);
+
+      // Find the department and update it with the selected head
+      const department = departments?.find(dept => dept.id === assignDeptFormData.departmentId);
+      if (!department) {
+        setAssignDeptError('Department not found');
+        return;
+      }
+
+      await updateDepartmentMutation.mutateAsync({
+        id: department.id,
+        data: {
+          name: department.name,
+          description: department.description || '',
+          departmentHeadId: selectedHead.id
+        }
+      });
+      
+      // Invalidate related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['users', 'department-heads'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'available-department-heads'] });
+      
+      setIsAssignDeptModalOpen(false);
+    } catch (error: any) {
+      console.error('Error assigning department to head:', error);
+      setAssignDeptError(error.response?.data?.message || 'Failed to assign department. Please try again.');
+    } finally {
+      setIsAssignDeptSubmitting(false);
+    }
   };
 
   const handleEditFormChange = (field: keyof CreateDepartmentRequest, value: string) => {
     setEditFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value === '' ? undefined : value
     }));
   };
 
@@ -120,10 +220,22 @@ const DepartmentManagement: React.FC = () => {
       setIsEditSubmitting(true);
       setEditFormError(null);
 
-      await DepartmentService.updateDepartment(selectedDepartment.id, editFormData);
+      // Map departmentHeadId to departmentHeadUserId for backend compatibility
+      const updateData = {
+        ...editFormData,
+        departmentHeadUserId: editFormData.departmentHeadId
+      };
+      delete updateData.departmentHeadId; // Remove the frontend field
       
-      // Refresh departments list
-      await refetch();
+      await updateDepartmentMutation.mutateAsync({
+        id: selectedDepartment.id,
+        data: updateData
+      });
+      
+      // Invalidate related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['users', 'department-heads'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'available-department-heads'] });
+      
       setIsEditModalOpen(false);
     } catch (error: any) {
       console.error('Error updating department:', error);
@@ -136,9 +248,10 @@ const DepartmentManagement: React.FC = () => {
   const handleDeleteDepartment = async (department: Department) => {
     if (confirm(`Are you sure you want to delete the ${department.name} department? This action cannot be undone.`)) {
       try {
-        await DepartmentService.deleteDepartment(department.id);
-        // Refresh departments list
-        await refetch();
+        await deleteDepartmentMutation.mutateAsync(department.id);
+        // Invalidate related queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ['users', 'department-heads'] });
+        queryClient.invalidateQueries({ queryKey: ['users', 'available-department-heads'] });
       } catch (error: any) {
         console.error('Error deleting department:', error);
         alert(error.response?.data?.message || 'Failed to delete department. Please try again.');
@@ -171,7 +284,7 @@ const DepartmentManagement: React.FC = () => {
     setFormError(null);
 
     try {
-      await DepartmentService.createDepartment({
+      await createDepartmentMutation.mutateAsync({
         name: addFormData.name.trim(),
         description: addFormData.description?.trim() || undefined,
         departmentHeadId: addFormData.departmentHeadId || undefined
@@ -181,8 +294,9 @@ const DepartmentManagement: React.FC = () => {
       setAddFormData({ name: '', description: '', departmentHeadId: undefined });
       setIsAddModalOpen(false);
       
-      // Refresh departments list
-      await refetch();
+      // Invalidate related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['users', 'department-heads'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'available-department-heads'] });
     } catch (error: any) {
       console.error('Error creating department:', error);
       setFormError(error.response?.data?.message || 'Failed to create department. Please try again.');
@@ -225,9 +339,10 @@ const DepartmentManagement: React.FC = () => {
     if (confirm(`Are you sure you want to delete ${head.firstName} ${head.lastName}? This action cannot be undone.`)) {
       try {
         await UserService.deleteUser(head.id);
-        // Refresh department heads list
-        await refetchDepartmentHeads();
-        await refetch(); // Also refresh departments in case this head was assigned
+        // Invalidate related queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ['departments'] });
+        queryClient.invalidateQueries({ queryKey: ['users', 'department-heads'] });
+        queryClient.invalidateQueries({ queryKey: ['users', 'available-department-heads'] });
       } catch (error: any) {
         console.error('Error deleting department head:', error);
         alert(error.response?.data?.message || 'Failed to delete department head. Please try again.');
@@ -259,9 +374,10 @@ const DepartmentManagement: React.FC = () => {
       setHeadFormData({ email: '', firstName: '', lastName: '', departmentId: '' });
       setIsAddHeadModalOpen(false);
       
-      // Refresh data
-      await refetch();
-      await refetchDepartmentHeads();
+      // Invalidate related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'department-heads'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'available-department-heads'] });
       
       // Show success message
       alert('Department head created successfully! An email invitation has been sent for password setup.');
@@ -313,8 +429,9 @@ const DepartmentManagement: React.FC = () => {
         lastName: editHeadFormData.lastName
       });
       
-      // Refresh department heads list
-      await refetchDepartmentHeads();
+      // Invalidate related queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['users', 'department-heads'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'available-department-heads'] });
       setIsEditHeadModalOpen(false);
     } catch (error: any) {
       console.error('Error updating department head:', error);
@@ -558,6 +675,15 @@ const DepartmentManagement: React.FC = () => {
                           >
                             Edit
                           </Button>
+                          {!assignedDepartment && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleAssignDepartmentToHead(head)}
+                            >
+                              Assign Department
+                            </Button>
+                          )}
                           <Button
                             variant="danger"
                             size="sm"
@@ -755,22 +881,59 @@ const DepartmentManagement: React.FC = () => {
         title="Assign Department Head"
         size="lg"
       >
-        <div className="space-y-4">
+        <form onSubmit={handleAssignHeadSubmit} className="space-y-4">
           {selectedDepartment && (
             <p className="text-sm text-text-secondary">
               Assign a department head for: {selectedDepartment.name}
             </p>
           )}
-          {/* TODO: Implement DepartmentHeadAssignment component */}
+          
+          {assignHeadError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{assignHeadError}</p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Select Department Head
+            </label>
+            <select
+              value={assignHeadFormData.departmentHeadId || ''}
+              onChange={(e) => setAssignHeadFormData(prev => ({ ...prev, departmentHeadId: e.target.value }))}
+              className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-button-primary focus:border-transparent text-sm w-full"
+              required
+            >
+              <option value="">Select a department head</option>
+              {availableDepartmentHeads && Array.isArray(availableDepartmentHeads) && availableDepartmentHeads.map((head) => (
+                <option key={head.id} value={head.id}>
+                  {head.firstName} {head.lastName} ({head.email})
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-text-secondary mt-1">
+              Only available department heads (not assigned to other departments) are shown
+            </p>
+          </div>
+
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" onClick={() => setIsAssignHeadModalOpen(false)}>
+            <Button 
+              type="button"
+              variant="secondary" 
+              onClick={() => setIsAssignHeadModalOpen(false)}
+              disabled={isAssignHeadSubmitting}
+            >
               Cancel
             </Button>
-            <Button variant="primary">
-              Assign Head
+            <Button 
+              type="submit"
+              variant="primary"
+              disabled={isAssignHeadSubmitting || !assignHeadFormData.departmentHeadId}
+            >
+              {isAssignHeadSubmitting ? 'Assigning...' : 'Assign Head'}
             </Button>
           </div>
-        </div>
+        </form>
       </Modal>
 
       {/* Add Department Head Modal */}
@@ -942,6 +1105,68 @@ const DepartmentManagement: React.FC = () => {
               disabled={isEditHeadSubmitting || !editHeadFormData.email || !editHeadFormData.firstName || !editHeadFormData.lastName}
             >
               {isEditHeadSubmitting ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Assign Department to Head Modal */}
+      <Modal
+        isOpen={isAssignDeptModalOpen}
+        onClose={() => setIsAssignDeptModalOpen(false)}
+        title="Assign Department to Head"
+        size="lg"
+      >
+        <form onSubmit={handleAssignDeptSubmit} className="space-y-4">
+          {selectedHead && (
+            <p className="text-sm text-text-secondary">
+              Assign a department to: {selectedHead.firstName} {selectedHead.lastName}
+            </p>
+          )}
+          
+          {assignDeptError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{assignDeptError}</p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-1">
+              Select Department
+            </label>
+            <select
+              value={assignDeptFormData.departmentId}
+              onChange={(e) => setAssignDeptFormData(prev => ({ ...prev, departmentId: e.target.value }))}
+              className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-button-primary focus:border-transparent text-sm w-full"
+              required
+            >
+              <option value="">Select a department</option>
+              {departments?.filter(dept => !dept.departmentHeadUserId).map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-text-secondary mt-1">
+              Only departments without assigned heads are shown
+            </p>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <Button 
+              type="button"
+              variant="secondary" 
+              onClick={() => setIsAssignDeptModalOpen(false)}
+              disabled={isAssignDeptSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              variant="primary"
+              disabled={isAssignDeptSubmitting || !assignDeptFormData.departmentId}
+            >
+              {isAssignDeptSubmitting ? 'Assigning...' : 'Assign Department'}
             </Button>
           </div>
         </form>

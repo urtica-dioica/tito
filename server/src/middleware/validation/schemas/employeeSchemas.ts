@@ -18,6 +18,9 @@ export const updateEmployeeSchema = Joi.object({
   departmentId: Joi.string().uuid().optional(),
   position: Joi.string().min(2).max(100).optional(),
   employmentType: Joi.string().valid('regular', 'contractual', 'jo').optional(),
+  hireDate: Joi.date().max('now').optional().messages({
+    'date.max': 'Hire date cannot be in the future'
+  }),
   baseSalary: Joi.number().positive().optional(),
   status: Joi.string().valid('active', 'inactive', 'terminated', 'on_leave').optional()
 });
@@ -29,8 +32,8 @@ export const employeeParamsSchema = Joi.object({
 export const employeeQuerySchema = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
-  search: Joi.string().optional(),
-  departmentId: Joi.string().uuid().optional(),
+  search: Joi.string().allow('').optional(),
+  departmentId: Joi.string().uuid().allow('').optional(),
   status: Joi.string().valid('active', 'inactive', 'terminated', 'on_leave').optional(),
   employmentType: Joi.string().valid('regular', 'contractual', 'jo').optional(),
   sortBy: Joi.string().valid('created_at', 'updated_at', 'first_name', 'last_name', 'employee_id').optional(),

@@ -5,6 +5,7 @@ import { Search, Bell, Menu, X } from 'lucide-react';
 import type { HeaderProps } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../utils/cn';
+import DepartmentSwitcher from '../shared/DepartmentSwitcher';
 
 const Header: React.FC<HeaderProps> = ({ role, className }) => {
   const { logout, getUserFullName, getUserInitials } = useAuth();
@@ -56,6 +57,11 @@ const Header: React.FC<HeaderProps> = ({ role, className }) => {
 
         {/* Notifications and User Menu */}
         <div className="flex items-center space-x-4">
+          {/* Department Switcher (Development Mode Only) */}
+          {role === 'department_head' && (
+            <DepartmentSwitcher />
+          )}
+          
           {/* Notifications */}
           <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
             <Bell className="h-6 w-6" />

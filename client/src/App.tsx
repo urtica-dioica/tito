@@ -13,6 +13,7 @@ import SetupPassword from './pages/SetupPassword';
 import HRDashboard from './pages/hr/Dashboard';
 import HREmployeeManagement from './pages/hr/EmployeeManagement';
 import HRDepartmentManagement from './pages/hr/DepartmentManagement';
+import HRLeaveBalances from './pages/hr/LeaveBalances';
 import HRPayrollManagement from './pages/hr/PayrollManagement';
 import HRSettings from './pages/hr/Settings';
 import HRRequests from './pages/hr/Requests';
@@ -62,6 +63,7 @@ function App() {
                     <Route path="dashboard" element={<HRDashboard />} />
                     <Route path="employees" element={<HREmployeeManagement />} />
                     <Route path="departments" element={<HRDepartmentManagement />} />
+                    <Route path="leave-balances" element={<HRLeaveBalances />} />
                     <Route path="payroll" element={<HRPayrollManagement />} />
                     <Route path="requests" element={<HRRequests />} />
                     <Route path="settings" element={<HRSettings />} />

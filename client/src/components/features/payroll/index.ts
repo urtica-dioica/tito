@@ -1,0 +1,10 @@
+export { default as DeductionTypeManagement } from './DeductionTypeManagement';
+export { default as BenefitTypeManagement } from './BenefitTypeManagement';
+export { default as EmployeeDeductionBalanceManagement } from './EmployeeDeductionBalanceManagement';
+export { default as EmployeeBenefitManagement } from './EmployeeBenefitManagement';
+export { default as NewPayrollManagement } from './NewPayrollManagement';
+export { default as PayrollPeriodManagement } from './PayrollPeriodManagement';
+export { default as PayrollApprovalManagement } from './PayrollApprovalManagement';
+export { default as PayrollProcessingManagement } from './PayrollProcessingManagement';
+export { default as PayrollRecordsManagement } from './PayrollRecordsManagement';
+export { default as PayrollHistoryManagement } from './PayrollHistoryManagement';

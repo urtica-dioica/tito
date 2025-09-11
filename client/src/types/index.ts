@@ -57,9 +57,39 @@ export interface DepartmentEmployee {
   };
   position: string;
   employmentType: string;
+  baseSalary: number;
   hireDate: string;
   status: string;
   lastAttendance?: string;
+}
+
+export interface IdCard {
+  id: string;
+  employeeId: string;
+  employeeCode: string;
+  employeeName: string;
+  departmentName: string | null;
+  qrCodeHash: string;
+  isActive: boolean;
+  expiryDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateIdCardRequest {
+  employeeId: string;
+  expiryYears?: number;
+}
+
+export interface IdCardListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  departmentId?: string;
+  isActive?: boolean;
+  isExpired?: boolean;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface Department {
@@ -126,6 +156,11 @@ export interface PayrollRecord {
   id: string;
   payrollPeriodId: string;
   employeeId: string;
+  employeeName?: string;
+  periodName?: string;
+  departmentId?: string;
+  departmentName?: string;
+  position?: string;
   baseSalary: number; // DECIMAL(10,2)
   hourlyRate: number; // DECIMAL(10,2)
   totalWorkedHours: number; // DECIMAL(5,2)
@@ -136,6 +171,7 @@ export interface PayrollRecord {
   grossPay: number; // DECIMAL(10,2)
   netPay: number; // DECIMAL(10,2)
   totalDeductions: number; // DECIMAL(10,2)
+  totalBenefits: number; // DECIMAL(10,2) - NEW FIELD
   status: 'draft' | 'processed' | 'paid';
   deductions: PayrollDeduction[];
   createdAt: string;
@@ -283,12 +319,12 @@ export interface PageLayoutProps {
 }
 
 export interface ButtonProps {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
   children: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e?: React.FormEvent) => void;
   type?: 'button' | 'submit' | 'reset';
   className?: string;
   icon?: React.ReactNode;
@@ -435,26 +471,68 @@ export interface PayrollPeriod {
   status: 'draft' | 'processing' | 'completed' | 'cancelled';
   totalEmployees: number;
   totalAmount: number;
+  workingDays?: number;
+  expectedHours?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvalComments?: string;
+  approvedAt?: string;
+}
+
+export interface PayrollApproval {
+  id: string;
+  payrollPeriodId: string;
+  approverId: string;
+  departmentId?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  comments?: string;
+  approvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Nested objects from backend
+  approver?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  };
+  department?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  payrollPeriod?: {
+    id: string;
+    periodName: string;
+    startDate: string;
+    endDate: string;
+    status: string;
+  };
+  // Computed fields for backward compatibility
+  approverName?: string;
+  departmentName?: string;
 }
 
 export interface PayrollRecord {
   id: string;
   payrollPeriodId: string;
   employeeId: string;
-  employee: { name: string };
+  employeeName?: string;
+  periodName?: string;
   baseSalary: number;
-  hourlyRate: number;
   totalWorkedHours: number;
+  hourlyRate: number;
   totalRegularHours: number;
   totalOvertimeHours: number;
-  regularPay: number;
-  overtimePay: number;
-  totalPay: number;
-  deductions: PayrollDeduction[];
+  totalLateHours: number;
+  lateDeductions: number;
+  grossPay: number;
   netPay: number;
+  totalDeductions: number;
+  totalBenefits: number;
   status: 'draft' | 'processed' | 'paid';
   createdAt: string;
   updatedAt: string;
@@ -491,4 +569,189 @@ export interface EmployeeListParams {
   status?: 'active' | 'inactive' | 'terminated' | 'on_leave';
   departmentId?: string;
   search?: string;
+}
+
+// ===== NEW PAYROLL SYSTEM TYPES =====
+
+// Deduction Types Management
+export interface DeductionType {
+  id: string;
+  name: string;
+  description?: string;
+  percentage?: number; // DECIMAL(5,2) - percentage-based deduction
+  fixedAmount?: number; // DECIMAL(10,2) - fixed amount deduction
+  amount?: number; // Added for form compatibility
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDeductionTypeRequest {
+  name: string;
+  description?: string;
+  percentage?: number;
+  fixedAmount?: number;
+  amount?: number; // Added for form compatibility
+  isActive?: boolean;
+}
+
+export interface UpdateDeductionTypeRequest {
+  name?: string;
+  description?: string;
+  percentage?: number;
+  fixedAmount?: number;
+  amount?: number; // Added for form compatibility
+  isActive?: boolean;
+}
+
+// Benefit Types Management
+export interface BenefitType {
+  id: string;
+  name: string;
+  description?: string;
+  amount: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBenefitTypeRequest {
+  name: string;
+  description?: string;
+  amount: number;
+  isActive?: boolean;
+}
+
+export interface UpdateBenefitTypeRequest {
+  name?: string;
+  description?: string;
+  amount?: number;
+  isActive?: boolean;
+}
+
+// Employee Deduction Balances Management
+export interface EmployeeDeductionBalance {
+  id: string;
+  employeeId: string;
+  deductionTypeId: string;
+  deductionTypeName: string;
+  originalAmount: number; // DECIMAL(10,2)
+  remainingBalance: number; // DECIMAL(10,2)
+  monthlyDeductionAmount: number; // DECIMAL(10,2)
+  startDate: string; // DATE
+  endDate?: string; // DATE
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  // Additional fields for display
+  employeeName?: string;
+  employeeCode?: string;
+}
+
+export interface CreateEmployeeDeductionBalanceRequest {
+  employeeId: string;
+  deductionTypeId: string;
+  originalAmount: number;
+  remainingBalance: number;
+  monthlyDeductionAmount: number;
+  startDate: string;
+  endDate?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateEmployeeDeductionBalanceRequest {
+  originalAmount?: number;
+  remainingBalance?: number;
+  monthlyDeductionAmount?: number;
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
+}
+
+// Employee Benefits Management
+export interface EmployeeBenefit {
+  id: string;
+  employeeId: string;
+  benefitTypeId: string;
+  benefitTypeName: string;
+  amount: number; // DECIMAL(10,2)
+  startDate: string; // DATE
+  endDate?: string; // DATE
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  // Additional fields for display
+  employeeName?: string;
+  employeeCode?: string;
+}
+
+export interface CreateEmployeeBenefitRequest {
+  employeeId: string;
+  benefitTypeId: string;
+  amount: number;
+  startDate: string;
+  endDate?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateEmployeeBenefitRequest {
+  benefitTypeId?: string;
+  amount?: number;
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
+}
+
+// CSV Upload Types
+export interface EmployeeDeductionBalanceCSVRow {
+  employee_name: string;
+  employee_id: string;
+  deduction_type_name: string;
+  deduction_type_id: string;
+  remaining_balance: string;
+  monthly_deduction_amount?: string;
+  start_date?: string;
+  end_date?: string;
+  is_active?: string;
+}
+
+export interface CSVUploadResponse {
+  successCount: number;
+  errorCount: number;
+  errors: Array<{
+    row: number;
+    error: string;
+  }>;
+}
+
+// Updated PayrollRecord with new fields (duplicate for the new system)
+export interface NewPayrollRecord {
+  id: string;
+  payrollPeriodId: string;
+  employeeId: string;
+  baseSalary: number; // DECIMAL(10,2)
+  hourlyRate: number; // DECIMAL(8,2)
+  totalWorkedHours: number; // DECIMAL(6,2)
+  totalRegularHours: number; // DECIMAL(6,2)
+  totalOvertimeHours: number; // DECIMAL(6,2)
+  totalLateHours: number; // DECIMAL(6,2)
+  lateDeductions: number; // DECIMAL(10,2)
+  grossPay: number; // DECIMAL(10,2)
+  netPay: number; // DECIMAL(10,2)
+  totalDeductions: number; // DECIMAL(10,2)
+  totalBenefits: number; // DECIMAL(10,2) - NEW FIELD
+  status: 'draft' | 'processed' | 'paid';
+  createdAt: string;
+  updatedAt: string;
+  // Additional fields for display
+  employee?: {
+    employeeId: string;
+    user: {
+      firstName: string;
+      lastName: string;
+    };
+    department?: {
+      name: string;
+    };
+  };
 }

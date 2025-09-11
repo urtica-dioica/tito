@@ -3,6 +3,12 @@ import { attendanceSessionModel, AttendanceSession, CreateAttendanceSessionData 
 import { employeeModel } from '../../models/hr/Employee';
 import { getPool } from '../../config/database';
 import logger from '../../utils/logger';
+import { 
+  getNextSessionType, 
+  canPerformAttendanceAction,
+  SessionType,
+  getSessionDisplayInfo 
+} from '../../utils/timeValidation';
 
 export interface ClockInData {
   employeeId: string;
@@ -16,6 +22,21 @@ export interface ClockOutData {
   qrCodeHash: string;
   selfieImagePath?: string;
   timestamp?: Date | undefined;
+}
+
+export interface TimeBasedAttendanceData {
+  employeeId: string;
+  sessionType: SessionType;
+  qrCodeHash: string;
+  selfieImagePath?: string;
+  timestamp?: Date;
+}
+
+export interface AttendanceValidationResult {
+  canPerform: boolean;
+  reason?: string;
+  nextExpectedSession?: SessionType;
+  sessionDisplayInfo?: ReturnType<typeof getSessionDisplayInfo>;
 }
 
 export interface AttendanceSummary {
@@ -214,7 +235,7 @@ export class AttendanceService {
       return {
         employeeId,
         employeeCode: employee.employee_id,
-        employeeName: employee.user?.first_name + ' ' + employee.user?.last_name,
+        employeeName: `${employee.user?.first_name || ''} ${employee.user?.last_name || ''}`.trim(),
         departmentName: employee.department?.name || null,
         date: normalizedDate,
         overallStatus: 'absent',
@@ -234,7 +255,7 @@ export class AttendanceService {
     return {
       employeeId,
       employeeCode: employee.employee_id,
-      employeeName: employee.user?.first_name + ' ' + employee.user?.last_name,
+      employeeName: `${employee.user?.first_name || ''} ${employee.user?.last_name || ''}`.trim(),
       departmentName: employee.department?.name || null,
       date: normalizedDate,
       overallStatus: attendanceRecord.overallStatus,
@@ -512,6 +533,202 @@ export class AttendanceService {
       limit: result.limit,
       totalPages: result.totalPages
     };
+  }
+
+  /**
+   * Validate if employee can perform attendance action
+   */
+  async validateAttendanceAction(
+    employeeId: string, 
+    sessionType: SessionType, 
+    timestamp: Date = new Date()
+  ): Promise<AttendanceValidationResult> {
+    try {
+      // Get today's attendance record and sessions
+      const today = new Date(timestamp);
+      today.setHours(0, 0, 0, 0);
+      
+      const attendanceRecord = await attendanceRecordModel.findByEmployeeAndDate(employeeId, today);
+      const existingSessions = attendanceRecord 
+        ? await attendanceSessionModel.getSessionsByAttendanceRecord(attendanceRecord.id)
+        : [];
+
+      // Convert sessions to the format expected by validation functions
+      const sessionData = existingSessions.map(session => ({
+        sessionType: session.sessionType as SessionType,
+        timestamp: session.timestamp
+      }));
+
+      // Use utility function to validate
+      const validation = canPerformAttendanceAction(sessionType, sessionData, timestamp);
+      
+      return {
+        canPerform: validation.canPerform,
+        reason: validation.reason,
+        nextExpectedSession: validation.nextExpectedSession,
+        sessionDisplayInfo: getSessionDisplayInfo(sessionType)
+      };
+    } catch (error) {
+      logger.error('Error validating attendance action', {
+        error: (error as Error).message,
+        employeeId,
+        sessionType,
+        timestamp
+      });
+      
+      return {
+        canPerform: false,
+        reason: 'Error validating attendance action'
+      };
+    }
+  }
+
+  /**
+   * Record time-based attendance (morning_in, morning_out, afternoon_in, afternoon_out)
+   */
+  async recordTimeBasedAttendance(data: TimeBasedAttendanceData): Promise<AttendanceSummary> {
+    const { employeeId, sessionType, qrCodeHash, selfieImagePath, timestamp = new Date() } = data;
+
+    // Verify employee exists and is active
+    const employee = await employeeModel.findById(employeeId);
+    if (!employee) {
+      throw new Error('Employee not found');
+    }
+
+    if (employee.status !== 'active') {
+      throw new Error('Employee is not active');
+    }
+
+    // Validate attendance action
+    const validation = await this.validateAttendanceAction(employeeId, sessionType, timestamp);
+    if (!validation.canPerform) {
+      throw new Error(validation.reason || 'Invalid attendance action');
+    }
+
+    // Get today's date
+    const today = new Date(timestamp);
+    today.setHours(0, 0, 0, 0);
+
+    // Create or get attendance record for today
+    let attendanceRecord: AttendanceRecord;
+    const existingRecord = await attendanceRecordModel.findByEmployeeAndDate(employeeId, today);
+    
+    if (existingRecord) {
+      attendanceRecord = existingRecord;
+    } else {
+      attendanceRecord = await attendanceRecordModel.createAttendanceRecord({
+        employeeId,
+        date: today,
+        overallStatus: 'present'
+      });
+    }
+
+    // Check if session already exists
+    // Note: sessionType from timeValidation is different from database sessionType
+    // For now, we'll create new sessions instead of updating existing ones
+    const existingSession = null;
+
+    let session: AttendanceSession;
+
+    if (existingSession) {
+      // Update existing session - this branch is currently disabled due to type mismatch
+      // TODO: Implement proper session update logic when database schema supports time-based sessions
+      throw new Error('Session update not implemented for time-based attendance');
+    } else {
+      // Create new session
+      const sessionData: CreateAttendanceSessionData = {
+        attendanceRecordId: attendanceRecord.id,
+        sessionType: sessionType,
+        timestamp,
+        qrCodeHash,
+        ...(selfieImagePath && { selfieImagePath })
+      };
+
+      session = await attendanceSessionModel.createAttendanceSession(sessionData);
+    }
+
+    // Update overall status based on completed sessions
+    const totalHours = await this.calculateDailyHours(attendanceRecord.id);
+    let overallStatus: 'present' | 'late' | 'absent' | 'partial' = 'present';
+    
+    if (totalHours < 4) {
+      overallStatus = 'partial';
+    } else if (totalHours < 8) {
+      overallStatus = 'late';
+    }
+
+    await attendanceRecordModel.updateAttendanceRecord(attendanceRecord.id, {
+      overallStatus
+    });
+
+    // Get updated attendance summary
+    const summary = await this.getAttendanceSummary(employeeId, today);
+
+    logger.info('Time-based attendance recorded successfully', {
+      employeeId,
+      sessionType,
+      timestamp,
+      sessionId: session.id
+    });
+
+    return summary;
+  }
+
+  /**
+   * Get next expected session for employee
+   */
+  async getNextExpectedSession(employeeId: string, date: Date = new Date()): Promise<{
+    sessionType: SessionType | null;
+    displayInfo: ReturnType<typeof getSessionDisplayInfo> | null;
+    canPerform: boolean;
+    reason?: string;
+  }> {
+    try {
+      const today = new Date(date);
+      today.setHours(0, 0, 0, 0);
+      
+      const attendanceRecord = await attendanceRecordModel.findByEmployeeAndDate(employeeId, today);
+      const existingSessions = attendanceRecord 
+        ? await attendanceSessionModel.getSessionsByAttendanceRecord(attendanceRecord.id)
+        : [];
+
+      const sessionData = existingSessions.map(session => ({
+        sessionType: session.sessionType as SessionType,
+        timestamp: session.timestamp
+      }));
+
+      const nextSession = getNextSessionType(sessionData, date);
+      
+      if (nextSession) {
+        const validation = await this.validateAttendanceAction(employeeId, nextSession, date);
+        return {
+          sessionType: nextSession,
+          displayInfo: getSessionDisplayInfo(nextSession),
+          canPerform: validation.canPerform,
+          reason: validation.reason
+        };
+      }
+
+      return {
+        sessionType: null,
+        displayInfo: null,
+        canPerform: false,
+        reason: 'No valid session available at this time'
+      };
+    } catch (error) {
+      logger.error('Error getting next expected session', {
+        error: (error as Error).message,
+        employeeId,
+        date
+      });
+      
+      return {
+        sessionType: null,
+        displayInfo: null,
+        canPerform: false,
+        reason: 'Error determining next session'
+      };
+    }
   }
 }
 

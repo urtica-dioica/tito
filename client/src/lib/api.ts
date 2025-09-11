@@ -18,9 +18,32 @@ export const api: AxiosInstance = axios.create({
 // Request interceptor for authentication
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Always check for real JWT token first (from actual login)
+    const realToken = localStorage.getItem('accessToken');
+    
+    if (realToken && config.headers) {
+      // Use real JWT token if available (from actual login)
+      config.headers.Authorization = `Bearer ${realToken}`;
+    } else if (import.meta.env.DEV) {
+      // Fallback to development tokens only if no real token is available
+      const currentPath = window.location.pathname;
+      let devToken = 'test-token';
+      
+      // Determine department based on current path
+      if (currentPath.includes('/dept/')) {
+        // For department head routes, use a default department token
+        // This can be customized by setting a localStorage value
+        const departmentType = localStorage.getItem('devDepartmentType') || 'it';
+        devToken = `dept-head-token-${departmentType}`;
+      } else if (currentPath.includes('/hr/')) {
+        devToken = 'test-token'; // HR admin token
+      } else if (currentPath.includes('/employee/')) {
+        devToken = 'employee-token';
+      }
+      
+      if (config.headers) {
+        config.headers.Authorization = devToken;
+      }
     }
     return config;
   },

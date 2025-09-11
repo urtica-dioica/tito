@@ -71,7 +71,7 @@ export class LeaveService {
     const leaveBalance = await leaveBalanceModel.findByEmployeeLeaveTypeAndYear(employeeId, leaveType, currentYear);
     
     if (leaveBalance) {
-      const availableDays = leaveBalance.totalDays - leaveBalance.usedDays;
+      const availableDays = leaveBalance.balance;
       if (availableDays < totalDays) {
         throw new Error(`Insufficient leave balance. Available: ${availableDays} days, Requested: ${totalDays} days`);
       }
@@ -80,9 +80,7 @@ export class LeaveService {
       await leaveBalanceModel.createLeaveBalance({
         employeeId,
         leaveType,
-        totalDays: 0,
-        usedDays: 0,
-        year: currentYear
+        balance: 0
       });
       throw new Error(`No leave balance available for ${leaveType} leave`);
     }
@@ -236,7 +234,7 @@ export class LeaveService {
       employeeId: leave.employeeId,
       leaveType: leave.leaveType,
       daysUsed: leave.totalDays,
-      remainingBalance: updatedBalance.totalDays - updatedBalance.usedDays
+      remainingBalance: updatedBalance.balance
     });
   }
 
@@ -276,9 +274,9 @@ export class LeaveService {
     balances.forEach(balance => {
       const leaveType = balance.leaveType as keyof LeaveBalanceSummary;
       if (summary[leaveType]) {
-        summary[leaveType].total = balance.totalDays;
-        summary[leaveType].used = balance.usedDays;
-        summary[leaveType].available = balance.totalDays - balance.usedDays;
+        summary[leaveType].total = balance.balance;
+        summary[leaveType].used = 0; // We'll need to calculate this from leave records
+        summary[leaveType].available = balance.balance;
       }
     });
 
@@ -311,9 +309,7 @@ export class LeaveService {
         const balance = await leaveBalanceModel.upsertLeaveBalance({
           employeeId,
           leaveType: type,
-          totalDays: days,
-          usedDays: 0,
-          year
+          balance: days
         });
         balances.push(balance);
       }
@@ -432,7 +428,7 @@ export class LeaveService {
       );
       
       if (leaveBalance) {
-        const availableDays = leaveBalance.totalDays - leaveBalance.usedDays;
+        const availableDays = leaveBalance.balance;
         if (availableDays < totalDays) {
           errors.push(`Insufficient leave balance. Available: ${availableDays} days, Requested: ${totalDays} days`);
         }

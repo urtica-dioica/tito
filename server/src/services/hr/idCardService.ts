@@ -1,6 +1,7 @@
 import { getPool } from '../../config/database';
 import logger from '../../utils/logger';
 import crypto from 'crypto';
+import QRCode from 'qrcode';
 
 export interface IdCard {
   id: string;
@@ -18,6 +19,7 @@ export interface IdCard {
 export interface CreateIdCardData {
   employeeId: string;
   expiryYears?: number;
+  issuedBy?: string; // User ID of who is issuing the card
 }
 
 export interface IdCardListParams {
@@ -90,11 +92,13 @@ export class IdCardService {
       const createQuery = `
         INSERT INTO id_cards (
           employee_id, 
-          qr_code_hash, 
+          qr_code_hash,
+          qr_code_data,
           is_active, 
-          expiry_date
+          expiry_date,
+          issued_by
         )
-        VALUES ($1, $2, $3, $4)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING 
           id,
           employee_id as "employeeId",
@@ -108,8 +112,10 @@ export class IdCardService {
       const result = await client.query(createQuery, [
         data.employeeId,
         qrCodeHash,
+        qrCodeData,
         true,
-        expiryDate
+        expiryDate,
+        data.issuedBy || data.employeeId // Use provided issuedBy or fallback to employee ID
       ]);
 
       await client.query('COMMIT');
@@ -440,6 +446,62 @@ export class IdCardService {
       expiringSoon: parseInt(stats.expiring_soon),
       byDepartment
     };
+  }
+
+  /**
+   * Get QR code data for ID card
+   */
+  async getQrCodeData(idCardId: string): Promise<{
+    qrCodeData: string;
+    qrCodeImage: string;
+  }> {
+    const query = `
+      SELECT 
+        ic.qr_code_data as "qrCodeData",
+        ic.qr_code_hash as "qrCodeHash"
+      FROM id_cards ic
+      WHERE ic.id = $1 AND ic.is_active = true
+    `;
+
+    const result = await getPool().query(query, [idCardId]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('ID card not found or inactive');
+    }
+
+    const row = result.rows[0];
+    
+    try {
+      // Generate actual QR code image from the stored data
+      const qrCodeImage = await QRCode.toDataURL(row.qrCodeData, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      
+      return {
+        qrCodeData: row.qrCodeData,
+        qrCodeImage: qrCodeImage
+      };
+    } catch (error) {
+      logger.error('Failed to generate QR code image', { error: (error as Error).message, idCardId });
+      
+      // Fallback to placeholder if QR generation fails
+      return {
+        qrCodeData: row.qrCodeData,
+        qrCodeImage: `data:image/svg+xml;base64,${Buffer.from(`
+          <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="200" fill="white" stroke="#ccc" stroke-width="2"/>
+            <text x="100" y="100" text-anchor="middle" font-family="Arial" font-size="12" fill="#666">
+              QR Code Error
+            </text>
+          </svg>
+        `).toString('base64')}`
+      };
+    }
   }
 
   /**

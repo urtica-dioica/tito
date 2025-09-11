@@ -1,8 +1,10 @@
-import { pool } from '../../config/database';
+import { getPool } from '../../config/database';
 import { EmployeeModel } from '../../models/hr/Employee';
+import { PayrollApprovalModel } from '../../models/payroll/PayrollApproval';
 import logger from '../../utils/logger';
 
 const employeeModel = new EmployeeModel();
+const payrollApprovalModel = new PayrollApprovalModel();
 
 export interface DepartmentHeadDashboard {
   department: {
@@ -134,6 +136,7 @@ export class DepartmentHeadService {
           e.employee_id,
           e.position,
           e.employment_type,
+          e.base_salary,
           e.hire_date,
           e.status,
           u.id as user_id,
@@ -169,7 +172,7 @@ export class DepartmentHeadService {
       query += ` ORDER BY u.first_name, u.last_name LIMIT $${paramCount++} OFFSET $${paramCount++}`;
       queryParams.push(options.limit, offset);
 
-      const result = await pool.query(query, queryParams);
+      const result = await getPool().query(query, queryParams);
 
       // Get total count
       let countQuery = `
@@ -190,7 +193,7 @@ export class DepartmentHeadService {
         countParams.push(`%${options.search}%`);
       }
 
-      const countResult = await pool.query(countQuery, countParams);
+      const countResult = await getPool().query(countQuery, countParams);
       const total = parseInt(countResult.rows[0].total);
 
       const employees: DepartmentEmployee[] = result.rows.map((row: any) => ({
@@ -204,6 +207,7 @@ export class DepartmentHeadService {
         },
         position: row.position,
         employmentType: row.employment_type,
+        baseSalary: parseFloat(row.base_salary) || 0,
         hireDate: row.hire_date,
         status: row.status,
         lastAttendance: row.last_attendance
@@ -347,7 +351,7 @@ export class DepartmentHeadService {
         FROM employees 
         WHERE department_id = $1
       `;
-      const employeeResult = await pool.query(employeeCountQuery, [department.id]);
+      const employeeResult = await getPool().query(employeeCountQuery, [department.id]);
 
       // Get attendance rate for the period
       const attendanceQuery = `
@@ -362,7 +366,7 @@ export class DepartmentHeadService {
       `;
       
       const periodStart = this.getPeriodStart(period);
-      const attendanceResult = await pool.query(attendanceQuery, [department.id, periodStart]);
+      const attendanceResult = await getPool().query(attendanceQuery, [department.id, periodStart]);
 
       // Get pending requests count
       const pendingCount = await this.getPendingRequestsCount(department.id);
@@ -464,7 +468,7 @@ export class DepartmentHeadService {
       GROUP BY d.id, d.name, d.description
     `;
     
-    const result = await pool.query(query, [userId]);
+    const result = await getPool().query(query, [userId]);
     return result.rows[0] || null;
   }
 
@@ -490,7 +494,7 @@ export class DepartmentHeadService {
          WHERE e.department_id = $1 AND l.status = 'pending') as leaves
     `;
     
-    const result = await pool.query(query, [departmentId]);
+    const result = await getPool().query(query, [departmentId]);
     const row = result.rows[0];
     
     return {
@@ -504,14 +508,82 @@ export class DepartmentHeadService {
   /**
    * Helper method to get recent activity
    */
-  private async getRecentActivity(_departmentId: string): Promise<Array<{
+  private async getRecentActivity(departmentId: string): Promise<Array<{
     type: 'time_correction' | 'overtime' | 'leave';
     employeeName: string;
     date: string;
     status: string;
   }>> {
-    // Implementation would query recent requests and format them
-    return [];
+    try {
+      // Get recent time correction requests
+      const timeCorrectionsQuery = `
+        SELECT 
+          'time_correction' as type,
+          CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+          tcr.created_at as date,
+          tcr.status
+        FROM time_correction_requests tcr
+        JOIN employees e ON tcr.employee_id = e.id
+        JOIN users u ON e.user_id = u.id
+        WHERE e.department_id = $1
+        ORDER BY tcr.created_at DESC
+        LIMIT 5
+      `;
+
+      // Get recent overtime requests
+      const overtimeQuery = `
+        SELECT 
+          'overtime' as type,
+          CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+          otr.created_at as date,
+          otr.status
+        FROM overtime_requests otr
+        JOIN employees e ON otr.employee_id = e.id
+        JOIN users u ON e.user_id = u.id
+        WHERE e.department_id = $1
+        ORDER BY otr.created_at DESC
+        LIMIT 5
+      `;
+
+      // Get recent leave requests
+      const leaveQuery = `
+        SELECT 
+          'leave' as type,
+          CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+          l.created_at as date,
+          l.status
+        FROM leaves l
+        JOIN employees e ON l.employee_id = e.id
+        JOIN users u ON e.user_id = u.id
+        WHERE e.department_id = $1
+        ORDER BY l.created_at DESC
+        LIMIT 5
+      `;
+
+      const [timeCorrectionsResult, overtimeResult, leaveResult] = await Promise.all([
+        getPool().query(timeCorrectionsQuery, [departmentId]),
+        getPool().query(overtimeQuery, [departmentId]),
+        getPool().query(leaveQuery, [departmentId])
+      ]);
+
+      // Combine all results and sort by date
+      const allActivities = [
+        ...timeCorrectionsResult.rows,
+        ...overtimeResult.rows,
+        ...leaveResult.rows
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+       .slice(0, 10); // Get top 10 most recent activities
+
+      return allActivities.map(activity => ({
+        type: activity.type as 'time_correction' | 'overtime' | 'leave',
+        employeeName: activity.employee_name,
+        date: activity.date,
+        status: activity.status
+      }));
+    } catch (error) {
+      logger.error('Error getting recent activity:', { error, departmentId });
+      return [];
+    }
   }
 
   /**
@@ -535,7 +607,7 @@ export class DepartmentHeadService {
       WHERE e.department_id = $1 AND e.status = 'active'
     `;
     
-    const result = await pool.query(query, [departmentId, today]);
+    const result = await getPool().query(query, [departmentId, today]);
     const row = result.rows[0];
     
     return {
@@ -571,7 +643,7 @@ export class DepartmentHeadService {
       WHERE department_id = $1
     `;
     
-    const result = await pool.query(query, [department.id]);
+    const result = await getPool().query(query, [department.id]);
     return result.rows[0];
   }
 
@@ -579,14 +651,70 @@ export class DepartmentHeadService {
    * Get employee performance statistics
    */
   async getEmployeePerformance(userId: string): Promise<any[]> {
-    const department = await this.getDepartmentByHead(userId);
-    if (!department) {
-      throw new Error('Department not found');
-    }
+    try {
+      const department = await this.getDepartmentByHead(userId);
+      if (!department) {
+        throw new Error('Department not found');
+      }
 
-    // This would typically join with attendance records
-    // For now, returning empty array as placeholder
-    return [];
+      // Get employee performance data with attendance statistics
+      const performanceQuery = `
+        SELECT 
+          e.id as employee_id,
+          CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+          e.position,
+          e.employee_id as employee_code,
+          -- Calculate attendance rate (last 30 days)
+          COALESCE(
+            ROUND(
+              (COUNT(CASE WHEN ar.overall_status = 'present' THEN 1 END) * 100.0 / 
+               NULLIF(COUNT(ar.id), 0)), 2
+            ), 0
+          ) as attendance_rate,
+          -- Calculate punctuality score (on-time arrivals)
+          COALESCE(
+            ROUND(
+              (COUNT(CASE WHEN ar.overall_status = 'present' AND as.clock_in::time <= '09:00:00' THEN 1 END) * 100.0 / 
+               NULLIF(COUNT(CASE WHEN ar.overall_status = 'present' THEN 1 END), 0)), 2
+            ), 0
+          ) as punctuality_score,
+          -- Count late days
+          COUNT(CASE WHEN ar.overall_status = 'present' AND as.clock_in::time > '09:00:00' THEN 1 END) as total_days_late,
+          -- Count absent days
+          COUNT(CASE WHEN ar.overall_status = 'absent' THEN 1 END) as total_days_absent,
+          -- Average clock-in time
+          COALESCE(
+            TO_CHAR(AVG(CASE WHEN ar.overall_status = 'present' THEN as.clock_in::time END), 'HH24:MI'), 
+            'N/A'
+          ) as average_clock_in_time
+        FROM employees e
+        JOIN users u ON e.user_id = u.id
+        LEFT JOIN attendance_records ar ON e.id = ar.employee_id 
+          AND ar.created_at >= CURRENT_DATE - INTERVAL '30 days'
+        LEFT JOIN attendance_sessions as ON ar.id = as.attendance_record_id
+          AND as.session_type = 'morning'
+        WHERE e.department_id = $1
+        GROUP BY e.id, u.first_name, u.last_name, e.position, e.employee_id
+        ORDER BY attendance_rate DESC, punctuality_score DESC
+      `;
+
+      const result = await getPool().query(performanceQuery, [department.id]);
+      
+      return result.rows.map(row => ({
+        employeeId: row.employee_id,
+        employeeName: row.employee_name,
+        position: row.position,
+        employeeCode: row.employee_code,
+        attendanceRate: parseFloat(row.attendance_rate) || 0,
+        punctualityScore: parseFloat(row.punctuality_score) || 0,
+        totalDaysLate: parseInt(row.total_days_late) || 0,
+        totalDaysAbsent: parseInt(row.total_days_absent) || 0,
+        averageClockInTime: row.average_clock_in_time
+      }));
+    } catch (error) {
+      logger.error('Error getting employee performance:', { error, userId });
+      return [];
+    }
   }
 
   /**
@@ -655,9 +783,48 @@ export class DepartmentHeadService {
       throw new Error('Department not found');
     }
 
-    // This would typically query payroll periods
-    // For now, returning empty array as placeholder
-    return [];
+    try {
+      // Get payroll periods that have been sent for approval to this department head
+      const query = `
+        SELECT DISTINCT pp.*,
+          COUNT(DISTINCT CASE WHEN e.department_id = $1 THEN pr.employee_id END) as total_employees,
+          COALESCE(SUM(CASE WHEN e.department_id = $1 THEN pr.net_pay ELSE 0 END), 0) as total_amount,
+          pa.status as approval_status,
+          pa.comments as approval_comments,
+          pa.approved_at
+        FROM payroll_periods pp
+        INNER JOIN payroll_approvals pa ON pp.id = pa.payroll_period_id
+        LEFT JOIN payroll_records pr ON pp.id = pr.payroll_period_id
+        LEFT JOIN employees e ON pr.employee_id = e.id
+        WHERE pa.approver_id = $2
+        GROUP BY pp.id, pp.period_name, pp.start_date, pp.end_date, pp.status, 
+                 pp.working_days, pp.expected_hours, pp.created_at, pp.updated_at,
+                 pa.status, pa.comments, pa.approved_at
+        ORDER BY pp.created_at DESC
+      `;
+      
+      const result = await getPool().query(query, [department.id, userId]);
+      
+      return result.rows.map(period => ({
+        id: period.id,
+        periodName: period.period_name,
+        startDate: period.start_date,
+        endDate: period.end_date,
+        status: period.status,
+        workingDays: period.working_days,
+        expectedHours: period.expected_hours,
+        totalEmployees: parseInt(period.total_employees) || 0,
+        totalAmount: parseFloat(period.total_amount) || 0,
+        approvalStatus: period.approval_status,
+        approvalComments: period.approval_comments,
+        approvedAt: period.approved_at,
+        createdAt: period.created_at,
+        updatedAt: period.updated_at
+      }));
+    } catch (error) {
+      logger.error('Error getting payroll periods:', error);
+      return [];
+    }
   }
 
   /**
@@ -669,11 +836,43 @@ export class DepartmentHeadService {
       throw new Error('Department not found');
     }
 
-    // This would typically query payroll records for the period
-    // For now, returning empty array as placeholder
-    // TODO: Implement actual query using periodId
-    console.log(`Getting payroll records for period ${periodId} in department ${department.id}`);
-    return [];
+    try {
+      // Get payroll records for the period, filtered by department employees
+      const query = `
+        SELECT pr.*, u.first_name, u.last_name, e.employee_id, e.position
+        FROM payroll_records pr
+        INNER JOIN employees e ON pr.employee_id = e.id
+        INNER JOIN users u ON e.user_id = u.id
+        WHERE pr.payroll_period_id = $1 AND e.department_id = $2
+        ORDER BY u.first_name, u.last_name
+      `;
+      
+      const result = await getPool().query(query, [periodId, department.id]);
+      
+      return result.rows.map(record => ({
+        id: record.id,
+        employeeName: `${record.first_name} ${record.last_name}`,
+        employeeId: record.employee_id,
+        position: record.position,
+        baseSalary: record.base_salary,
+        hourlyRate: record.hourly_rate,
+        totalWorkedHours: record.total_worked_hours,
+        totalRegularHours: record.total_regular_hours,
+        totalOvertimeHours: record.total_overtime_hours,
+        totalLateHours: record.total_late_hours,
+        lateDeductions: record.late_deductions,
+        grossPay: record.gross_pay,
+        netPay: record.net_pay,
+        totalDeductions: record.total_deductions,
+        totalBenefits: record.total_benefits,
+        status: record.status,
+        createdAt: record.created_at,
+        updatedAt: record.updated_at
+      }));
+    } catch (error) {
+      logger.error('Error getting payroll records:', error);
+      return [];
+    }
   }
 
   /**
@@ -685,15 +884,184 @@ export class DepartmentHeadService {
       throw new Error('Department not found');
     }
 
-    // This would typically calculate payroll statistics
-    // For now, returning placeholder data
-    return {
-      totalEmployees: 0,
-      totalGrossPay: 0,
-      completedPeriods: 0,
-      processingPeriods: 0
-    };
+    try {
+      // Get total employees in department
+      const employeeCountQuery = `
+        SELECT COUNT(*) as count
+        FROM employees
+        WHERE department_id = $1 AND status = 'active'
+      `;
+      const employeeResult = await getPool().query(employeeCountQuery, [department.id]);
+      const totalEmployees = parseInt(employeeResult.rows[0].count);
+
+      // Get total gross pay for current month
+      const currentMonth = new Date();
+      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+
+      const grossPayQuery = `
+        SELECT COALESCE(SUM(pr.gross_pay), 0) as total_gross_pay
+        FROM payroll_records pr
+        INNER JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+        INNER JOIN employees e ON pr.employee_id = e.id
+        WHERE e.department_id = $1 
+        AND pp.start_date >= $2 
+        AND pp.end_date <= $3
+      `;
+      const grossPayResult = await getPool().query(grossPayQuery, [department.id, startOfMonth, endOfMonth]);
+      const totalGrossPay = parseFloat(grossPayResult.rows[0].total_gross_pay);
+
+      // Get completed and processing periods count
+      const periodsQuery = `
+        SELECT 
+          COUNT(CASE WHEN pp.status = 'completed' THEN 1 END) as completed_periods,
+          COUNT(CASE WHEN pp.status = 'processing' THEN 1 END) as processing_periods
+        FROM payroll_periods pp
+        INNER JOIN payroll_approvals pa ON pp.id = pa.payroll_period_id
+        WHERE pa.approver_id = $1
+      `;
+      const periodsResult = await getPool().query(periodsQuery, [userId]);
+      const completedPeriods = parseInt(periodsResult.rows[0].completed_periods);
+      const processingPeriods = parseInt(periodsResult.rows[0].processing_periods);
+
+      return {
+        totalEmployees,
+        totalGrossPay,
+        completedPeriods,
+        processingPeriods
+      };
+    } catch (error) {
+      logger.error('Error getting payroll statistics:', error);
+      return {
+        totalEmployees: 0,
+        totalGrossPay: 0,
+        completedPeriods: 0,
+        processingPeriods: 0
+      };
+    }
   }
+
+  /**
+   * Get payroll approvals for department
+   */
+  async getPayrollApprovals(userId: string): Promise<any[]> {
+    const department = await this.getDepartmentByHead(userId);
+    if (!department) {
+      throw new Error('Department not found');
+    }
+
+    try {
+      // Get pending approvals for this department head
+      const approvals = await payrollApprovalModel.getPendingApprovalsForApprover(userId);
+      
+      // For each approval, get the detailed payroll records
+      const approvalsWithDetails = await Promise.all(
+        approvals.map(async (approval) => {
+          // Get payroll records for this period and department
+          const recordsQuery = `
+            SELECT 
+              pr.*,
+              u.first_name,
+              u.last_name,
+              e.employee_id,
+              e.position,
+              e.department_id
+            FROM payroll_records pr
+            INNER JOIN employees e ON pr.employee_id = e.id
+            INNER JOIN users u ON e.user_id = u.id
+            WHERE pr.payroll_period_id = $1 AND e.department_id = $2
+            ORDER BY u.first_name, u.last_name
+          `;
+          
+          const recordsResult = await getPool().query(recordsQuery, [approval.payrollPeriodId, department.id]);
+          
+          const payrollRecords = recordsResult.rows.map(record => ({
+            id: record.id,
+            employeeName: `${record.first_name} ${record.last_name}`,
+            employeeId: record.employee_id,
+            position: record.position,
+            baseSalary: record.base_salary,
+            totalRegularHours: record.total_regular_hours,
+            totalOvertimeHours: record.total_overtime_hours,
+            totalLateHours: record.total_late_hours,
+            hourlyRate: record.hourly_rate,
+            grossPay: record.gross_pay,
+            netPay: record.net_pay,
+            totalDeductions: record.total_deductions,
+            totalBenefits: record.total_benefits,
+            lateDeductions: record.late_deductions,
+            status: record.status,
+            createdAt: record.created_at,
+            updatedAt: record.updated_at
+          }));
+
+          // Calculate totals
+          const totalEmployees = payrollRecords.length;
+          const totalAmount = payrollRecords.reduce((sum, record) => sum + (record.netPay || 0), 0);
+          const totalGrossPay = payrollRecords.reduce((sum, record) => sum + (record.grossPay || 0), 0);
+          const totalDeductions = payrollRecords.reduce((sum, record) => sum + (record.totalDeductions || 0), 0);
+          const totalBenefits = payrollRecords.reduce((sum, record) => sum + (record.totalBenefits || 0), 0);
+
+          return {
+            id: approval.id,
+            periodName: approval.payrollPeriod.periodName,
+            periodId: approval.payrollPeriodId,
+            startDate: approval.payrollPeriod.startDate,
+            endDate: approval.payrollPeriod.endDate,
+            createdAt: approval.createdAt,
+            totalEmployees,
+            totalAmount,
+            totalGrossPay,
+            totalDeductions,
+            totalBenefits,
+            status: approval.status,
+            departmentName: approval.department?.name || 'Unknown Department',
+            approverName: `${approval.approver.firstName} ${approval.approver.lastName}`,
+            comments: approval.comments,
+            payrollRecords
+          };
+        })
+      );
+      
+      return approvalsWithDetails;
+    } catch (error) {
+      logger.error('Error getting payroll approvals:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Approve or reject payroll approval
+   */
+  async approvePayrollApproval(userId: string, approvalId: string, status: 'approved' | 'rejected', comments?: string): Promise<boolean> {
+    try {
+      // Verify the approval belongs to this department head
+      const approval = await payrollApprovalModel.findById(approvalId);
+      if (!approval || approval.approverId !== userId) {
+        throw new Error('Approval not found or not authorized');
+      }
+
+      // Update the approval
+      const updateData = {
+        status,
+        comments,
+        approvedAt: new Date()
+      };
+
+      const updatedApproval = await payrollApprovalModel.updatePayrollApproval(approvalId, updateData);
+      
+      if (updatedApproval) {
+        logger.info(`Department head ${userId} ${status} payroll approval ${approvalId}`);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      logger.error('Error approving payroll:', error);
+      throw error;
+    }
+  }
+
 
   /**
    * Helper method to get period start date

@@ -1,123 +1,59 @@
-import React from 'react';
-import { Clock, Calendar, FileText, TrendingUp, User, MapPin } from 'lucide-react';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        import React, { useState } from 'react';
+import { Clock, Calendar, FileText, TrendingUp, User, MapPin, DollarSign, Eye, Download } from 'lucide-react';
 import Card from '../../components/shared/Card';
 import Badge from '../../components/shared/Badge';
 import Button from '../../components/shared/Button';
+import Modal from '../../components/shared/Modal';
 import PageLayout from '../../components/layout/PageLayout';
+import { useEmployeeDashboard, useClockIn, useClockOut, useLatestPaystub } from '../../hooks/useEmployee';
+import LoadingSpinner from '../../components/shared/LoadingSpinner';
 
-// Mock data types - TODO: Replace with actual types from API
-interface EmployeeDashboard {
-  employee: {
-    id: string;
-    name: string;
-    employeeId: string;
-    department: string;
-    position: string;
-    hireDate: string;
-    profilePicture?: string;
-  };
-  attendance: {
-    todayStatus: 'present' | 'absent' | 'late' | 'half_day';
-    clockInTime?: string;
-    clockOutTime?: string;
-    totalHours?: number;
-    monthlyPresent: number;
-    monthlyAbsent: number;
-    monthlyLate: number;
-  };
-  leaveBalance: {
-    vacation: number;
-    sick: number;
-    personal: number;
-    emergency: number;
-  };
-  recentActivity: Array<{
-    id: string;
-    type: 'clock_in' | 'clock_out' | 'request_submitted' | 'request_approved' | 'request_rejected';
-    description: string;
-    timestamp: string;
-    status?: 'success' | 'warning' | 'error';
-  }>;
-  pendingRequests: number;
-  upcomingEvents: Array<{
-    id: string;
-    title: string;
-    date: string;
-    type: 'holiday' | 'meeting' | 'deadline';
-  }>;
-}
+// Import types from service
+// import type { EmployeeDashboard } from '../../services/employeeService';
 
 const EmployeeDashboard: React.FC = () => {
-  // Mock data - TODO: Replace with actual API calls
-  const dashboardData: EmployeeDashboard = {
-    employee: {
-      id: 'EMP-2025-0000001',
-      name: 'John Doe',
-      employeeId: 'EMP-2025-0000001',
-      department: 'Engineering',
-      position: 'Software Developer',
-      hireDate: '2023-01-15',
-    },
-    attendance: {
-      todayStatus: 'present',
-      clockInTime: '2025-01-15T08:30:00Z',
-      clockOutTime: undefined,
-      totalHours: 7.5,
-      monthlyPresent: 18,
-      monthlyAbsent: 1,
-      monthlyLate: 2,
-    },
-    leaveBalance: {
-      vacation: 12,
-      sick: 8,
-      personal: 3,
-      emergency: 2,
-    },
-    recentActivity: [
-      {
-        id: '1',
-        type: 'clock_in',
-        description: 'Clocked in at 8:30 AM',
-        timestamp: '2025-01-15T08:30:00Z',
-        status: 'success',
-      },
-      {
-        id: '2',
-        type: 'request_submitted',
-        description: 'Submitted vacation request for Jan 20-24',
-        timestamp: '2025-01-14T16:45:00Z',
-        status: 'warning',
-      },
-      {
-        id: '3',
-        type: 'clock_out',
-        description: 'Clocked out at 5:30 PM',
-        timestamp: '2025-01-14T17:30:00Z',
-        status: 'success',
-      },
-    ],
-    pendingRequests: 1,
-    upcomingEvents: [
-      {
-        id: '1',
-        title: 'Team Meeting',
-        date: '2025-01-16T10:00:00Z',
-        type: 'meeting',
-      },
-      {
-        id: '2',
-        title: 'Project Deadline',
-        date: '2025-01-20T17:00:00Z',
-        type: 'deadline',
-      },
-      {
-        id: '3',
-        title: 'Company Holiday',
-        date: '2025-01-25T00:00:00Z',
-        type: 'holiday',
-      },
-    ],
-  };
+  const [isPaystubModalOpen, setIsPaystubModalOpen] = useState(false);
+  const [selectedPaystub, setSelectedPaystub] = useState<any>(null);
+
+  // Fetch dashboard data from API
+  const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useEmployeeDashboard();
+  const { data: latestPaystub, isLoading: paystubLoading } = useLatestPaystub();
+  // const { data: paystubsData } = useEmployeePaystubs({ limit: 5 });
+  const clockInMutation = useClockIn();
+  const clockOutMutation = useClockOut();
+
+  // Show loading state
+  if (dashboardLoading) {
+    return (
+      <PageLayout title="Dashboard" subtitle="Loading your dashboard...">
+        <div className="flex justify-center items-center h-64">
+          <LoadingSpinner size="lg" />
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Show error state
+  if (dashboardError) {
+    return (
+      <PageLayout title="Dashboard" subtitle="Error loading dashboard">
+        <Card className="p-6 text-center">
+          <p className="text-red-600">Failed to load dashboard data. Please try again later.</p>
+        </Card>
+      </PageLayout>
+    );
+  }
+
+  // Show empty state if no data
+  if (!dashboardData) {
+    return (
+      <PageLayout title="Dashboard" subtitle="No data available">
+        <Card className="p-6 text-center">
+          <p className="text-gray-600">No dashboard data available.</p>
+        </Card>
+      </PageLayout>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -169,6 +105,55 @@ const EmployeeDashboard: React.FC = () => {
       case 'deadline': return <TrendingUp className="h-4 w-4" />;
       default: return <Calendar className="h-4 w-4" />;
     }
+  };
+
+  const handleClockIn = () => {
+    clockInMutation.mutate({}, {
+      onSuccess: () => {
+        // Refresh dashboard data after successful clock in
+        window.location.reload(); // Simple refresh for now
+      },
+      onError: (error) => {
+        console.error('Clock in failed:', error);
+        alert('Failed to clock in. Please try again.');
+      }
+    });
+  };
+
+  const handleClockOut = () => {
+    clockOutMutation.mutate({}, {
+      onSuccess: () => {
+        // Refresh dashboard data after successful clock out
+        window.location.reload(); // Simple refresh for now
+      },
+      onError: (error) => {
+        console.error('Clock out failed:', error);
+        alert('Failed to clock out. Please try again.');
+      }
+    });
+  };
+
+  const handleViewPaystub = (paystub: any) => {
+    setSelectedPaystub(paystub);
+    setIsPaystubModalOpen(true);
+  };
+
+  const formatCurrency = (amount: number | string | null | undefined) => {
+    // Convert to number and handle various input types
+    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : Number(amount);
+    
+    // Check if the conversion resulted in a valid number
+    if (isNaN(numericAmount) || numericAmount === null || numericAmount === undefined) {
+      return new Intl.NumberFormat('en-PH', {
+        style: 'currency',
+        currency: 'PHP'
+      }).format(0);
+    }
+    
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP'
+    }).format(numericAmount);
   };
 
   return (
@@ -289,12 +274,12 @@ const EmployeeDashboard: React.FC = () => {
                 <span className="font-semibold text-text-primary">{dashboardData.leaveBalance.sick} days</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-text-secondary">Personal Leave</span>
-                <span className="font-semibold text-text-primary">{dashboardData.leaveBalance.personal} days</span>
+                <span className="text-text-secondary">Maternity Leave</span>
+                <span className="font-semibold text-text-primary">{dashboardData.leaveBalance.maternity} days</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-text-secondary">Emergency Leave</span>
-                <span className="font-semibold text-text-primary">{dashboardData.leaveBalance.emergency} days</span>
+                <span className="text-text-secondary">Other Leave</span>
+                <span className="font-semibold text-text-primary">{dashboardData.leaveBalance.other} days</span>
               </div>
             </div>
             <div className="mt-6 pt-4 border-t border-gray-200">
@@ -370,12 +355,36 @@ const EmployeeDashboard: React.FC = () => {
             </div>
             <div className="mt-6 pt-4 border-t border-gray-200">
               {dashboardData.attendance.todayStatus === 'present' && !dashboardData.attendance.clockOutTime ? (
-                <Button variant="danger" className="w-full">
-                  Clock Out
+                <Button 
+                  variant="danger" 
+                  className="w-full"
+                  onClick={handleClockOut}
+                  disabled={clockOutMutation.isPending}
+                >
+                  {clockOutMutation.isPending ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Clocking Out...
+                    </>
+                  ) : (
+                    'Clock Out'
+                  )}
                 </Button>
               ) : (
-                <Button variant="primary" className="w-full">
-                  Clock In
+                <Button 
+                  variant="primary" 
+                  className="w-full"
+                  onClick={handleClockIn}
+                  disabled={clockInMutation.isPending}
+                >
+                  {clockInMutation.isPending ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Clocking In...
+                    </>
+                  ) : (
+                    'Clock In'
+                  )}
                 </Button>
               )}
             </div>
@@ -409,6 +418,181 @@ const EmployeeDashboard: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Paystub Section */}
+      <div className="mt-8">
+        <Card>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-text-primary">Latest Paystub</h3>
+              {latestPaystub && (
+                <Badge variant="success">Available</Badge>
+              )}
+            </div>
+            
+            {paystubLoading ? (
+              <div className="flex justify-center py-8">
+                <LoadingSpinner size="lg" />
+              </div>
+            ) : latestPaystub ? (
+              <div className="space-y-4">
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-green-900">{latestPaystub.periodName}</h4>
+                      <p className="text-sm text-green-700">
+                        {new Date(latestPaystub.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-green-600">
+                        {formatCurrency(latestPaystub.netPay)}
+                      </p>
+                      <p className="text-sm text-green-700">Net Pay</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-sm text-text-secondary">Gross Pay</p>
+                    <p className="font-semibold text-text-primary">{formatCurrency(latestPaystub.grossPay)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-text-secondary">Deductions</p>
+                    <p className="font-semibold text-red-600">-{formatCurrency(latestPaystub.totalDeductions)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-text-secondary">Benefits</p>
+                    <p className="font-semibold text-green-600">+{formatCurrency(latestPaystub.totalBenefits)}</p>
+                  </div>
+                </div>
+                
+                <div className="flex space-x-3">
+                  <Button
+                    variant="primary"
+                    className="flex-1"
+                    onClick={() => handleViewPaystub(latestPaystub)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Details
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // Handle download
+                      console.log('Download paystub');
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <DollarSign className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-text-secondary">No paystub available yet</p>
+                <p className="text-sm text-text-secondary mt-1">
+                  Your paystub will appear here after payroll processing
+                </p>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Paystub Details Modal */}
+      <Modal
+        isOpen={isPaystubModalOpen}
+        onClose={() => setIsPaystubModalOpen(false)}
+        title="Paystub Details"
+        size="lg"
+      >
+        {selectedPaystub && (
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <DollarSign className="h-8 w-8 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-text-primary">{selectedPaystub.periodName}</h3>
+                <p className="text-text-secondary">
+                  {new Date(selectedPaystub.createdAt).toLocaleDateString()}
+                </p>
+                <div className="flex items-center space-x-2 mt-2">
+                  <Badge variant="success">Paid</Badge>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h4 className="font-medium text-text-primary">Earnings</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Base Salary:</span>
+                    <span className="font-medium">{formatCurrency(selectedPaystub.baseSalary)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Regular Hours:</span>
+                    <span className="font-medium">{selectedPaystub.totalRegularHours || 0} hrs</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Overtime Hours:</span>
+                    <span className="font-medium">{selectedPaystub.totalOvertimeHours || 0} hrs</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="font-medium">Gross Pay:</span>
+                    <span className="font-bold text-green-600">{formatCurrency(selectedPaystub.grossPay)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-medium text-text-primary">Deductions & Benefits</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Total Deductions:</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(selectedPaystub.totalDeductions)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Late Deductions:</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(selectedPaystub.lateDeductions)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-text-secondary">Benefits:</span>
+                    <span className="font-medium text-green-600">+{formatCurrency(selectedPaystub.totalBenefits)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="font-medium">Net Pay:</span>
+                    <span className="font-bold text-green-600">{formatCurrency(selectedPaystub.netPay)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsPaystubModalOpen(false)}
+              >
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  // Handle download
+                  console.log('Download paystub');
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </PageLayout>
   );
 };

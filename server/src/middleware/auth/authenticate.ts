@@ -19,6 +19,12 @@ export const authenticate = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      next();
+      return;
+    }
+
     // Development mode bypass - only for test tokens, not real JWT tokens
     if (process.env.NODE_ENV === 'development') {
       const authHeader = req.headers.authorization;
@@ -28,10 +34,23 @@ export const authenticate = async (
         let mockUser;
         
         if (authHeader?.includes('dept-head-token')) {
-          // Department head user
+          // Department head user - extract department info from token
+          const deptMatch = authHeader.match(/dept-head-token-(\w+)/);
+          const departmentType = deptMatch ? deptMatch[1] : 'default';
+          
+          // Map department types to actual user IDs from database
+          const departmentHeadUsers: Record<string, { userId: string; email: string; name: string }> = {
+            'it': { userId: '3175e96c-97b8-4405-9536-64a8a0e51a99', email: 'kim404uni@gmail.com', name: 'Kim Galicia' },
+            'hr': { userId: 'dfc7dfac-90f6-43f9-ab64-5330f960525d', email: 'harmless.rick@gmail.com', name: 'Kate Araba' },
+            'finance': { userId: 'd6b6bd4d-19a5-4fc9-80e2-af659c56629a', email: 'net.0.0.0.0.bully@gmail.com', name: 'Ciara kaye Araba' },
+            'default': { userId: '3175e96c-97b8-4405-9536-64a8a0e51a99', email: 'kim404uni@gmail.com', name: 'Kim Galicia' }
+          };
+          
+          const selectedUser = departmentHeadUsers[departmentType] || departmentHeadUsers['default'];
+          
           mockUser = {
-            userId: '0518bf46-b9c7-40cf-8613-c20550bf7c50', // Department head user ID
-            email: 'dept.head@tito.com',
+            userId: selectedUser.userId,
+            email: selectedUser.email,
             role: 'department_head',
             tokenVersion: 1
           };

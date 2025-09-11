@@ -25,6 +25,7 @@ export class AuthService {
     // Store tokens and user data
     if (response.success && response.data) {
       const transformedUser = this.transformUser(response.data.user);
+      
       localStorage.setItem('accessToken', response.data.accessToken);
       localStorage.setItem('refreshToken', response.data.refreshToken);
       localStorage.setItem('user', JSON.stringify(transformedUser));
@@ -44,7 +45,7 @@ export class AuthService {
     return response;
   }
 
-  // Logout user
+  // Logout user (with API call)
   static async logout(): Promise<void> {
     try {
       await apiMethods.post('/auth/logout');
@@ -54,6 +55,13 @@ export class AuthService {
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
     }
+  }
+
+  // Clear local auth data only (no API call)
+  static clearAuthData(): void {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
   }
 
   // Refresh access token
@@ -82,7 +90,8 @@ export class AuthService {
       const userData = JSON.parse(userStr);
       // Transform if needed (for backward compatibility)
       return this.transformUser(userData);
-    } catch {
+    } catch (error) {
+      console.error('Error parsing user data from localStorage:', error);
       return null;
     }
   }

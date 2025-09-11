@@ -1,4 +1,5 @@
 import { PayrollApprovalModel, CreatePayrollApprovalData, UpdatePayrollApprovalData, PayrollApproval, PayrollApprovalWithDetails, PayrollApprovalListParams } from '../../models/payroll/PayrollApproval';
+import logger from '../../utils/logger';
 
 export interface ApprovePayrollData {
   approvalId: string;
@@ -109,15 +110,15 @@ export class PayrollApprovalService {
   }
 
   async createApprovalsForPayrollPeriod(payrollPeriodId: string): Promise<PayrollApproval[]> {
-    // Get all department heads and HR users who should approve payroll
+    // Get all department heads who should approve payroll for their departments
     const { getPool } = await import('../../config/database');
     const pool = getPool();
     
     const approversQuery = `
-      SELECT DISTINCT u.id as user_id, u.role, d.id as department_id
+      SELECT DISTINCT u.id as user_id, u.role, d.id as department_id, d.name as department_name
       FROM users u
-      LEFT JOIN departments d ON u.id = d.department_head_user_id
-      WHERE u.role IN ('hr', 'department_head') AND u.is_active = true
+      INNER JOIN departments d ON u.id = d.department_head_user_id
+      WHERE u.role = 'department_head' AND u.is_active = true AND d.is_active = true
     `;
     
     const approversResult = await pool.query(approversQuery);
@@ -125,15 +126,31 @@ export class PayrollApprovalService {
 
     for (const approver of approversResult.rows) {
       try {
-        const approvalData: CreatePayrollApprovalData = {
-          payrollPeriodId,
-          approverId: approver.user_id,
-          departmentId: approver.department_id,
-          status: 'pending'
-        };
+        // Check if there are employees in this department for this payroll period
+        const employeeCountQuery = `
+          SELECT COUNT(*) as employee_count
+          FROM payroll_records pr
+          INNER JOIN employees e ON pr.employee_id = e.id
+          WHERE pr.payroll_period_id = $1 AND e.department_id = $2
+        `;
+        
+        const employeeCountResult = await pool.query(employeeCountQuery, [payrollPeriodId, approver.department_id]);
+        const employeeCount = parseInt(employeeCountResult.rows[0].employee_count);
+        
+        // Only create approval if there are employees in this department
+        if (employeeCount > 0) {
+          const approvalData: CreatePayrollApprovalData = {
+            payrollPeriodId,
+            approverId: approver.user_id,
+            departmentId: approver.department_id,
+            status: 'pending'
+          };
 
-        const approval = await this.payrollApprovalModel.createPayrollApproval(approvalData);
-        approvals.push(approval);
+          const approval = await this.payrollApprovalModel.createPayrollApproval(approvalData);
+          approvals.push(approval);
+          
+          logger.info(`Created payroll approval for department: ${approver.department_name} (${employeeCount} employees)`);
+        }
       } catch (error) {
         // Skip if approval already exists
         if (error instanceof Error && error.message.includes('already exists')) {
@@ -291,3 +308,5 @@ export class PayrollApprovalService {
     };
   }
 }
+
+export const payrollApprovalService = new PayrollApprovalService();

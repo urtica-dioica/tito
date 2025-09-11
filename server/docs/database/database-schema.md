@@ -330,77 +330,174 @@ CREATE TABLE payroll_periods (
 #### **11. Payroll Records Table**
 ```sql
 CREATE TABLE payroll_records (
-    id SERIAL PRIMARY KEY,
-    payroll_period_id INTEGER NOT NULL REFERENCES payroll_periods(id),
-    employee_id INTEGER NOT NULL REFERENCES employees(id),
-    gross_pay DECIMAL(10,2) NOT NULL DEFAULT 0,
-    net_pay DECIMAL(10,2) NOT NULL DEFAULT 0,
-    total_deductions DECIMAL(10,2) NOT NULL DEFAULT 0,
-    regular_hours DECIMAL(4,2) DEFAULT 0,
-    overtime_hours DECIMAL(4,2) DEFAULT 0,
-    status VARCHAR(50) DEFAULT 'draft',
-    paid_at TIMESTAMP,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_period_id UUID NOT NULL REFERENCES payroll_periods(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    base_salary DECIMAL(10,2) NOT NULL,
+    hourly_rate DECIMAL(8,2) NOT NULL,
+    total_worked_hours DECIMAL(6,2) NOT NULL,
+    total_regular_hours DECIMAL(6,2) NOT NULL,
+    total_overtime_hours DECIMAL(6,2) DEFAULT 0,
+    total_late_hours DECIMAL(6,2) DEFAULT 0,
+    late_deductions DECIMAL(10,2) DEFAULT 0,
+    gross_pay DECIMAL(10,2) NOT NULL,
+    net_pay DECIMAL(10,2) NOT NULL,
+    total_deductions DECIMAL(10,2) DEFAULT 0,
+    total_benefits DECIMAL(10,2) DEFAULT 0,
+    status payroll_record_status_enum DEFAULT 'draft',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-**Purpose**: Stores individual employee payroll records.
+**Purpose**: Stores individual employee payroll records with comprehensive calculation details.
 
 **Key Fields**:
-- `id`: Primary key, auto-incrementing
+- `id`: Primary key, UUID with auto-generation
 - `payroll_period_id`: Foreign key to payroll_periods table
 - `employee_id`: Foreign key to employees table
-- `gross_pay`: Total gross pay amount
-- `net_pay`: Net pay after deductions
-- `total_deductions`: Total deduction amount
-- `regular_hours`: Regular hours worked
-- `overtime_hours`: Overtime hours worked
+- `base_salary`: Employee's monthly base salary
+- `hourly_rate`: Calculated hourly rate (base_salary / 176 hours)
+- `total_worked_hours`: Total hours worked in the period
+- `total_regular_hours`: Regular hours (capped at 176)
+- `total_overtime_hours`: Overtime hours (converted to leave)
+- `total_late_hours`: Late hours with deductions applied
+- `late_deductions`: Deductions for late hours
+- `gross_pay`: Base salary + benefits
+- `net_pay`: Final pay after all deductions
+- `total_deductions`: Employee-specific deductions applied
+- `total_benefits`: Employee benefits added to pay
 - `status`: Record status (draft, processed, paid)
-- `paid_at`: Timestamp when payment was made
 
-#### **12. Payroll Deductions Table**
+#### **12. Employee Deduction Balances Table**
+```sql
+CREATE TABLE employee_deduction_balances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    deduction_type_id UUID NOT NULL REFERENCES deduction_types(id) ON DELETE CASCADE,
+    original_amount DECIMAL(10,2) NOT NULL CHECK (original_amount > 0),
+    remaining_balance DECIMAL(10,2) NOT NULL CHECK (remaining_balance >= 0),
+    monthly_deduction_amount DECIMAL(10,2) NOT NULL CHECK (monthly_deduction_amount > 0),
+    start_date DATE NOT NULL,
+    end_date DATE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(employee_id, deduction_type_id, start_date)
+);
+```
+
+**Purpose**: Links employees to specific deductions with balance tracking for automatic payroll application.
+
+**Key Fields**:
+- `id`: Primary key, UUID with auto-generation
+- `employee_id`: Foreign key to employees table
+- `deduction_type_id`: Foreign key to deduction_types table
+- `original_amount`: Original deduction amount
+- `remaining_balance`: Current remaining balance
+- `monthly_deduction_amount`: Amount deducted each payroll period
+- `start_date`: When deduction starts
+- `end_date`: When deduction ends (optional)
+- `is_active`: Whether deduction is currently active
+
+#### **13. Payroll Deductions Table**
 ```sql
 CREATE TABLE payroll_deductions (
-    id SERIAL PRIMARY KEY,
-    payroll_record_id INTEGER NOT NULL REFERENCES payroll_records(id),
-    deduction_type_id INTEGER NOT NULL REFERENCES deduction_types(id),
-    amount DECIMAL(10,2) NOT NULL,
-    percentage DECIMAL(5,2),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payroll_record_id UUID NOT NULL REFERENCES payroll_records(id) ON DELETE CASCADE,
+    deduction_type_id UUID REFERENCES deduction_types(id) ON DELETE SET NULL,
+    name VARCHAR(100) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL CHECK (amount >= 0),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-**Purpose**: Stores individual deductions for payroll records.
+**Purpose**: Stores individual deductions applied to specific payroll records.
 
 **Key Fields**:
-- `id`: Primary key, auto-incrementing
+- `id`: Primary key, UUID with auto-generation
 - `payroll_record_id`: Foreign key to payroll_records table
 - `deduction_type_id`: Foreign key to deduction_types table
-- `amount`: Deduction amount
-- `percentage`: Deduction percentage (if applicable)
+- `name`: Name of the deduction applied
+- `amount`: Deduction amount applied
 
-#### **13. Deduction Types Table**
+#### **14. Deduction Types Table**
 ```sql
 CREATE TABLE deduction_types (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
-    percentage DECIMAL(5,2),
+    percentage DECIMAL(5,2) CHECK (percentage >= 0 AND percentage <= 100),
+    fixed_amount DECIMAL(10,2) CHECK (fixed_amount >= 0),
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_deduction_type CHECK ( 
+        (percentage IS NOT NULL AND fixed_amount IS NULL) OR 
+        (percentage IS NULL AND fixed_amount IS NOT NULL) 
+    )
+);
+```
+
+**Purpose**: Stores types of payroll deductions with flexible calculation methods.
+
+**Key Fields**:
+- `id`: Primary key, UUID with auto-generation
+- `name`: Name of the deduction type (unique)
+- `description`: Description of the deduction
+- `percentage`: Percentage-based deduction (0-100%)
+- `fixed_amount`: Fixed amount deduction
+- `is_active`: Whether the deduction type is active
+- **Constraint**: Either percentage OR fixed_amount must be provided, not both
+
+#### **15. Benefits System Tables**
+
+##### **Benefit Types Table**
+```sql
+CREATE TABLE benefit_types (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-**Purpose**: Stores types of payroll deductions.
+**Purpose**: Stores types of employee benefits.
 
 **Key Fields**:
-- `id`: Primary key, auto-incrementing
-- `name`: Name of the deduction type
-- `description`: Description of the deduction
-- `percentage`: Default percentage (if applicable)
-- `is_active`: Whether the deduction type is active
+- `id`: Primary key, UUID with auto-generation
+- `name`: Name of the benefit type (unique)
+- `description`: Description of the benefit
+- `is_active`: Whether the benefit type is active
+
+##### **Employee Benefits Table**
+```sql
+CREATE TABLE employee_benefits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    benefit_type_id UUID NOT NULL REFERENCES benefit_types(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+    start_date DATE NOT NULL,
+    end_date DATE,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(employee_id, benefit_type_id, start_date)
+);
+```
+
+**Purpose**: Links employees to specific benefits with amounts for automatic payroll application.
+
+**Key Fields**:
+- `id`: Primary key, UUID with auto-generation
+- `employee_id`: Foreign key to employees table
+- `benefit_type_id`: Foreign key to benefit_types table
+- `amount`: Benefit amount (e.g., 500 for transportation)
+- `start_date`: When benefit starts
+- `end_date`: When benefit ends (optional)
+- `is_active`: Whether benefit is currently active
 
 #### **14. Payroll Approvals Table**
 ```sql
@@ -677,6 +774,9 @@ The database schema is defined in `database/schemas/main-schema.sql` and include
 - **Business Logic Functions**: Automated calculations and workflows
 - **Triggers**: Automatic data processing and validation
 - **Department Management**: Specialized functions for department heads
+- **Employee-Specific Deductions**: Balance tracking with automatic application
+- **Benefits System**: Employee benefits with automatic payroll integration
+- **Attendance Hour Computation**: Grace period and late deduction calculations
 
 ### **Business Logic Functions**
 The schema includes several important functions:
@@ -686,9 +786,12 @@ The schema includes several important functions:
 - `convert_overtime_to_leave()`: Converts overtime hours to leave days
 
 #### **Payroll Functions**
-- `calculate_payroll()`: Automatically calculates payroll amounts
+- `calculate_payroll()`: Automatically calculates payroll amounts with deductions and benefits
+- `apply_employee_deductions()`: Automatically applies employee-specific deductions until balance reaches zero
+- `apply_employee_benefits()`: Automatically applies employee benefits to payroll
 - `process_time_correction_approval()`: Handles time correction approvals
 - `process_overtime_request_approval()`: Handles overtime request approvals
+- `calculate_attendance_hours()`: Calculates attendance hours with grace period and late deductions
 
 #### **Department Management Functions**
 - `get_department_employees()`: Returns employees for a department head
