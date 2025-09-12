@@ -1,5 +1,6 @@
 import { apiMethods } from '../lib/api';
 
+// Updated interface with session details
 export interface EmployeeDashboard {
   employee: {
     id: string;
@@ -15,6 +16,12 @@ export interface EmployeeDashboard {
     clockInTime?: string;
     clockOutTime?: string;
     totalHours?: number;
+    morningClockIn?: string;
+    morningClockOut?: string;
+    afternoonClockIn?: string;
+    afternoonClockOut?: string;
+    breakStart?: string;
+    breakEnd?: string;
     monthlyPresent: number;
     monthlyAbsent: number;
     monthlyLate: number;
@@ -63,10 +70,10 @@ export interface AttendanceSummary {
 }
 
 export interface LeaveBalance {
-  vacation: { total: number; used: number; available: number };
-  sick: { total: number; used: number; available: number };
-  maternity: { total: number; used: number; available: number };
-  other: { total: number; used: number; available: number };
+  vacation: number | { total: number; used: number; available: number };
+  sick: number | { total: number; used: number; available: number };
+  maternity: number | { total: number; used: number; available: number };
+  other: number | { total: number; used: number; available: number };
 }
 
 export interface Request {
@@ -85,6 +92,32 @@ export interface RequestStats {
   pending: number;
   approved: number;
   rejected: number;
+}
+
+export interface PaystubData {
+  id: string;
+  periodName: string;
+  employeeId: string;
+  employeeName: string;
+  position: string;
+  department: string;
+  baseSalary: number;
+  totalRegularHours: number;
+  totalOvertimeHours: number;
+  grossPay: number;
+  totalDeductions: number;
+  totalBenefits: number;
+  netPay: number;
+  lateDeductions: number;
+  deductions: Array<{
+    name: string;
+    amount: number;
+  }>;
+  benefits: Array<{
+    name: string;
+    amount: number;
+  }>;
+  createdAt: string;
 }
 
 export class EmployeeService {
@@ -228,12 +261,19 @@ export class EmployeeService {
    */
   static async createTimeCorrectionRequest(data: {
     correctionDate: string;
-    sessionType: 'morning' | 'afternoon' | 'full_day';
-    requestedClockIn?: string;
-    requestedClockOut?: string;
+    sessionType: 'clock_in' | 'clock_out';
+    requestedTime: string;
     reason: string;
   }): Promise<{ success: boolean; message: string; requestId?: string }> {
-    const response = await apiMethods.post('/time-corrections', data);
+    // Transform data to match backend expectations
+    const backendData = {
+      requestDate: data.correctionDate,
+      sessionType: data.sessionType,
+      requestedTime: data.requestedTime,
+      reason: data.reason
+    };
+    
+    const response = await apiMethods.post('/time-corrections', backendData);
     return (response as any).data;
   }
 
@@ -246,7 +286,41 @@ export class EmployeeService {
     endTime: string;
     reason: string;
   }): Promise<{ success: boolean; message: string; requestId?: string }> {
-    const response = await apiMethods.post('/overtime', data);
+    // Validate time inputs
+    if (!data.startTime || !data.endTime) {
+      throw new Error('Start time and end time are required');
+    }
+    
+    // Validate time format (HH:MM)
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(data.startTime) || !timeRegex.test(data.endTime)) {
+      throw new Error('Invalid time format. Please use HH:MM format (e.g., 09:30)');
+    }
+    
+    // Calculate requested hours from start and end times
+    const start = new Date(`2000-01-01T${data.startTime}:00`);
+    const end = new Date(`2000-01-01T${data.endTime}:00`);
+    
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new Error('Invalid time format provided');
+    }
+    
+    const requestedHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    
+    if (requestedHours <= 0) {
+      throw new Error('End time must be after start time');
+    }
+    
+    // Transform data to match backend expectations
+    const backendData = {
+      requestDate: data.overtimeDate,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      requestedHours: requestedHours,
+      reason: data.reason
+    };
+    
+    const response = await apiMethods.post('/overtime', backendData);
     return (response as any).data;
   }
 
@@ -279,7 +353,7 @@ export class EmployeeService {
     month?: number;
     page?: number;
     limit?: number;
-  } = {}): Promise<any[]> {
+  } = {}): Promise<PaystubData[]> {
     const response = await apiMethods.get('/employee/paystubs', { params });
     return (response as any).data;
   }
@@ -287,8 +361,68 @@ export class EmployeeService {
   /**
    * Get latest paystub
    */
-  static async getLatestPaystub(): Promise<any> {
+  static async getLatestPaystub(): Promise<PaystubData | null> {
     const response = await apiMethods.get('/employee/paystubs/latest');
     return (response as any).data;
+  }
+
+  /**
+   * Download paystub as PDF
+   */
+  static async downloadPaystubPDF(paystubId: string): Promise<Blob> {
+    try {
+      console.log('Making PDF download request for paystub:', paystubId);
+      const response = await apiMethods.get(`/employee/paystubs/${paystubId}/download/pdf`, {
+        responseType: 'blob'
+      });
+      
+      console.log('PDF download response:', response);
+      
+      // The response itself is the Blob when using responseType: 'blob'
+      const data = response as Blob;
+      console.log('PDF response data:', data, 'Type:', typeof data, 'Is Blob:', data instanceof Blob);
+      
+      // Check if the response is an error (JSON error response)
+      if (data instanceof Blob && data.type === 'application/json') {
+        const text = await data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || 'Download failed');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Download paystub as Excel
+   */
+  static async downloadPaystubExcel(paystubId: string): Promise<Blob> {
+    try {
+      console.log('Making Excel download request for paystub:', paystubId);
+      const response = await apiMethods.get(`/employee/paystubs/${paystubId}/download/excel`, {
+        responseType: 'blob'
+      });
+      
+      console.log('Excel download response:', response);
+      
+      // The response itself is the Blob when using responseType: 'blob'
+      const data = response as Blob;
+      console.log('Excel response data:', data, 'Type:', typeof data, 'Is Blob:', data instanceof Blob);
+      
+      // Check if the response is an error (JSON error response)
+      if (data instanceof Blob && data.type === 'application/json') {
+        const text = await data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || 'Download failed');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error downloading Excel:', error);
+      throw error;
+    }
   }
 }

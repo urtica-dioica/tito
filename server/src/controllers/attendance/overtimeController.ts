@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { overtimeService } from '../../services/attendance/overtimeService';
+import { employeeService } from '../../services/employee/employeeService';
 import { generateRequestId } from '../../utils/requestId';
 import logger from '../../utils/logger';
 
@@ -12,12 +13,24 @@ export class OvertimeController {
     
     try {
       const { requestDate, startTime, endTime, requestedHours, reason } = req.body;
-      const employeeId = req.user?.userId;
+      const userId = req.user?.userId;
+      
 
-      if (!employeeId) {
+      if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'Employee ID not found in token',
+          message: 'User ID not found in token',
+          requestId
+        });
+        return;
+      }
+
+      // Get employee ID from user ID
+      const employeeId = await employeeService.getEmployeeIdByUserId(userId);
+      if (!employeeId) {
+        res.status(404).json({
+          success: false,
+          message: 'Employee not found for this user',
           requestId
         });
         return;
@@ -33,23 +46,38 @@ export class OvertimeController {
       }
 
       // Parse times properly - handle both full datetime and time-only strings
-      let parsedStartTime: Date | string;
-      let parsedEndTime: Date | string;
+      let parsedStartTime: string;
+      let parsedEndTime: string;
+      
+      // Validate time format first
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
       
       if (startTime.includes('T')) {
-        // Full datetime string
-        parsedStartTime = new Date(startTime);
-      } else {
-        // Time-only string, pass as string to avoid timezone conversion issues
+        // Full datetime string - extract time portion
+        const dateObj = new Date(startTime);
+        if (isNaN(dateObj.getTime())) {
+          throw new Error('Invalid start time format');
+        }
+        parsedStartTime = `${dateObj.getUTCHours().toString().padStart(2, '0')}:${dateObj.getUTCMinutes().toString().padStart(2, '0')}`;
+      } else if (timeRegex.test(startTime)) {
+        // Time-only string, use as is
         parsedStartTime = startTime;
+      } else {
+        throw new Error('Invalid start time format. Expected HH:MM format');
       }
       
       if (endTime.includes('T')) {
-        // Full datetime string
-        parsedEndTime = new Date(endTime);
-      } else {
-        // Time-only string, pass as string to avoid timezone conversion issues
+        // Full datetime string - extract time portion
+        const dateObj = new Date(endTime);
+        if (isNaN(dateObj.getTime())) {
+          throw new Error('Invalid end time format');
+        }
+        parsedEndTime = `${dateObj.getUTCHours().toString().padStart(2, '0')}:${dateObj.getUTCMinutes().toString().padStart(2, '0')}`;
+      } else if (timeRegex.test(endTime)) {
+        // Time-only string, use as is
         parsedEndTime = endTime;
+      } else {
+        throw new Error('Invalid end time format. Expected HH:MM format');
       }
 
       const requestData = {
@@ -60,6 +88,17 @@ export class OvertimeController {
         requestedHours: parseFloat(requestedHours),
         reason: reason.trim()
       };
+
+      // Debug: Log the processed data
+      logger.info('Processed overtime request data:', {
+        employeeId,
+        requestDate: requestData.requestDate,
+        startTime: requestData.startTime,
+        endTime: requestData.endTime,
+        requestedHours: requestData.requestedHours,
+        reason: requestData.reason,
+        requestId
+      });
 
       // Validate the request
       const validation = await overtimeService.validateOvertimeRequest(requestData);

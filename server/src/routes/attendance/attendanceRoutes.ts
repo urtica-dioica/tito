@@ -20,4 +20,7 @@ router.get('/record/:id/sessions', authenticate, authorize(['hr', 'admin']), att
 // Get detailed attendance record by ID
 router.get('/:id', authenticate, authorize(['hr', 'admin']), attendanceController.getAttendanceDetail.bind(attendanceController));
 
+// Get detailed hours calculation for an attendance record
+router.get('/:attendanceRecordId/hours-calculation', authenticate, authorize(['hr', 'admin']), attendanceController.getDetailedHoursCalculation.bind(attendanceController));
+
 export default router;

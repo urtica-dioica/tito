@@ -731,17 +731,191 @@ export class DepartmentHeadService {
       throw new Error('Department not found');
     }
 
-    // This would typically query all request types
-    // For now, returning empty data as placeholder
-    return {
-      data: [],
-      pagination: {
-        page: params.page,
-        limit: params.limit,
-        total: 0,
-        totalPages: 0
+    const pool = getPool();
+    const offset = (params.page - 1) * params.limit;
+
+    try {
+      // Build the base query for all request types
+      let whereConditions = ['e.department_id = $1'];
+      let queryParams: any[] = [department.id];
+      let paramIndex = 2;
+
+      // Add type filter if specified
+      if (params.type) {
+        whereConditions.push(`request_type = $${paramIndex}`);
+        queryParams.push(params.type);
+        paramIndex++;
       }
-    };
+
+      // Add status filter if specified
+      if (params.status) {
+        whereConditions.push(`status = $${paramIndex}`);
+        queryParams.push(params.status);
+        paramIndex++;
+      }
+
+
+      // Query to get all requests (overtime, leave, time correction) for the department
+      const requestsQuery = `
+        WITH all_requests AS (
+          -- Overtime requests
+          SELECT 
+            ot.id,
+            'overtime' as request_type,
+            ot.employee_id,
+            ot.request_date as start_date,
+            ot.overtime_date as end_date,
+            ot.requested_hours as hours,
+            ot.reason,
+            ot.status::text as status,
+            ot.created_at,
+            ot.updated_at,
+            ot.approver_id as approved_by,
+            ot.approved_at,
+            ot.comments,
+            e.employee_id as employee_code,
+            u.first_name,
+            u.last_name,
+            u.email
+          FROM overtime_requests ot
+          JOIN employees e ON ot.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
+          WHERE e.department_id = $1
+          
+          UNION ALL
+          
+          -- Leave requests
+          SELECT 
+            l.id,
+            'leave' as request_type,
+            l.employee_id,
+            l.start_date,
+            l.end_date,
+            (l.end_date - l.start_date + 1) as hours,
+            l.leave_type::text as reason,
+            l.status::text as status,
+            l.created_at,
+            l.updated_at,
+            l.approver_id as approved_by,
+            NULL as approved_at,
+            NULL as comments,
+            e.employee_id as employee_code,
+            u.first_name,
+            u.last_name,
+            u.email
+          FROM leaves l
+          JOIN employees e ON l.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
+          WHERE e.department_id = $1
+          
+          UNION ALL
+          
+          -- Time correction requests
+          SELECT 
+            tcr.id,
+            'time_correction' as request_type,
+            tcr.employee_id,
+            tcr.correction_date as start_date,
+            tcr.correction_date as end_date,
+            NULL as hours,
+            tcr.reason,
+            tcr.status::text as status,
+            tcr.created_at,
+            tcr.updated_at,
+            tcr.approver_id as approved_by,
+            tcr.approved_at,
+            tcr.comments,
+            e.employee_id as employee_code,
+            u.first_name,
+            u.last_name,
+            u.email
+          FROM time_correction_requests tcr
+          JOIN employees e ON tcr.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
+          WHERE e.department_id = $1
+        )
+        SELECT 
+          ar.*,
+          CONCAT(ar.first_name, ' ', ar.last_name) as employee_name
+        FROM all_requests ar
+        ${whereConditions.length > 1 ? `WHERE ${whereConditions.slice(1).join(' AND ')}` : ''}
+        ORDER BY ar.created_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+
+      // Count query for pagination
+      const countQuery = `
+        WITH all_requests AS (
+          SELECT 'overtime' as request_type, ot.status::text as status, e.department_id
+          FROM overtime_requests ot
+          JOIN employees e ON ot.employee_id = e.id
+          WHERE e.department_id = $1
+          
+          UNION ALL
+          
+          SELECT 'leave' as request_type, l.status::text as status, e.department_id
+          FROM leaves l
+          JOIN employees e ON l.employee_id = e.id
+          WHERE e.department_id = $1
+          
+          UNION ALL
+          
+          SELECT 'time_correction' as request_type, tcr.status::text as status, e.department_id
+          FROM time_correction_requests tcr
+          JOIN employees e ON tcr.employee_id = e.id
+          WHERE e.department_id = $1
+        )
+        SELECT COUNT(*) as total
+        FROM all_requests ar
+        ${whereConditions.length > 1 ? `WHERE ${whereConditions.slice(1).join(' AND ')}` : ''}
+      `;
+
+      // Add pagination parameters
+      queryParams.push(params.limit, offset);
+
+      const [requestsResult, countResult] = await Promise.all([
+        pool.query(requestsQuery, queryParams),
+        pool.query(countQuery, queryParams.slice(0, -2)) // Remove limit and offset for count
+      ]);
+
+      const total = parseInt(countResult.rows[0]?.total || '0');
+      const totalPages = Math.ceil(total / params.limit);
+
+      // Transform the data to match the expected format
+      const requests = requestsResult.rows.map(row => ({
+        id: row.id,
+        type: row.request_type,
+        employeeId: row.employee_id,
+        employeeName: row.employee_name,
+        employeeCode: row.employee_code,
+        departmentName: department.name,
+        status: row.status,
+        submittedAt: row.created_at,
+        approverName: row.approved_by ? 'Department Head' : null,
+        approvedAt: row.approved_at,
+        details: {
+          startDate: row.start_date,
+          endDate: row.end_date,
+          hours: row.hours,
+          reason: row.reason,
+          comments: row.comments,
+          requestType: row.request_type
+        }
+      }));
+
+      return {
+        data: requests,
+        pagination: {
+          page: params.page,
+          limit: params.limit,
+          total,
+          totalPages
+        }
+      };
+    } catch (error) {
+      logger.error('Error fetching requests:', { error, userId, params });
+      throw error;
+    }
   }
 
   /**
@@ -753,25 +927,193 @@ export class DepartmentHeadService {
       throw new Error('Department not found');
     }
 
-    return await this.getPendingRequestsCount(department.id);
+    const pool = getPool();
+
+    try {
+      // Get comprehensive request statistics
+      const statsQuery = `
+        WITH all_requests AS (
+          SELECT 'overtime' as request_type, ot.status::text as status
+          FROM overtime_requests ot
+          JOIN employees e ON ot.employee_id = e.id
+          WHERE e.department_id = $1
+          
+          UNION ALL
+          
+          SELECT 'leave' as request_type, l.status::text as status
+          FROM leaves l
+          JOIN employees e ON l.employee_id = e.id
+          WHERE e.department_id = $1
+          
+          UNION ALL
+          
+          SELECT 'time_correction' as request_type, tcr.status::text as status
+          FROM time_correction_requests tcr
+          JOIN employees e ON tcr.employee_id = e.id
+          WHERE e.department_id = $1
+        )
+        SELECT 
+          COUNT(*) as total,
+          COUNT(*) FILTER (WHERE status = 'pending') as pending,
+          COUNT(*) FILTER (WHERE status = 'approved') as approved,
+          COUNT(*) FILTER (WHERE status = 'rejected') as rejected
+        FROM all_requests
+      `;
+
+      const result = await pool.query(statsQuery, [department.id]);
+      const stats = result.rows[0];
+
+      return {
+        total: parseInt(stats.total) || 0,
+        pending: parseInt(stats.pending) || 0,
+        approved: parseInt(stats.approved) || 0,
+        rejected: parseInt(stats.rejected) || 0
+      };
+    } catch (error) {
+      logger.error('Error getting request stats:', { error, userId });
+      return {
+        total: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0
+      };
+    }
   }
 
   /**
    * Approve a request
    */
   async approveRequest(userId: string, requestId: string): Promise<void> {
-    // This would typically update the request status
-    // For now, just logging the action
-    logger.info(`Department head ${userId} approved request ${requestId}`);
+    const pool = getPool();
+    
+    try {
+      // First, determine the request type by checking which table contains the request
+      const overtimeQuery = 'SELECT id FROM overtime_requests WHERE id = $1';
+      const leaveQuery = 'SELECT id FROM leaves WHERE id = $1';
+      const timeCorrectionQuery = 'SELECT id FROM time_correction_requests WHERE id = $1';
+      
+      const [overtimeResult, leaveResult, timeCorrectionResult] = await Promise.all([
+        pool.query(overtimeQuery, [requestId]),
+        pool.query(leaveQuery, [requestId]),
+        pool.query(timeCorrectionQuery, [requestId])
+      ]);
+      
+      let requestType: string | null = null;
+      if (overtimeResult.rows.length > 0) {
+        requestType = 'overtime';
+      } else if (leaveResult.rows.length > 0) {
+        requestType = 'leave';
+      } else if (timeCorrectionResult.rows.length > 0) {
+        requestType = 'time_correction';
+      }
+      
+      if (!requestType) {
+        throw new Error('Request not found');
+      }
+      
+      // Import the appropriate service and approve the request
+      if (requestType === 'overtime') {
+        const { OvertimeService } = await import('../attendance/overtimeService');
+        const overtimeService = new OvertimeService();
+        await overtimeService.approveOvertimeRequest({
+          requestId,
+          approverId: userId,
+          approved: true,
+          comments: 'Approved by department head'
+        });
+      } else if (requestType === 'leave') {
+        const { LeaveService } = await import('../leave/leaveService');
+        const leaveService = new LeaveService();
+        await leaveService.approveLeaveRequest({
+          leaveId: requestId,
+          approverId: userId,
+          approved: true,
+          comments: 'Approved by department head'
+        });
+      } else if (requestType === 'time_correction') {
+        const { TimeCorrectionService } = await import('../attendance/timeCorrectionService');
+        const timeCorrectionService = new TimeCorrectionService();
+        await timeCorrectionService.approveTimeCorrectionRequest({
+          requestId,
+          approverId: userId,
+          approved: true,
+          comments: 'Approved by department head'
+        });
+      }
+      
+      logger.info(`Department head ${userId} approved ${requestType} request ${requestId}`);
+    } catch (error) {
+      logger.error('Error approving request:', { error, userId, requestId });
+      throw error;
+    }
   }
 
   /**
    * Reject a request
    */
   async rejectRequest(userId: string, requestId: string, reason?: string): Promise<void> {
-    // This would typically update the request status with rejection reason
-    // For now, just logging the action
-    logger.info(`Department head ${userId} rejected request ${requestId} with reason: ${reason || 'No reason provided'}`);
+    const pool = getPool();
+    
+    try {
+      // First, determine the request type by checking which table contains the request
+      const overtimeQuery = 'SELECT id FROM overtime_requests WHERE id = $1';
+      const leaveQuery = 'SELECT id FROM leaves WHERE id = $1';
+      const timeCorrectionQuery = 'SELECT id FROM time_correction_requests WHERE id = $1';
+      
+      const [overtimeResult, leaveResult, timeCorrectionResult] = await Promise.all([
+        pool.query(overtimeQuery, [requestId]),
+        pool.query(leaveQuery, [requestId]),
+        pool.query(timeCorrectionQuery, [requestId])
+      ]);
+      
+      let requestType: string | null = null;
+      if (overtimeResult.rows.length > 0) {
+        requestType = 'overtime';
+      } else if (leaveResult.rows.length > 0) {
+        requestType = 'leave';
+      } else if (timeCorrectionResult.rows.length > 0) {
+        requestType = 'time_correction';
+      }
+      
+      if (!requestType) {
+        throw new Error('Request not found');
+      }
+      
+      // Import the appropriate service and reject the request
+      if (requestType === 'overtime') {
+        const { OvertimeService } = await import('../attendance/overtimeService');
+        const overtimeService = new OvertimeService();
+        await overtimeService.approveOvertimeRequest({
+          requestId,
+          approverId: userId,
+          approved: false,
+          comments: reason || 'Rejected by department head'
+        });
+      } else if (requestType === 'leave') {
+        const { LeaveService } = await import('../leave/leaveService');
+        const leaveService = new LeaveService();
+        await leaveService.approveLeaveRequest({
+          leaveId: requestId,
+          approverId: userId,
+          approved: false,
+          comments: reason || 'Rejected by department head'
+        });
+      } else if (requestType === 'time_correction') {
+        const { TimeCorrectionService } = await import('../attendance/timeCorrectionService');
+        const timeCorrectionService = new TimeCorrectionService();
+        await timeCorrectionService.approveTimeCorrectionRequest({
+          requestId,
+          approverId: userId,
+          approved: false,
+          comments: reason || 'Rejected by department head'
+        });
+      }
+      
+      logger.info(`Department head ${userId} rejected ${requestType} request ${requestId} with reason: ${reason || 'No reason provided'}`);
+    } catch (error) {
+      logger.error('Error rejecting request:', { error, userId, requestId, reason });
+      throw error;
+    }
   }
 
   /**
@@ -789,6 +1131,7 @@ export class DepartmentHeadService {
         SELECT DISTINCT pp.*,
           COUNT(DISTINCT CASE WHEN e.department_id = $1 THEN pr.employee_id END) as total_employees,
           COALESCE(SUM(CASE WHEN e.department_id = $1 THEN pr.net_pay ELSE 0 END), 0) as total_amount,
+          pa.id as approval_id,
           pa.status as approval_status,
           pa.comments as approval_comments,
           pa.approved_at
@@ -799,7 +1142,7 @@ export class DepartmentHeadService {
         WHERE pa.approver_id = $2
         GROUP BY pp.id, pp.period_name, pp.start_date, pp.end_date, pp.status, 
                  pp.working_days, pp.expected_hours, pp.created_at, pp.updated_at,
-                 pa.status, pa.comments, pa.approved_at
+                 pa.id, pa.status, pa.comments, pa.approved_at
         ORDER BY pp.created_at DESC
       `;
       
@@ -810,11 +1153,12 @@ export class DepartmentHeadService {
         periodName: period.period_name,
         startDate: period.start_date,
         endDate: period.end_date,
-        status: period.status,
+        status: period.approval_status || period.status, // Use approval status if available, fallback to period status
         workingDays: period.working_days,
         expectedHours: period.expected_hours,
         totalEmployees: parseInt(period.total_employees) || 0,
         totalAmount: parseFloat(period.total_amount) || 0,
+        approvalId: period.approval_id,
         approvalStatus: period.approval_status,
         approvalComments: period.approval_comments,
         approvedAt: period.approved_at,
@@ -861,6 +1205,7 @@ export class DepartmentHeadService {
         totalOvertimeHours: record.total_overtime_hours,
         totalLateHours: record.total_late_hours,
         lateDeductions: record.late_deductions,
+        paidLeaveHours: record.paid_leave_hours || 0,
         grossPay: record.gross_pay,
         netPay: record.net_pay,
         totalDeductions: record.total_deductions,
@@ -914,8 +1259,8 @@ export class DepartmentHeadService {
       // Get completed and processing periods count
       const periodsQuery = `
         SELECT 
-          COUNT(CASE WHEN pp.status = 'completed' THEN 1 END) as completed_periods,
-          COUNT(CASE WHEN pp.status = 'processing' THEN 1 END) as processing_periods
+          COUNT(CASE WHEN pa.status = 'approved' OR pp.status = 'completed' THEN 1 END) as completed_periods,
+          COUNT(CASE WHEN pp.status = 'processing' OR pp.status = 'sent_for_review' THEN 1 END) as processing_periods
         FROM payroll_periods pp
         INNER JOIN payroll_approvals pa ON pp.id = pa.payroll_period_id
         WHERE pa.approver_id = $1
@@ -1051,6 +1396,35 @@ export class DepartmentHeadService {
       const updatedApproval = await payrollApprovalModel.updatePayrollApproval(approvalId, updateData);
       
       if (updatedApproval) {
+        // If approved, update payroll records status to 'processed' for this department
+        if (status === 'approved') {
+          logger.info(`Updating payroll records to processed for department ${approval.departmentId} in period ${approval.payrollPeriodId}`);
+          
+          // Update all payroll records for this department and period to 'processed'
+          const { getPool } = await import('../../config/database');
+          const pool = getPool();
+          
+          const updateRecordsQuery = `
+            UPDATE payroll_records 
+            SET status = 'processed', updated_at = CURRENT_TIMESTAMP
+            WHERE payroll_period_id = $1 
+            AND employee_id IN (
+              SELECT e.id FROM employees e 
+              WHERE e.department_id = $2
+            )
+          `;
+          
+          await pool.query(updateRecordsQuery, [approval.payrollPeriodId, approval.departmentId]);
+          
+          logger.info(`Updated payroll records to processed for department ${approval.departmentId}`);
+        }
+        
+        // Check if all approvals for this payroll period are now complete
+        logger.info(`Department head ${userId} ${status} payroll approval ${approvalId}, checking period status...`);
+        const { PayrollApprovalService } = await import('../payroll/payrollApprovalService');
+        const payrollApprovalService = new PayrollApprovalService();
+        await payrollApprovalService.checkAndUpdatePayrollPeriodStatus(approval.payrollPeriodId);
+        
         logger.info(`Department head ${userId} ${status} payroll approval ${approvalId}`);
         return true;
       }

@@ -9,6 +9,7 @@ import {
   SessionType,
   getSessionDisplayInfo 
 } from '../../utils/timeValidation';
+import { defaultHoursCalculator } from '../../utils/attendanceHoursCalculator';
 
 export interface ClockInData {
   employeeId: string;
@@ -382,29 +383,47 @@ export class AttendanceService {
   }
 
   /**
-   * Calculate daily hours for an attendance record
+   * Calculate daily hours for an attendance record using the new mathematical formulation
    */
   private async calculateDailyHours(attendanceRecordId: string): Promise<number> {
     const sessions = await attendanceSessionModel.getSessionsByAttendanceRecord(attendanceRecordId);
     
-    const clockInSessions = sessions.filter(s => s.sessionType === 'clock_in');
-    const clockOutSessions = sessions.filter(s => s.sessionType === 'clock_out');
+    // Use the new hours calculator
+    const result = defaultHoursCalculator.calculateFromSessions(sessions);
+    
+    logger.info('Calculated daily hours', {
+      attendanceRecordId,
+      morningHours: result.morningHours,
+      afternoonHours: result.afternoonHours,
+      totalHours: result.totalHours,
+      effectiveMorningStart: result.effectiveMorningStart,
+      effectiveAfternoonStart: result.effectiveAfternoonStart
+    });
 
-    let totalHours = 0;
+    return result.totalHours;
+  }
 
-    // Calculate hours for each clock in/out pair
-    for (const clockIn of clockInSessions) {
-      const correspondingClockOut = clockOutSessions.find(
-        clockOut => clockOut.timestamp > clockIn.timestamp
-      );
+  /**
+   * Get detailed hours calculation for an attendance record
+   */
+  async getDetailedHoursCalculation(attendanceRecordId: string): Promise<{
+    morningHours: number;
+    afternoonHours: number;
+    totalHours: number;
+    effectiveMorningStart: number | null;
+    effectiveAfternoonStart: number | null;
+    effectiveMorningEnd: number | null;
+    effectiveAfternoonEnd: number | null;
+    config: any;
+  }> {
+    const sessions = await attendanceSessionModel.getSessionsByAttendanceRecord(attendanceRecordId);
+    const result = defaultHoursCalculator.calculateFromSessions(sessions);
+    const config = defaultHoursCalculator.getConfig();
 
-      if (correspondingClockOut) {
-        const hours = (correspondingClockOut.timestamp.getTime() - clockIn.timestamp.getTime()) / (1000 * 60 * 60);
-        totalHours += Math.max(0, hours);
-      }
-    }
-
-    return Math.round(totalHours * 100) / 100; // Round to 2 decimal places
+    return {
+      ...result,
+      config
+    };
   }
 
   /**

@@ -161,3 +161,22 @@ export const useDepartmentHeadPayrollApprovals = () => {
   });
 };
 
+// Approve Payroll Approval
+export const useApprovePayrollApproval = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ approvalId, status, comments }: { 
+      approvalId: string; 
+      status: 'approved' | 'rejected'; 
+      comments?: string; 
+    }) => DepartmentHeadService.approvePayrollApproval(approvalId, status, comments),
+    onSuccess: () => {
+      // Invalidate and refetch payroll approvals
+      queryClient.invalidateQueries({ queryKey: ['departmentHead', 'payrollApprovals'] });
+      // Also invalidate payroll periods to update approval status
+      queryClient.invalidateQueries({ queryKey: ['departmentHead', 'payrollPeriods'] });
+    },
+  });
+};
+

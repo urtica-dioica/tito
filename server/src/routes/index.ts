@@ -16,6 +16,7 @@ import auditRoutes from './audit/auditRoutes';
 import kioskRoutes from './kiosk/kioskRoutes';
 import employeeRoutes from './employee/employeeRoutes';
 import leaveBalanceRoutes from './hr/leaveBalanceRoutes';
+import hrRequestRoutes from './hr/requestRoutes';
 
 const router = Router();
 
@@ -40,6 +41,7 @@ router.use(`${API_VERSION}/audit`, auditRoutes);
 router.use(`${API_VERSION}/kiosk`, kioskRoutes);
 router.use(`${API_VERSION}/employee`, employeeRoutes);
 router.use(`${API_VERSION}/hr/leave-balances`, leaveBalanceRoutes);
+router.use(`${API_VERSION}/hr/requests`, hrRequestRoutes);
 
 // Health check endpoint
 router.get('/health', (_req, res) => {

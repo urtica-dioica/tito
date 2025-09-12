@@ -56,38 +56,59 @@ export class OvertimeService {
       throw new Error('Cannot request overtime for past dates');
     }
 
-    // Validate time range - handle both Date objects and string times
-    let startTimeObj: Date;
-    let endTimeObj: Date;
+    // Validate time range - work with time strings directly
+    let startTimeStr: string;
+    let endTimeStr: string;
     
-    if (startTime instanceof Date) {
-      startTimeObj = startTime;
-    } else if (typeof startTime === 'string') {
-      // Parse time string (HH:MM:SS format) - create Date with same date as requestDate
-      const [hours, minutes, seconds] = startTime.split(':').map(Number);
-      startTimeObj = new Date(requestDate);
-      startTimeObj.setUTCHours(hours, minutes, seconds, 0);
+    if (typeof startTime === 'string') {
+      // Validate time format and ensure HH:MM:SS format
+      const timeParts = startTime.split(':').map(Number);
+      const hours = timeParts[0] || 0;
+      const minutes = timeParts[1] || 0;
+      const seconds = timeParts[2] || 0; // Default to 0 if not provided
+      
+      // Validate time components
+      if (isNaN(hours) || isNaN(minutes) || isNaN(seconds) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
+        throw new Error('Invalid start time format');
+      }
+      
+      startTimeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else if (startTime instanceof Date) {
+      // Convert Date object to time string
+      startTimeStr = `${startTime.getUTCHours().toString().padStart(2, '0')}:${startTime.getUTCMinutes().toString().padStart(2, '0')}:${startTime.getUTCSeconds().toString().padStart(2, '0')}`;
     } else {
       throw new Error('Invalid start time format');
     }
     
-    if (endTime instanceof Date) {
-      endTimeObj = endTime;
-    } else if (typeof endTime === 'string') {
-      // Parse time string (HH:MM:SS format) - create Date with same date as requestDate
-      const [hours, minutes, seconds] = endTime.split(':').map(Number);
-      endTimeObj = new Date(requestDate);
-      endTimeObj.setUTCHours(hours, minutes, seconds, 0);
+    if (typeof endTime === 'string') {
+      // Validate time format and ensure HH:MM:SS format
+      const timeParts = endTime.split(':').map(Number);
+      const hours = timeParts[0] || 0;
+      const minutes = timeParts[1] || 0;
+      const seconds = timeParts[2] || 0; // Default to 0 if not provided
+      
+      // Validate time components
+      if (isNaN(hours) || isNaN(minutes) || isNaN(seconds) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
+        throw new Error('Invalid end time format');
+      }
+      
+      endTimeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else if (endTime instanceof Date) {
+      // Convert Date object to time string
+      endTimeStr = `${endTime.getUTCHours().toString().padStart(2, '0')}:${endTime.getUTCMinutes().toString().padStart(2, '0')}:${endTime.getUTCSeconds().toString().padStart(2, '0')}`;
     } else {
       throw new Error('Invalid end time format');
     }
     
-    if (startTimeObj >= endTimeObj) {
+    // Validate time order by comparing time strings
+    if (startTimeStr >= endTimeStr) {
       throw new Error('Start time must be before end time');
     }
 
-    // Validate requested hours
-    const calculatedHours = (endTimeObj.getTime() - startTimeObj.getTime()) / (1000 * 60 * 60);
+    // Validate requested hours by creating temporary Date objects for calculation only
+    const tempStart = new Date(`2000-01-01T${startTimeStr}`);
+    const tempEnd = new Date(`2000-01-01T${endTimeStr}`);
+    const calculatedHours = (tempEnd.getTime() - tempStart.getTime()) / (1000 * 60 * 60);
     if (Math.abs(calculatedHours - requestedHours) > 0.1) {
       throw new Error('Requested hours do not match the time range');
     }
@@ -97,22 +118,29 @@ export class OvertimeService {
     }
 
     // Check for overlapping overtime requests
-    const overlappingRequest = await this.getOverlappingRequest(employeeId, requestDate, startTimeObj, endTimeObj);
+    // Create temporary Date objects for the overlapping check
+    const tempStartForCheck = new Date(`2000-01-01T${startTimeStr}`);
+    const tempEndForCheck = new Date(`2000-01-01T${endTimeStr}`);
+    const overlappingRequest = await this.getOverlappingRequest(employeeId, requestDate, tempStartForCheck, tempEndForCheck);
     if (overlappingRequest) {
       throw new Error('An overtime request already exists for this time period');
     }
 
-    // Create the overtime request - pass original string times to model
-    // Extract original string times from the input data
-    const originalStartTime = typeof startTime === 'string' ? startTime : 
-      (startTime instanceof Date ? 
-        `${startTime.getUTCHours().toString().padStart(2, '0')}:${startTime.getUTCMinutes().toString().padStart(2, '0')}:${startTime.getUTCSeconds().toString().padStart(2, '0')}` : 
-        '00:00:00');
-    
-    const originalEndTime = typeof endTime === 'string' ? endTime : 
-      (endTime instanceof Date ? 
-        `${endTime.getUTCHours().toString().padStart(2, '0')}:${endTime.getUTCMinutes().toString().padStart(2, '0')}:${endTime.getUTCSeconds().toString().padStart(2, '0')}` : 
-        '00:00:00');
+    // Use the validated time strings directly
+    const originalStartTime = startTimeStr;
+    const originalEndTime = endTimeStr;
+
+    // Debug: Log the data being passed to the model
+    logger.info('Data being passed to overtime model:', {
+      employeeId,
+      requestDate,
+      startTime: originalStartTime,
+      endTime: originalEndTime,
+      requestedHours,
+      reason,
+      originalStartTimeType: typeof originalStartTime,
+      originalEndTimeType: typeof originalEndTime
+    });
 
     const requestData: CreateOvertimeRequestData = {
       employeeId,
@@ -249,17 +277,14 @@ export class OvertimeService {
       });
     }
 
+    // Convert TIME values to TIMESTAMP by combining with the overtime date
+    const startTimestamp = new Date(`${requestDate.toISOString().split('T')[0]}T${startTime}`);
+
     // Create overtime session
     await attendanceSessionModel.createAttendanceSession({
       attendanceRecordId: attendanceRecord.id,
-      sessionType: 'clock_in', // Using clock_in for overtime start
-      timestamp: startTime
-    });
-
-    await attendanceSessionModel.createAttendanceSession({
-      attendanceRecordId: attendanceRecord.id,
-      sessionType: 'clock_out', // Using clock_out for overtime end
-      timestamp: endTime
+      sessionType: 'overtime',
+      timestamp: startTimestamp
     });
 
     // Accrue leave days from overtime hours
@@ -336,7 +361,11 @@ export class OvertimeService {
         )
     `;
 
-    const result = await getPool().query(query, [employeeId, requestDate, startTime, endTime]);
+    // Convert Date objects to time strings for database comparison
+    const startTimeStr = `${startTime.getUTCHours().toString().padStart(2, '0')}:${startTime.getUTCMinutes().toString().padStart(2, '0')}:${startTime.getUTCSeconds().toString().padStart(2, '0')}`;
+    const endTimeStr = `${endTime.getUTCHours().toString().padStart(2, '0')}:${endTime.getUTCMinutes().toString().padStart(2, '0')}:${endTime.getUTCSeconds().toString().padStart(2, '0')}`;
+    
+    const result = await getPool().query(query, [employeeId, requestDate, startTimeStr, endTimeStr]);
     return result.rows.length > 0 ? result.rows[0] : null;
   }
 
@@ -407,7 +436,7 @@ export class OvertimeService {
     const errors: string[] = [];
 
     // Check if employee exists
-    const employee = await employeeModel.findByUserId(data.employeeId);
+    const employee = await employeeModel.findById(data.employeeId);
     if (!employee) {
       errors.push('Employee not found');
     } else if (employee.status !== 'active') {
@@ -424,40 +453,63 @@ export class OvertimeService {
       errors.push('Cannot request overtime for past dates');
     }
 
-    // Validate time range - handle both Date objects and string times
-    let startTimeObj: Date;
-    let endTimeObj: Date;
+    // Validate time range - work with time strings directly
+    let startTimeStr: string;
+    let endTimeStr: string;
     
-    if (data.startTime instanceof Date) {
-      startTimeObj = data.startTime;
-    } else if (typeof data.startTime === 'string') {
-      // Parse time string (HH:MM:SS format)
-      const [hours, minutes, seconds] = data.startTime.split(':').map(Number);
-      startTimeObj = new Date();
-      startTimeObj.setUTCHours(hours, minutes, seconds, 0);
+    if (typeof data.startTime === 'string') {
+      // Validate time format and ensure HH:MM:SS format
+      const timeParts = data.startTime.split(':').map(Number);
+      const hours = timeParts[0] || 0;
+      const minutes = timeParts[1] || 0;
+      const seconds = timeParts[2] || 0; // Default to 0 if not provided
+      
+      // Validate time components
+      if (isNaN(hours) || isNaN(minutes) || isNaN(seconds) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
+        errors.push('Invalid start time format');
+        return { isValid: false, errors };
+      }
+      
+      startTimeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else if (data.startTime instanceof Date) {
+      // Convert Date object to time string
+      startTimeStr = `${data.startTime.getUTCHours().toString().padStart(2, '0')}:${data.startTime.getUTCMinutes().toString().padStart(2, '0')}:${data.startTime.getUTCSeconds().toString().padStart(2, '0')}`;
     } else {
       errors.push('Invalid start time format');
       return { isValid: false, errors };
     }
     
-    if (data.endTime instanceof Date) {
-      endTimeObj = data.endTime;
-    } else if (typeof data.endTime === 'string') {
-      // Parse time string (HH:MM:SS format)
-      const [hours, minutes, seconds] = data.endTime.split(':').map(Number);
-      endTimeObj = new Date();
-      endTimeObj.setUTCHours(hours, minutes, seconds, 0);
+    if (typeof data.endTime === 'string') {
+      // Validate time format and ensure HH:MM:SS format
+      const timeParts = data.endTime.split(':').map(Number);
+      const hours = timeParts[0] || 0;
+      const minutes = timeParts[1] || 0;
+      const seconds = timeParts[2] || 0; // Default to 0 if not provided
+      
+      // Validate time components
+      if (isNaN(hours) || isNaN(minutes) || isNaN(seconds) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) {
+        errors.push('Invalid end time format');
+        return { isValid: false, errors };
+      }
+      
+      endTimeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else if (data.endTime instanceof Date) {
+      // Convert Date object to time string
+      endTimeStr = `${data.endTime.getUTCHours().toString().padStart(2, '0')}:${data.endTime.getUTCMinutes().toString().padStart(2, '0')}:${data.endTime.getUTCSeconds().toString().padStart(2, '0')}`;
     } else {
       errors.push('Invalid end time format');
       return { isValid: false, errors };
     }
     
-    if (startTimeObj >= endTimeObj) {
+    // Validate time order by comparing time strings
+    if (startTimeStr >= endTimeStr) {
       errors.push('Start time must be before end time');
     }
 
-    // Validate requested hours
-    const calculatedHours = (endTimeObj.getTime() - startTimeObj.getTime()) / (1000 * 60 * 60);
+    // Validate requested hours by creating temporary Date objects for calculation only
+    const tempStart = new Date(`2000-01-01T${startTimeStr}`);
+    const tempEnd = new Date(`2000-01-01T${endTimeStr}`);
+    const calculatedHours = (tempEnd.getTime() - tempStart.getTime()) / (1000 * 60 * 60);
     if (Math.abs(calculatedHours - data.requestedHours) > 0.1) {
       errors.push('Requested hours do not match the time range');
     }
@@ -473,11 +525,14 @@ export class OvertimeService {
 
     // Check for overlapping requests
     if (employee) {
+      // Create temporary Date objects for the overlapping check
+      const tempStartForCheck = new Date(`2000-01-01T${startTimeStr}`);
+      const tempEndForCheck = new Date(`2000-01-01T${endTimeStr}`);
       const overlappingRequest = await this.getOverlappingRequest(
         data.employeeId, 
         data.requestDate, 
-        startTimeObj, 
-        endTimeObj
+        tempStartForCheck, 
+        tempEndForCheck
       );
       if (overlappingRequest) {
         errors.push('An overtime request already exists for this time period');

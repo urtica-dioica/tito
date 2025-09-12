@@ -153,7 +153,7 @@ CREATE TABLE attendance_records (
 CREATE TABLE attendance_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     attendance_record_id UUID NOT NULL REFERENCES attendance_records(id) ON DELETE CASCADE,
-    session_type VARCHAR(50) NOT NULL CHECK (session_type IN ('morning_in', 'morning_out', 'afternoon_in', 'afternoon_out', 'overtime')),
+    session_type VARCHAR(50) NOT NULL CHECK (session_type IN ('morning_in', 'morning_out', 'afternoon_in', 'afternoon_out', 'overtime', 'clock_in', 'clock_out')),
     clock_in TIMESTAMP,
     clock_out TIMESTAMP,
     calculated_hours DECIMAL(4,2) GENERATED ALWAYS AS ( 
@@ -171,10 +171,12 @@ CREATE TABLE attendance_sessions (
     selfie_image_url VARCHAR(500),
     qr_code_hash VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(attendance_record_id, session_type)
 );
 CREATE TRIGGER attendance_records_updated_at BEFORE UPDATE ON attendance_records FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER attendance_records_audit_log AFTER INSERT OR UPDATE OR DELETE ON attendance_records FOR EACH ROW EXECUTE FUNCTION log_audit_event();
+CREATE TRIGGER attendance_sessions_updated_at BEFORE UPDATE ON attendance_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER attendance_sessions_audit_log AFTER INSERT OR UPDATE OR DELETE ON attendance_sessions FOR EACH ROW EXECUTE FUNCTION log_audit_event();
 
 /* === Time Correction Requests === */
@@ -264,7 +266,14 @@ CREATE TABLE system_settings (
             ('expected_monthly_hours', '176', 'number', 'Default expected work hours per month (22 working days × 8 hours).'),
             ('overtime_to_leave_ratio', '0.125', 'decimal', 'Converts overtime hours to leave days (e.g., 0.125 = 1 day per 8 hours).'),
             ('selfie_retention_days', '2', 'number', 'Number of days to retain selfie images before automatic deletion.'),
-            ('qr_code_expiry_years', '2', 'number', 'Number of years before ID card QR codes expire.');
+            ('qr_code_expiry_years', '2', 'number', 'Number of years before ID card QR codes expire.'),
+            ('attendance_calculation_updated', '2025-01-27-mathematical-formulation', 'string', 'Updated attendance calculation to use fixed 4-hour sessions'),
+            ('attendance_grace_period_minutes', '30', 'number', 'Grace period in minutes for late clock-in'),
+            ('attendance_morning_start', '8.0', 'decimal', 'Morning session start time in decimal hours (8:00 AM)'),
+            ('attendance_morning_end', '12.0', 'decimal', 'Morning session end time in decimal hours (12:00 PM)'),
+            ('attendance_afternoon_start', '13.0', 'decimal', 'Afternoon session start time in decimal hours (1:00 PM)'),
+            ('attendance_afternoon_end', '17.0', 'decimal', 'Afternoon session end time in decimal hours (5:00 PM)'),
+            ('attendance_session_cap_hours', '4.0', 'decimal', 'Maximum hours per session (morning/afternoon)');
 
 /* === Payroll Module === */
 CREATE TABLE deduction_types (
@@ -359,7 +368,8 @@ CREATE TABLE payroll_records (
     status payroll_record_status_enum DEFAULT 'draft',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    total_benefits DECIMAL(10,2) DEFAULT 0
+    total_benefits DECIMAL(10,2) DEFAULT 0,
+    paid_leave_hours DECIMAL(6,2) DEFAULT 0 -- Hours from approved leave days that are paid
 );
 CREATE TRIGGER payroll_records_updated_at BEFORE UPDATE ON payroll_records FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 -- CREATE TRIGGER payroll_records_audit_log AFTER INSERT OR UPDATE OR DELETE ON payroll_records FOR EACH ROW EXECUTE FUNCTION log_audit_event();
@@ -388,6 +398,126 @@ CREATE TRIGGER payroll_deductions_audit_log AFTER INSERT OR UPDATE OR DELETE ON 
 CREATE TRIGGER payroll_approvals_audit_log AFTER INSERT OR UPDATE OR DELETE ON payroll_approvals FOR EACH ROW EXECUTE FUNCTION log_audit_event();
 
 /* === Business Logic Functions === */
+
+-- Function to calculate daily total hours using mathematical formulation
+CREATE OR REPLACE FUNCTION calculate_daily_total_hours(p_attendance_record_id UUID)
+RETURNS NUMERIC AS $$
+DECLARE
+    v_morning_hours DECIMAL(4,2) := 0;
+    v_afternoon_hours DECIMAL(4,2) := 0;
+    v_total_hours DECIMAL(4,2) := 0;
+
+    -- Configuration parameters
+    v_morning_start DECIMAL(4,2) := 8.0;      -- 8:00 AM
+    v_morning_end DECIMAL(4,2) := 12.0;       -- 12:00 PM
+    v_afternoon_start DECIMAL(4,2) := 13.0;   -- 1:00 PM
+    v_afternoon_end DECIMAL(4,2) := 17.0;     -- 5:00 PM
+    v_grace_period_minutes INTEGER := 30;     -- 30 minutes
+    v_session_cap_hours DECIMAL(4,2) := 4.0;  -- 4 hours per session
+
+    -- Session times
+    v_morning_in_time DECIMAL(4,2);
+    v_morning_out_time DECIMAL(4,2);
+    v_afternoon_in_time DECIMAL(4,2);
+    v_afternoon_out_time DECIMAL(4,2);
+
+    -- Calculation variables
+    v_effective_start DECIMAL(4,2);
+    v_effective_end DECIMAL(4,2);
+    v_raw_hours DECIMAL(4,2);
+
+BEGIN
+    -- Get all session times for the attendance record
+    SELECT
+        CASE WHEN s1.clock_in IS NOT NULL THEN
+            EXTRACT(HOUR FROM s1.clock_in) + EXTRACT(MINUTE FROM s1.clock_in) / 60.0
+        ELSE NULL END,
+        CASE WHEN s2.clock_out IS NOT NULL THEN
+            EXTRACT(HOUR FROM s2.clock_out) + EXTRACT(MINUTE FROM s2.clock_out) / 60.0
+        ELSE NULL END,
+        CASE WHEN s3.clock_in IS NOT NULL THEN
+            EXTRACT(HOUR FROM s3.clock_in) + EXTRACT(MINUTE FROM s3.clock_in) / 60.0
+        ELSE NULL END,
+        CASE WHEN s4.clock_out IS NOT NULL THEN
+            EXTRACT(HOUR FROM s4.clock_out) + EXTRACT(MINUTE FROM s4.clock_out) / 60.0
+        ELSE NULL END
+    INTO v_morning_in_time, v_morning_out_time, v_afternoon_in_time, v_afternoon_out_time
+    FROM attendance_records ar
+    LEFT JOIN attendance_sessions s1 ON ar.id = s1.attendance_record_id AND s1.session_type = 'morning_in'
+    LEFT JOIN attendance_sessions s2 ON ar.id = s2.attendance_record_id AND s2.session_type = 'morning_out'
+    LEFT JOIN attendance_sessions s3 ON ar.id = s3.attendance_record_id AND s3.session_type = 'afternoon_in'
+    LEFT JOIN attendance_sessions s4 ON ar.id = s4.attendance_record_id AND s4.session_type = 'afternoon_out'
+    WHERE ar.id = p_attendance_record_id;
+
+    -- Calculate morning session hours
+    IF v_morning_in_time IS NOT NULL AND v_morning_out_time IS NOT NULL THEN
+        -- Apply grace period rule for morning start
+        IF v_morning_in_time < v_morning_start THEN
+            v_effective_start := v_morning_start;
+        ELSE
+            v_effective_start := CEIL(v_morning_in_time - (v_grace_period_minutes / 60.0));
+        END IF;
+
+        -- Ensure effective start is not after morning end
+        IF v_effective_start <= v_morning_end THEN
+            v_effective_end := LEAST(v_morning_out_time, v_morning_end);
+            v_raw_hours := GREATEST(0, v_effective_end - v_effective_start);
+            v_morning_hours := LEAST(v_session_cap_hours, v_raw_hours);
+        END IF;
+    END IF;
+
+    -- Calculate afternoon session hours
+    IF v_afternoon_in_time IS NOT NULL AND v_afternoon_out_time IS NOT NULL THEN
+        -- Apply grace period rule for afternoon start
+        IF v_afternoon_in_time < v_afternoon_start THEN
+            v_effective_start := v_afternoon_start;
+        ELSE
+            v_effective_start := CEIL(v_afternoon_in_time - (v_grace_period_minutes / 60.0));
+        END IF;
+
+        -- Ensure effective start is not after afternoon end
+        IF v_effective_start <= v_afternoon_end THEN
+            v_effective_end := LEAST(v_afternoon_out_time, v_afternoon_end);
+            v_raw_hours := GREATEST(0, v_effective_end - v_effective_start);
+            v_afternoon_hours := LEAST(v_session_cap_hours, v_raw_hours);
+        END IF;
+    END IF;
+
+    -- Calculate total hours
+    v_total_hours := v_morning_hours + v_afternoon_hours;
+
+    RETURN ROUND(v_total_hours, 2);
+END;
+$$ LANGUAGE plpgsql;
+
+/* === Views === */
+CREATE VIEW attendance_records_with_total_hours AS
+SELECT 
+    id,
+    employee_id,
+    date,
+    overall_status,
+    created_at,
+    updated_at,
+    calculate_daily_total_hours(id) AS calculated_total_hours,
+    (SELECT attendance_sessions.clock_in 
+     FROM attendance_sessions 
+     WHERE attendance_sessions.attendance_record_id = ar.id 
+     AND attendance_sessions.session_type::text = 'morning_in'::text) AS morning_in,
+    (SELECT attendance_sessions.clock_out 
+     FROM attendance_sessions 
+     WHERE attendance_sessions.attendance_record_id = ar.id 
+     AND attendance_sessions.session_type::text = 'morning_out'::text) AS morning_out,
+    (SELECT attendance_sessions.clock_in 
+     FROM attendance_sessions 
+     WHERE attendance_sessions.attendance_record_id = ar.id 
+     AND attendance_sessions.session_type::text = 'afternoon_in'::text) AS afternoon_in,
+    (SELECT attendance_sessions.clock_out 
+     FROM attendance_sessions 
+     WHERE attendance_sessions.attendance_record_id = ar.id 
+     AND attendance_sessions.session_type::text = 'afternoon_out'::text) AS afternoon_out
+FROM attendance_records ar;
+
 CREATE OR REPLACE FUNCTION calculate_attendance_overall_status()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -519,6 +649,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- Function to calculate payroll preserving server-calculated attendance hours
 CREATE OR REPLACE FUNCTION calculate_payroll()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -529,6 +660,7 @@ DECLARE
     v_total_pay DECIMAL(10,2);
     v_net_pay DECIMAL(10,2);
     v_user_role user_role;
+    v_total_paid_hours DECIMAL(6,2);
 BEGIN
     SELECT u.role INTO v_user_role
     FROM users u
@@ -559,17 +691,19 @@ BEGIN
     END IF;
     
     v_hourly_rate := NEW.base_salary / v_expected_monthly_hours;
-    v_regular_pay := v_hourly_rate * NEW.total_regular_hours;
-    v_total_pay := v_regular_pay;
+    
+    -- Calculate total paid hours (worked hours + paid leave hours)
+    -- Preserve the paid_leave_hours value that was passed in
+    v_total_paid_hours := NEW.total_regular_hours + COALESCE(NEW.paid_leave_hours, 0);
+    v_total_pay := v_hourly_rate * v_total_paid_hours;
     v_net_pay := v_total_pay - NEW.total_deductions - NEW.late_deductions;
     
-    UPDATE payroll_records 
-    SET 
-        hourly_rate = v_hourly_rate,
-        gross_pay = v_total_pay,
-        net_pay = v_net_pay,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = NEW.id;
+    -- Update the NEW record values, preserving paid_leave_hours
+    NEW.hourly_rate := v_hourly_rate;
+    NEW.paid_leave_hours := COALESCE(NEW.paid_leave_hours, 0); -- Preserve the value
+    NEW.gross_pay := v_total_pay;
+    NEW.net_pay := v_net_pay;
+    NEW.updated_at := CURRENT_TIMESTAMP;
     
     RETURN NEW;
 END;
@@ -613,8 +747,7 @@ BEGIN
         ) ON CONFLICT (attendance_record_id, session_type) 
         DO UPDATE SET
             clock_in = NEW.requested_clock_in,
-            clock_out = NEW.requested_clock_out,
-            updated_at = CURRENT_TIMESTAMP;
+            clock_out = NEW.requested_clock_out;
         
         UPDATE time_correction_requests 
         SET 
@@ -886,6 +1019,11 @@ DECLARE
     v_next_expected_session VARCHAR(50);
     v_is_break BOOLEAN;
 BEGIN
+    -- Skip validation for overtime sessions and time correction sessions (they are approved by department heads)
+    IF NEW.session_type IN ('overtime', 'clock_in', 'clock_out') THEN
+        RETURN NEW;
+    END IF;
+    
     -- Check if it's break period
     v_is_break := is_break_period(NEW.clock_in);
     IF v_is_break AND NEW.session_type IN ('morning_out', 'afternoon_in') THEN
@@ -928,15 +1066,15 @@ CREATE TRIGGER validate_attendance_session_trigger
     BEFORE INSERT OR UPDATE ON attendance_sessions
     FOR EACH ROW EXECUTE FUNCTION validate_attendance_session();
 
--- CREATE TRIGGER calculate_payroll_trigger 
---     AFTER INSERT OR UPDATE ON payroll_records 
---     FOR EACH ROW EXECUTE FUNCTION calculate_payroll();
+CREATE TRIGGER calculate_payroll_trigger 
+    BEFORE INSERT OR UPDATE ON payroll_records 
+    FOR EACH ROW EXECUTE FUNCTION calculate_payroll();
 
 CREATE TRIGGER process_time_correction_approval_trigger
     AFTER UPDATE ON time_correction_requests
     FOR EACH ROW EXECUTE FUNCTION process_time_correction_approval();
 
--- Function to calculate session hours for payroll
+-- Function to calculate session hours for payroll using mathematical formulation with grace periods and session caps
 CREATE OR REPLACE FUNCTION calculate_session_payroll_data()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -948,29 +1086,40 @@ DECLARE
     v_clock_out_time TIME;
     v_expected_start_time TIME := '08:00:00';
     v_grace_period_minutes INTEGER := 15;
+    v_morning_session_complete BOOLEAN := FALSE;
+    v_afternoon_session_complete BOOLEAN := FALSE;
 BEGIN
     -- Only calculate when both clock_in and clock_out are present
     IF NEW.clock_in IS NOT NULL AND NEW.clock_out IS NOT NULL THEN
         v_clock_in_time := NEW.clock_in::TIME;
         v_clock_out_time := NEW.clock_out::TIME;
         
-        -- Calculate total hours
-        v_regular_hours := EXTRACT(EPOCH FROM (NEW.clock_out - NEW.clock_in)) / 3600;
+        -- Check if this completes a morning or afternoon session
+        IF NEW.session_type = 'morning_out' THEN
+            v_morning_session_complete := TRUE;
+        ELSIF NEW.session_type = 'afternoon_out' THEN
+            v_afternoon_session_complete := TRUE;
+        END IF;
         
-        -- Calculate late minutes (after grace period)
-        IF v_clock_in_time > (v_expected_start_time + (v_grace_period_minutes || ' minutes')::INTERVAL) THEN
+        -- Set fixed 4 hours for completed sessions
+        IF v_morning_session_complete THEN
+            v_regular_hours := 4.0;
+        ELSIF v_afternoon_session_complete THEN
+            v_regular_hours := 4.0;
+        ELSE
+            -- For other session types (overtime, etc.), use actual calculation
+            v_regular_hours := EXTRACT(EPOCH FROM (NEW.clock_out - NEW.clock_in)) / 3600;
+        END IF;
+        
+        -- Calculate late minutes (after grace period) - only for morning_in
+        IF NEW.session_type = 'morning_in' AND v_clock_in_time > (v_expected_start_time + (v_grace_period_minutes || ' minutes')::INTERVAL) THEN
             v_late_minutes := EXTRACT(EPOCH FROM (v_clock_in_time - (v_expected_start_time + (v_grace_period_minutes || ' minutes')::INTERVAL))) / 60;
         END IF;
         
-        -- Calculate late hours (rounded up to nearest hour)
-        IF v_late_minutes > 0 THEN
-            v_regular_hours := v_regular_hours - CEIL(v_late_minutes / 60.0);
-        END IF;
-        
-        -- Calculate overtime hours (hours beyond expected daily hours)
-        IF v_regular_hours > v_expected_daily_hours THEN
-            v_overtime_hours := v_regular_hours - v_expected_daily_hours;
-            v_regular_hours := v_expected_daily_hours;
+        -- Calculate overtime hours (only for overtime sessions)
+        IF NEW.session_type = 'overtime' AND v_regular_hours > 0 THEN
+            v_overtime_hours := v_regular_hours;
+            v_regular_hours := 0;
         END IF;
         
         -- Ensure regular hours is not negative

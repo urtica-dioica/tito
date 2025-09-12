@@ -1,6 +1,6 @@
 // Request Service for TITO HR Management System
 
-// import { apiMethods } from '../lib/api';
+import { apiMethods } from '../lib/api';
 
 export interface Request {
   id: string;
@@ -44,45 +44,73 @@ export class RequestService {
     limit: number;
     totalPages: number;
   }> {
-    // TODO: Replace with actual API call when backend is implemented
-    // For now, return empty data
-    return {
-      requests: [],
-      total: 0,
-      page: params.page || 1,
-      limit: params.limit || 10,
-      totalPages: 0
-    };
+    try {
+      const response = await apiMethods.get<{
+        requests: Request[];
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }>('/hr/requests', {
+        params: {
+          type: params.type,
+          status: params.status,
+          departmentId: params.departmentId,
+          search: params.search,
+          page: params.page,
+          limit: params.limit
+        }
+      });
+
+      // Return the response directly
+      return response;
+    } catch (error) {
+      console.error('Error fetching requests:', error);
+      throw error;
+    }
   }
 
   // Get request statistics
   static async getRequestStats(): Promise<RequestStats> {
-    // TODO: Replace with actual API call when backend is implemented
-    // For now, return empty stats
-    return {
-      total: 0,
-      pending: 0,
-      approved: 0,
-      rejected: 0,
-      byType: []
-    };
+    try {
+      const response = await apiMethods.get<RequestStats>('/hr/requests/stats');
+      // Return the response directly
+      return response;
+    } catch (error) {
+      console.error('Error fetching request stats:', error);
+      throw error;
+    }
   }
 
   // Get request by ID
-  static async getRequest(_id: string): Promise<Request> {
-    // TODO: Replace with actual API call when backend is implemented
-    throw new Error('Request not found');
+  static async getRequest(id: string): Promise<Request> {
+    try {
+      const response = await apiMethods.get<Request>(`/hr/requests/${id}`);
+      // Return the response directly
+      return response;
+    } catch (error) {
+      console.error('Error fetching request:', error);
+      throw error;
+    }
   }
 
   // Approve request
-  static async approveRequest(_id: string): Promise<void> {
-    // TODO: Replace with actual API call when backend is implemented
-    throw new Error('Not implemented');
+  static async approveRequest(id: string): Promise<void> {
+    try {
+      await apiMethods.post(`/hr/requests/${id}/approve`);
+    } catch (error) {
+      console.error('Error approving request:', error);
+      throw error;
+    }
   }
 
   // Reject request
-  static async rejectRequest(_id: string, _reason?: string): Promise<void> {
-    // TODO: Replace with actual API call when backend is implemented
-    throw new Error('Not implemented');
+  static async rejectRequest(id: string, reason?: string): Promise<void> {
+    try {
+      await apiMethods.post(`/hr/requests/${id}/reject`, { reason });
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      throw error;
+    }
   }
 }

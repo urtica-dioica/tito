@@ -140,6 +140,7 @@ export const useCreateLeaveRequest = () => {
     onSuccess: () => {
       // Invalidate leave-related queries
       queryClient.invalidateQueries({ queryKey: employeeKeys.leave.all() });
+      queryClient.invalidateQueries({ queryKey: employeeKeys.requests.all() });
       queryClient.invalidateQueries({ queryKey: employeeKeys.dashboard() });
     },
   });
@@ -178,9 +179,8 @@ export const useCreateTimeCorrectionRequest = () => {
   return useMutation({
     mutationFn: (data: {
       correctionDate: string;
-      sessionType: 'morning' | 'afternoon' | 'full_day';
-      requestedClockIn?: string;
-      requestedClockOut?: string;
+      sessionType: 'clock_in' | 'clock_out';
+      requestedTime: string;
       reason: string;
     }) => EmployeeService.createTimeCorrectionRequest(data),
     onSuccess: () => {

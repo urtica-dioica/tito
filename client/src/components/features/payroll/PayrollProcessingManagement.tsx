@@ -48,45 +48,46 @@ const PayrollProcessingManagement: React.FC<PayrollProcessingManagementProps> = 
     setIsProcessing(true);
     setProcessingResult(null); // Clear previous results
     try {
-      // Step 1: Generate payroll records
-      console.log('Calling generatePayrollRecords for period:', selectedPeriod.id);
-      const result = await PayrollService.generatePayrollRecords(selectedPeriod.id);
-      console.log('Generate payroll result:', result);
+      let result;
       
-      // Step 2: Automatically send to departments for approval
-      if (result.success) {
-        console.log('Sending payroll to departments...');
-        await PayrollService.sendPayrollToDepartments(selectedPeriod.id);
+      // Check if this is a reprocess (status is not 'draft')
+      if (selectedPeriod.status !== 'draft') {
+        console.log('Reprocessing payroll for period:', selectedPeriod.id);
+        result = await PayrollService.reprocessPayrollRecords(selectedPeriod.id);
         setProcessingResult({
           success: true,
-          message: 'Payroll processed successfully and sent to departments for approval'
+          message: `Payroll reprocessed successfully! Generated ${result.recordCount} records and sent to departments for approval`
         });
-        
-        // Mark this period as processed
-        setProcessedPeriods(prev => new Set([...prev, selectedPeriod.id]));
-        
-        // Auto-close modal after successful processing (with a small delay to show the success message)
-        setTimeout(() => {
-          handleCloseProcessingModal();
-        }, 2000);
       } else {
-        setProcessingResult(result);
+        // Step 1: Generate payroll records
+        console.log('Calling generatePayrollRecords for period:', selectedPeriod.id);
+        result = await PayrollService.generatePayrollRecords(selectedPeriod.id);
+        console.log('Generate payroll result:', result);
+        
+        // Step 2: Automatically send to departments for approval
+        if (result.success) {
+          console.log('Sending payroll to departments...');
+          await PayrollService.sendPayrollToDepartments(selectedPeriod.id);
+          setProcessingResult({
+            success: true,
+            message: 'Payroll processed successfully and sent to departments for approval'
+          });
+        } else {
+          setProcessingResult(result);
+        }
       }
       
-      console.log('Refreshing periods data...');
-      await refetch(); // Refresh periods data
+      // Mark this period as processed
+      setProcessedPeriods(prev => new Set([...prev, selectedPeriod.id]));
       
-      // Force a second refresh after a short delay to ensure we get the latest status
-      setTimeout(async () => {
-        console.log('Second refresh to get updated status...');
-        await refetch();
-        
-        // Debug: Log the updated period status
-        const updatedPeriod = periods.find(p => p.id === selectedPeriod.id);
-        console.log('After processing - Original period status:', selectedPeriod.status);
-        console.log('After processing - Updated period status:', updatedPeriod?.status);
-        console.log('After processing - All periods:', periods.map(p => ({ id: p.id, name: p.periodName, status: p.status })));
-      }, 1500);
+      // Refresh periods data
+      console.log('Refreshing periods data...');
+      await refetch();
+      
+      // Auto-close modal after successful processing (with a small delay to show the success message)
+      setTimeout(() => {
+        handleCloseProcessingModal();
+      }, 2000);
       
     } catch (error) {
       console.error('Error processing payroll:', error);
@@ -114,6 +115,7 @@ const PayrollProcessingManagement: React.FC<PayrollProcessingManagementProps> = 
     switch (status) {
       case 'completed': return 'success';
       case 'processing': return 'warning';
+      case 'sent_for_review': return 'info';
       case 'draft': return 'default';
       default: return 'default';
     }
@@ -123,6 +125,7 @@ const PayrollProcessingManagement: React.FC<PayrollProcessingManagementProps> = 
     switch (status) {
       case 'completed': return 'Completed';
       case 'processing': return 'Processing';
+      case 'sent_for_review': return 'Under Review';
       case 'draft': return 'Draft';
       default: return status;
     }
@@ -180,7 +183,7 @@ const PayrollProcessingManagement: React.FC<PayrollProcessingManagementProps> = 
             <div className="ml-4">
               <h3 className="text-lg font-medium text-gray-900">Processed Periods</h3>
               <p className="text-2xl font-bold text-green-600">
-                {periods.filter(p => p.status === 'completed').length}
+                {periods.filter(p => p.status === 'completed' || p.status === 'sent_for_review').length}
               </p>
             </div>
           </div>
@@ -257,7 +260,7 @@ const PayrollProcessingManagement: React.FC<PayrollProcessingManagementProps> = 
                       </Button>
                     )}
                     
-                    {(period.status === 'processing' || processedPeriods.has(period.id)) && (
+                    {(period.status === 'processing' || period.status === 'sent_for_review' || processedPeriods.has(period.id)) && period.status !== 'completed' && (
                       <>
                         <Button
                           variant="outline"
@@ -279,24 +282,14 @@ const PayrollProcessingManagement: React.FC<PayrollProcessingManagementProps> = 
                     )}
                     
                     {period.status === 'completed' && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          icon={<Eye className="h-4 w-4" />}
-                          onClick={() => handleViewResults(period)}
-                        >
-                          View Results
-                        </Button>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          icon={<Play className="h-4 w-4" />}
-                          onClick={() => handleProcessPayroll(period)}
-                        >
-                          Reprocess Payroll
-                        </Button>
-                      </>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        icon={<Eye className="h-4 w-4" />}
+                        onClick={() => handleViewResults(period)}
+                      >
+                        View Results
+                      </Button>
                     )}
                   </div>
                 </div>

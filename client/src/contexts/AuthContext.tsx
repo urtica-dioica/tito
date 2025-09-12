@@ -43,33 +43,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(currentUser);
         } else {
           AuthService.clearAuthData();
-          // Clear React Query cache when no valid user
-          queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
-          queryClient.removeQueries({ queryKey: ['departmentHead'] });
+          // Clear React Query cache when no valid user (async to prevent blocking)
+          setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
+            queryClient.removeQueries({ queryKey: ['departmentHead'] });
+          }, 0);
         }
       } catch (err) {
         console.error('Error initializing auth:', err);
         // Clear invalid auth data
         AuthService.clearAuthData();
-        // Clear React Query cache when there's an error
-        queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
-        queryClient.removeQueries({ queryKey: ['departmentHead'] });
+        // Clear React Query cache when there's an error (async to prevent blocking)
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
+          queryClient.removeQueries({ queryKey: ['departmentHead'] });
+        }, 0);
       } finally {
         setLoading(false);
       }
     };
 
     initializeAuth();
-  }, [queryClient]);
+  }, []); // Remove queryClient dependency to prevent re-initialization
 
   // Clear cache when user changes (e.g., switching between department head accounts)
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       // Clear department head cache when a new user logs in
-      queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
-      queryClient.removeQueries({ queryKey: ['departmentHead'] });
+      // Use a timeout to prevent blocking the UI
+      const timeoutId = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
+        queryClient.removeQueries({ queryKey: ['departmentHead'] });
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [user?.id, queryClient]); // Only trigger when user ID changes
+  }, [user?.id]); // Remove queryClient from dependencies to prevent infinite loop
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
     try {
@@ -105,9 +114,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Logout error:', err);
     } finally {
       // Clear React Query cache to prevent data from previous user
-      // Specifically clear department head related queries
-      queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
-      queryClient.removeQueries({ queryKey: ['departmentHead'] });
+      // Specifically clear department head related queries (async to prevent blocking)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
+        queryClient.removeQueries({ queryKey: ['departmentHead'] });
+      }, 0);
       
       setUser(null);
       setError(null);

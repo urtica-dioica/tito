@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { leaveService } from '../../services/leave/leaveService';
+import { employeeService } from '../../services/employee/employeeService';
 import { generateRequestId } from '../../utils/requestId';
 import logger from '../../utils/logger';
 
@@ -12,12 +13,23 @@ export class LeaveController {
     
     try {
       const { leaveType, startDate, endDate, reason } = req.body;
-      const employeeId = req.user?.userId;
+      const userId = req.user?.userId;
 
-      if (!employeeId) {
+      if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'Employee ID not found in token',
+          message: 'User ID not found in token',
+          requestId
+        });
+        return;
+      }
+
+      // Get employee ID from user ID
+      const employeeId = await employeeService.getEmployeeIdByUserId(userId);
+      if (!employeeId) {
+        res.status(404).json({
+          success: false,
+          message: 'Employee not found for this user',
           requestId
         });
         return;
@@ -422,13 +434,24 @@ export class LeaveController {
     const requestId = generateRequestId();
     
     try {
-      const employeeId = req.user?.userId;
+      const userId = req.user?.userId;
       const { year } = req.query;
 
-      if (!employeeId) {
+      if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'Employee ID not found in token',
+          message: 'User ID not found in token',
+          requestId
+        });
+        return;
+      }
+
+      // Get employee ID from user ID
+      const employeeId = await employeeService.getEmployeeIdByUserId(userId);
+      if (!employeeId) {
+        res.status(404).json({
+          success: false,
+          message: 'Employee not found for this user',
           requestId
         });
         return;
@@ -448,7 +471,7 @@ export class LeaveController {
       logger.error('Get employee leave balance error', {
         error: (error as Error).message,
         requestId,
-        employeeId: req.user?.userId
+        userId: req.user?.userId
       });
 
       res.status(500).json({

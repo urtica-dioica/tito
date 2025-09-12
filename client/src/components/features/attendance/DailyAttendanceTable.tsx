@@ -29,7 +29,7 @@ const DailyAttendanceTable: React.FC<DailyAttendanceTableProps> = ({
 
   const formatHours = (hours: number) => {
     if (hours === 0) return '-';
-    return `${hours.toFixed(1)}h`;
+    return `${Math.round(hours)}h`;
   };
 
   const getStatusColor = (status: string) => {

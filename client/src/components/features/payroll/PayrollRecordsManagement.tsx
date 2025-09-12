@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Eye, Edit, CheckCircle, XCircle, Search, Building2 } from 'lucide-react';
+import { FileText, Eye, Edit, XCircle, Search, Building2 } from 'lucide-react';
 import Button from '../../shared/Button';
 import Card from '../../shared/Card';
 import Badge from '../../shared/Badge';
@@ -7,7 +7,6 @@ import Modal from '../../shared/Modal';
 import LoadingSpinner from '../../shared/LoadingSpinner';
 import { usePayrollRecords, usePayrollPeriods } from '../../../hooks/usePayroll';
 // import { useDepartments } from '../../../hooks/useDepartments';
-import { PayrollService } from '../../../services/payrollService';
 import type { PayrollRecord } from '../../../types';
 
 interface PayrollRecordsManagementProps {
@@ -34,15 +33,22 @@ const PayrollRecordsManagement: React.FC<PayrollRecordsManagementProps> = ({ cla
   // const { data: departmentsData } = useDepartments();
 
   const records = recordsData?.records || [];
-  const periods = periodsData?.periods || [];
+  const allPeriods = periodsData?.periods || [];
+  // Filter out completed periods - they should not be displayed in payroll records
+  const periods = allPeriods.filter(p => p.status !== 'completed');
   // const departments = departmentsData?.departments || [];
 
-  // Filter records based on search term and department
+  // Filter records based on search term, department, and period status
   const filteredRecords = records.filter(record => {
     const matchesSearch = record.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          record.employeeId?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDepartment = !selectedDepartment || record.departmentId === selectedDepartment;
-    return matchesSearch && matchesDepartment;
+    
+    // Filter out records from completed periods
+    const period = allPeriods.find(p => p.id === record.payrollPeriodId);
+    const isNotFromCompletedPeriod = !period || period.status !== 'completed';
+    
+    return matchesSearch && matchesDepartment && isNotFromCompletedPeriod;
   });
 
   // Group records by department
@@ -75,14 +81,6 @@ const PayrollRecordsManagement: React.FC<PayrollRecordsManagementProps> = ({ cla
   };
 
 
-  const handleMarkAsPaid = async (recordId: string) => {
-    try {
-      await PayrollService.markPayrollAsPaid(recordId);
-      await refetch();
-    } catch (error) {
-      console.error('Error marking as paid:', error);
-    }
-  };
 
 
 
@@ -323,16 +321,6 @@ const PayrollRecordsManagement: React.FC<PayrollRecordsManagementProps> = ({ cla
                                 Edit
                               </Button>
                             )}
-                            {record.status === 'processed' && (
-                              <Button
-                                variant="primary"
-                                size="sm"
-                                icon={<CheckCircle className="h-4 w-4" />}
-                                onClick={() => handleMarkAsPaid(record.id)}
-                              >
-                                Mark as Paid
-                              </Button>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -382,48 +370,111 @@ const PayrollRecordsManagement: React.FC<PayrollRecordsManagementProps> = ({ cla
                 </div>
               </div>
 
-              {/* Payroll Breakdown */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Earnings</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Base Salary:</span>
-                      <span className="font-medium">{formatCurrency(selectedRecord.baseSalary || 0)}</span>
+              {/* Paystub Details - Matching Employee Dashboard Format */}
+              <div className="space-y-4">
+                {/* Period and Net Pay Summary */}
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-green-900">{selectedRecord.periodName || 'Payroll Period'}</h4>
+                      <p className="text-sm text-green-700">
+                        {selectedRecord.createdAt ? new Date(selectedRecord.createdAt).toLocaleDateString() : 'N/A'}
+                      </p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Regular Hours:</span>
-                      <span className="font-medium">{selectedRecord.totalRegularHours || 0} hrs</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Overtime Hours:</span>
-                      <span className="font-medium">{selectedRecord.totalOvertimeHours || 0} hrs</span>
-                    </div>
-                    <div className="flex justify-between border-t pt-2">
-                      <span className="font-medium">Gross Pay:</span>
-                      <span className="font-bold text-green-600">{formatCurrency(selectedRecord.grossPay || 0)}</span>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-green-600">
+                        {formatCurrency(selectedRecord.netPay || 0)}
+                      </p>
+                      <p className="text-sm text-green-700">Net Pay (Total Monthly Income)</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Deductions & Benefits</h4>
+                {/* Benefits Section */}
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <h5 className="font-medium text-green-900 mb-2">Benefits</h5>
+                  <div className="space-y-1">
+                    {selectedRecord.totalBenefits && selectedRecord.totalBenefits > 0 ? (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-green-700">Benefits:</span>
+                        <span className="text-sm font-medium text-green-900">+{formatCurrency(selectedRecord.totalBenefits)}</span>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-green-700">No benefits for this period</p>
+                    )}
+                    <div className="border-t border-green-200 pt-1 mt-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-green-900">Total Benefits:</span>
+                        <span className="text-sm font-bold text-green-900">+{formatCurrency(selectedRecord.totalBenefits || 0)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deductions Section */}
+                <div className="p-4 bg-red-50 rounded-lg">
+                  <h5 className="font-medium text-red-900 mb-2">Deductions</h5>
+                  <div className="space-y-1">
+                    {selectedRecord.totalDeductions && selectedRecord.totalDeductions > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-red-700">Employee Deductions:</span>
+                        <span className="text-sm font-medium text-red-900">-{formatCurrency(selectedRecord.totalDeductions)}</span>
+                      </div>
+                    )}
+                    {selectedRecord.lateDeductions && selectedRecord.lateDeductions > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-red-700">Late Deductions:</span>
+                        <span className="text-sm font-medium text-red-900">-{formatCurrency(selectedRecord.lateDeductions)}</span>
+                      </div>
+                    )}
+                        <div className="border-t border-red-200 pt-1 mt-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium text-red-900">Total Deductions:</span>
+                            <span className="text-sm font-bold text-red-900">-{formatCurrency(Number(selectedRecord.totalDeductions || 0) + Number(selectedRecord.lateDeductions || 0))}</span>
+                          </div>
+                        </div>
+                  </div>
+                </div>
+
+                {/* Earnings Summary */}
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <h5 className="font-medium text-blue-900 mb-2">Earnings Summary</h5>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Total Deductions:</span>
-                      <span className="font-medium text-red-600">-{formatCurrency(selectedRecord.totalDeductions || 0)}</span>
+                      <span className="text-sm text-blue-700">Base Salary:</span>
+                      <span className="text-sm font-medium text-blue-900">{formatCurrency(selectedRecord.baseSalary || 0)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Late Deductions:</span>
-                      <span className="font-medium text-red-600">-{formatCurrency(selectedRecord.lateDeductions || 0)}</span>
+                      <span className="text-sm text-blue-700">Total Hours Worked:</span>
+                      <span className="text-sm font-medium text-blue-900">{selectedRecord.totalWorkedHours || 0} hrs</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Benefits:</span>
-                      <span className="font-medium text-green-600">+{formatCurrency(selectedRecord.totalBenefits || 0)}</span>
+                      <span className="text-sm text-blue-700">Regular Hours:</span>
+                      <span className="text-sm font-medium text-blue-900">{selectedRecord.totalRegularHours || 0} hrs</span>
                     </div>
-                    <div className="flex justify-between border-t pt-2">
-                      <span className="font-medium">Net Pay:</span>
-                      <span className="font-bold text-green-600">{formatCurrency(selectedRecord.netPay || 0)}</span>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-blue-700">Overtime Hours:</span>
+                      <span className="text-sm font-medium text-blue-900">{selectedRecord.totalOvertimeHours || 0} hrs</span>
+                    </div>
+                    {(selectedRecord.paidLeaveHours || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-blue-700">Paid Leave Hours:</span>
+                        <span className="text-sm font-medium text-blue-900">{selectedRecord.paidLeaveHours || 0} hrs</span>
+                      </div>
+                    )}
+                    {(selectedRecord.paidLeaveHours || 0) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-sm text-blue-700">Leave Pay:</span>
+                        <span className="text-sm font-medium text-blue-900">
+                          {formatCurrency(((selectedRecord.paidLeaveHours || 0) * (selectedRecord.hourlyRate || 0)))}
+                        </span>
+                      </div>
+                    )}
+                    <div className="border-t border-blue-200 pt-2 mt-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium text-blue-900">Gross Pay:</span>
+                        <span className="text-sm font-bold text-blue-900">{formatCurrency(selectedRecord.grossPay || 0)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -532,3 +583,4 @@ const PayrollRecordsManagement: React.FC<PayrollRecordsManagementProps> = ({ cla
 };
 
 export default PayrollRecordsManagement;
+

@@ -39,6 +39,10 @@ const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes
       retry: 1,
+      retryDelay: 1000, // 1 second delay between retries
+      refetchOnWindowFocus: false, // Prevent refetch on window focus
+      refetchOnMount: true, // Allow refetch on component mount
+      refetchOnReconnect: true, // Refetch when network reconnects
     },
   },
 });

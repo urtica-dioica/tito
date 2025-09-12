@@ -71,4 +71,18 @@ router.get('/paystubs', authorize(['employee']), employeeController.getPaystubs)
  */
 router.get('/paystubs/latest', authorize(['employee']), employeeController.getLatestPaystub);
 
+/**
+ * @route GET /api/v1/employee/paystubs/:paystubId/download/pdf
+ * @desc Download paystub as PDF
+ * @access Employee
+ */
+router.get('/paystubs/:paystubId/download/pdf', authorize(['employee']), employeeController.downloadPaystubPDF);
+
+/**
+ * @route GET /api/v1/employee/paystubs/:paystubId/download/excel
+ * @desc Download paystub as Excel
+ * @access Employee
+ */
+router.get('/paystubs/:paystubId/download/excel', authorize(['employee']), employeeController.downloadPaystubExcel);
+
 export default router;

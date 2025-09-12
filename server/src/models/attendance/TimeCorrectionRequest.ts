@@ -62,7 +62,8 @@ export class TimeCorrectionRequestModel {
         employee_id as "employeeId",
         correction_date as "requestDate",
         session_type as "sessionType",
-        requested_time as "requestedTime",
+        requested_clock_in as "requestedClockIn",
+        requested_clock_out as "requestedClockOut",
         reason,
         status,
         approver_id as "approvedBy",
@@ -80,7 +81,12 @@ export class TimeCorrectionRequestModel {
       data.reason
     ]);
 
-    return result.rows[0];
+    // Transform the result to match the interface
+    const row = result.rows[0];
+    return {
+      ...row,
+      requestedTime: data.sessionType === 'clock_in' ? row.requestedClockIn : row.requestedClockOut
+    };
   }
 
   /**
@@ -93,7 +99,8 @@ export class TimeCorrectionRequestModel {
         employee_id as "employeeId",
         correction_date as "requestDate",
         session_type as "sessionType",
-        requested_time as "requestedTime",
+        requested_clock_in as "requestedClockIn",
+        requested_clock_out as "requestedClockOut",
         reason,
         status,
         approver_id as "approvedBy",
@@ -105,7 +112,16 @@ export class TimeCorrectionRequestModel {
     `;
 
     const result = await getPool().query(query, [id]);
-    return result.rows.length > 0 ? result.rows[0] : null;
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    // Transform the result to match the interface
+    const row = result.rows[0];
+    return {
+      ...row,
+      requestedTime: row.sessionType === 'clock_in' ? row.requestedClockIn : row.requestedClockOut
+    };
   }
 
   /**
@@ -186,7 +202,8 @@ export class TimeCorrectionRequestModel {
         employee_id as "employeeId",
         correction_date as "requestDate",
         session_type as "sessionType",
-        requested_time as "requestedTime",
+        requested_clock_in as "requestedClockIn",
+        requested_clock_out as "requestedClockOut",
         reason,
         status,
         approver_id as "approvedBy",
@@ -196,7 +213,16 @@ export class TimeCorrectionRequestModel {
     `;
 
     const result = await getPool().query(query, updateValues);
-    return result.rows.length > 0 ? result.rows[0] : null;
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    // Transform the result to match the interface
+    const row = result.rows[0];
+    return {
+      ...row,
+      requestedTime: row.sessionType === 'clock_in' ? row.requestedClockIn : row.requestedClockOut
+    };
   }
 
   /**

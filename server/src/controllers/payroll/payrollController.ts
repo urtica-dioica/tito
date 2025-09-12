@@ -243,10 +243,13 @@ export class PayrollController {
    */
   async generatePayrollRecords(req: Request, res: Response): Promise<void> {
     const requestId = getRequestId(req);
+    const { id } = req.params;
     
     try {
-      const { id } = req.params;
       const { departmentId } = req.query;
+
+      // Update payroll period status to 'processing'
+      await payrollService.updatePayrollPeriod(id, { status: 'processing' });
 
       let records;
       if (departmentId) {
@@ -260,6 +263,9 @@ export class PayrollController {
         // Create department-specific approvals after generating records
         const { payrollApprovalService } = await import('../../services/payroll/payrollApprovalService');
         await payrollApprovalService.createApprovalsForPayrollPeriod(id);
+        
+        // Update payroll period status to 'sent_for_review' after successful processing
+        await payrollService.updatePayrollPeriod(id, { status: 'sent_for_review' });
       }
 
       res.status(201).json({
@@ -278,6 +284,17 @@ export class PayrollController {
         requestId,
         params: req.params
       });
+      
+      // Revert status to 'draft' if processing failed
+      try {
+        await payrollService.updatePayrollPeriod(id, { status: 'draft' });
+      } catch (revertError) {
+        logger.error('Error reverting payroll period status', { 
+          error: (revertError as Error).message, 
+          requestId,
+          periodId: id
+        });
+      }
       
       res.status(500).json({
         success: false,
@@ -510,6 +527,219 @@ export class PayrollController {
       res.status(500).json({
         success: false,
         message: 'Failed to approve payroll record',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route PUT /api/v1/payroll/records/:id/status
+   * @desc Update payroll record status
+   * @access HR Admin
+   */
+  async updatePayrollRecordStatus(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      if (!status || !['draft', 'processed', 'paid'].includes(status)) {
+        res.status(400).json({
+          success: false,
+          message: 'Valid status (draft, processed, paid) is required',
+          requestId
+        });
+        return;
+      }
+
+      const updatedRecord = await payrollService.updatePayrollRecordStatus(id, status);
+
+      res.json({
+        success: true,
+        message: `Payroll record status updated to ${status} successfully`,
+        data: updatedRecord,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error updating payroll record status', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params,
+        body: req.body
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update payroll record status',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Complete payroll period (mark as completed when all departments approve)
+   */
+  async completePayrollPeriod(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+
+      const completedPeriod = await payrollService.completePayrollPeriod(id);
+
+      res.json({
+        success: true,
+        message: 'Payroll period completed successfully',
+        data: completedPeriod,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error completing payroll period', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params
+      });
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Bulk update payroll records to paid status
+   */
+  async bulkUpdatePayrollRecordsToPaid(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { periodId, departmentId, recordIds } = req.body;
+
+      const result = await payrollService.bulkUpdatePayrollRecordsToPaid({
+        periodId,
+        departmentId,
+        recordIds
+      });
+
+      res.json({
+        success: true,
+        message: `Successfully updated ${result.updatedCount} payroll records to paid status`,
+        data: result,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error bulk updating payroll records to paid', { 
+        error: (error as Error).message, 
+        requestId,
+        body: req.body
+      });
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route PUT /api/v1/payroll/periods/:id/records/status
+   * @desc Bulk update payroll records status for a period
+   * @access HR Admin
+   */
+  async bulkUpdatePayrollRecordsStatus(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+      const { status, departmentId } = req.body;
+
+      if (!status || !['draft', 'processed', 'paid'].includes(status)) {
+        res.status(400).json({
+          success: false,
+          message: 'Valid status (draft, processed, paid) is required',
+          requestId
+        });
+        return;
+      }
+
+      const updatedRecords = await payrollService.bulkUpdatePayrollRecordsStatus(id, status, departmentId);
+
+      res.json({
+        success: true,
+        message: `Bulk updated ${updatedRecords.length} payroll records to ${status} successfully`,
+        data: {
+          updatedCount: updatedRecords.length,
+          records: updatedRecords
+        },
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error bulk updating payroll records status', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params,
+        body: req.body
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to bulk update payroll records status',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route POST /api/v1/payroll/periods/:id/reprocess
+   * @desc Reprocess payroll records for a period (clears existing and regenerates)
+   * @access HR Admin
+   */
+  async reprocessPayrollRecords(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+      const { departmentId } = req.query;
+
+      // Update payroll period status to 'processing'
+      await payrollService.updatePayrollPeriod(id, { status: 'processing' });
+
+      // Reprocess payroll records (clears existing and regenerates)
+      const records = await payrollService.reprocessPayrollRecords(id, departmentId as string);
+
+      // Create department-specific approvals after reprocessing
+      const { payrollApprovalService } = await import('../../services/payroll/payrollApprovalService');
+      await payrollApprovalService.createApprovalsForPayrollPeriod(id);
+      
+      // Update payroll period status to 'sent_for_review' after successful reprocessing
+      await payrollService.updatePayrollPeriod(id, { status: 'sent_for_review' });
+
+      res.status(201).json({
+        success: true,
+        message: 'Payroll records reprocessed successfully',
+        data: {
+          periodId: id,
+          recordCount: records.length,
+          records: records
+        },
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error reprocessing payroll records', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params,
+        query: req.query
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reprocess payroll records',
         error: (error as Error).message,
         requestId
       });
@@ -1336,8 +1566,8 @@ export class PayrollController {
         return;
       }
 
-      // Generate PDF paystubs
-      const pdfBuffer = await payrollService.generatePaystubsPDF(records);
+      // Generate PDF paystubs using the existing method
+      const pdfBuffer = await payrollService.exportPeriodPaystubsPDF(periodId);
 
       // Set response headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
@@ -1355,6 +1585,102 @@ export class PayrollController {
       res.status(500).json({
         success: false,
         message: 'Failed to generate paystubs',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Export all employee paystubs for a period as PDF
+   */
+  async exportPeriodPaystubsPDF(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: 'Period ID is required',
+          requestId
+        });
+        return;
+      }
+
+      const pdfBuffer = await payrollService.exportPeriodPaystubsPDF(id);
+
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="paystubs-period-${id}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+
+      res.send(pdfBuffer);
+    } catch (error) {
+      logger.error('Error exporting period paystubs PDF', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params
+      });
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export period paystubs PDF',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * @route GET /api/v1/payroll/periods/:id/export/paystubs/department/pdf
+   * @desc Export department employee paystubs for a period as PDF
+   * @access Department Head
+   */
+  async exportDepartmentPaystubsPDF(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+    
+    try {
+      const { id } = req.params;
+      const userId = req.user?.userId;
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: 'Period ID is required',
+          requestId
+        });
+        return;
+      }
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User authentication required',
+          requestId
+        });
+        return;
+      }
+
+      const pdfBuffer = await payrollService.exportDepartmentPaystubsPDF(id, userId);
+
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="department-paystubs-period-${id}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+
+      res.send(pdfBuffer);
+    } catch (error) {
+      logger.error('Error exporting department paystubs PDF', { 
+        error: (error as Error).message, 
+        requestId,
+        params: req.params
+      });
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to export department paystubs PDF',
         error: (error as Error).message,
         requestId
       });

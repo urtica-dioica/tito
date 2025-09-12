@@ -168,6 +168,7 @@ export interface PayrollRecord {
   totalOvertimeHours: number; // DECIMAL(5,2)
   totalLateHours: number; // DECIMAL(5,2)
   lateDeductions: number; // DECIMAL(10,2)
+  paidLeaveHours: number; // DECIMAL(6,2) - Hours from approved leave days
   grossPay: number; // DECIMAL(10,2)
   netPay: number; // DECIMAL(10,2)
   totalDeductions: number; // DECIMAL(10,2)
@@ -176,6 +177,9 @@ export interface PayrollRecord {
   deductions: PayrollDeduction[];
   createdAt: string;
   updatedAt: string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvalApprovedAt?: string;
+  approvalComments?: string;
 }
 
 export interface PayrollDeduction {
@@ -191,7 +195,7 @@ export interface TimeCorrectionRequest {
   employeeId: string;
   attendanceSessionId: string | null;
   correctionDate: string; // DATE
-  sessionType: string;
+  sessionType: 'clock_in' | 'clock_out';
   requestedClockIn: string | null; // TIMESTAMP
   requestedClockOut: string | null; // TIMESTAMP
   reason: string;
@@ -468,7 +472,7 @@ export interface PayrollPeriod {
   periodName: string;
   startDate: string;
   endDate: string;
-  status: 'draft' | 'processing' | 'completed' | 'cancelled';
+  status: 'draft' | 'processing' | 'completed' | 'cancelled' | 'sent_for_review';
   totalEmployees: number;
   totalAmount: number;
   workingDays?: number;
@@ -516,27 +520,6 @@ export interface PayrollApproval {
   departmentName?: string;
 }
 
-export interface PayrollRecord {
-  id: string;
-  payrollPeriodId: string;
-  employeeId: string;
-  employeeName?: string;
-  periodName?: string;
-  baseSalary: number;
-  totalWorkedHours: number;
-  hourlyRate: number;
-  totalRegularHours: number;
-  totalOvertimeHours: number;
-  totalLateHours: number;
-  lateDeductions: number;
-  grossPay: number;
-  netPay: number;
-  totalDeductions: number;
-  totalBenefits: number;
-  status: 'draft' | 'processed' | 'paid';
-  createdAt: string;
-  updatedAt: string;
-}
 
 export interface SystemSetting {
   id: string;

@@ -16,6 +16,12 @@ export interface EmployeeDashboard {
     clockInTime?: string;
     clockOutTime?: string;
     totalHours?: number;
+    morningClockIn?: string;
+    morningClockOut?: string;
+    afternoonClockIn?: string;
+    afternoonClockOut?: string;
+    breakStart?: string;
+    breakEnd?: string;
     monthlyPresent: number;
     monthlyAbsent: number;
     monthlyLate: number;
@@ -23,8 +29,8 @@ export interface EmployeeDashboard {
   leaveBalance: {
     vacation: number;
     sick: number;
-    personal: number;
-    emergency: number;
+    maternity: number;
+    other: number;
   };
   recentActivity: Array<{
     id: string;
@@ -98,7 +104,55 @@ export interface RequestStats {
   rejected: number;
 }
 
+export interface PaystubData {
+  id: string;
+  periodName: string;
+  periodStartDate: string;
+  periodEndDate: string;
+  employeeId: string;
+  employeeName: string;
+  position: string;
+  department: string;
+  baseSalary: number;
+  totalRegularHours: number;
+  totalOvertimeHours: number;
+  paidLeaveHours: number;
+  grossPay: number;
+  totalDeductions: number;
+  totalBenefits: number;
+  netPay: number;
+  lateDeductions: number;
+  deductions: Array<{
+    name: string;
+    amount: number;
+  }>;
+  benefits: Array<{
+    name: string;
+    amount: number;
+  }>;
+  createdAt: string;
+}
+
 export class EmployeeService {
+  /**
+   * Calculate working days between two dates (excluding weekends)
+   */
+  private calculateWorkingDays(startDate: Date, endDate: Date): number {
+    let workingDays = 0;
+    const currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      const dayOfWeek = currentDate.getDay();
+      // Count Monday (1) through Friday (5) as working days
+      if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+        workingDays++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return workingDays;
+  }
+
   /**
    * Get employee ID by user ID
    */
@@ -194,46 +248,103 @@ export class EmployeeService {
   }
 
   /**
-   * Get today's attendance status
+   * Get today's attendance status with session details
    */
   private async getTodayAttendanceStatus(employeeId: string): Promise<{
     todayStatus: 'present' | 'absent' | 'late' | 'half_day';
     clockInTime?: string;
     clockOutTime?: string;
     totalHours?: number;
+    morningClockIn?: string;
+    morningClockOut?: string;
+    afternoonClockIn?: string;
+    afternoonClockOut?: string;
+    breakStart?: string;
+    breakEnd?: string;
   }> {
     const today = new Date().toISOString().split('T')[0];
     
-    const query = `
+    // Get overall attendance record
+    const recordQuery = `
       SELECT 
         ar.overall_status as "overallStatus",
-        s.clock_in as "clockIn",
-        s.clock_out as "clockOut",
-        s.calculated_hours as "calculatedHours"
+        ar.date
       FROM attendance_records ar
-      LEFT JOIN attendance_sessions s ON ar.id = s.attendance_record_id
       WHERE ar.employee_id = $1 AND ar.date = $2
-      ORDER BY s.created_at DESC
-      LIMIT 1
     `;
 
-    const result = await getPool().query(query, [employeeId, today]);
+    const recordResult = await getPool().query(recordQuery, [employeeId, today]);
     
-    if (result.rows.length === 0) {
+    if (recordResult.rows.length === 0) {
       return {
         todayStatus: 'absent',
         clockInTime: undefined,
         clockOutTime: undefined,
-        totalHours: 0
+        totalHours: 0,
+        morningClockIn: undefined,
+        morningClockOut: undefined,
+        afternoonClockIn: undefined,
+        afternoonClockOut: undefined,
+        breakStart: undefined,
+        breakEnd: undefined
       };
     }
 
-    const row = result.rows[0];
+    const record = recordResult.rows[0];
+
+    // Get all sessions for today
+    const sessionsQuery = `
+      SELECT 
+        s.session_type as "sessionType",
+        s.clock_in as "clockIn",
+        s.clock_out as "clockOut",
+        s.calculated_hours as "calculatedHours",
+        s.created_at as "createdAt"
+      FROM attendance_sessions s
+      JOIN attendance_records ar ON s.attendance_record_id = ar.id
+      WHERE ar.employee_id = $1 AND ar.date = $2
+      ORDER BY s.created_at ASC
+    `;
+
+    const sessionsResult = await getPool().query(sessionsQuery, [employeeId, today]);
+    
+    let morningClockIn: string | undefined, morningClockOut: string | undefined, afternoonClockIn: string | undefined, afternoonClockOut: string | undefined, breakStart: string | undefined, breakEnd: string | undefined;
+    let totalHours = 0;
+    let firstClockIn: string | undefined, lastClockOut: string | undefined;
+
+    sessionsResult.rows.forEach(session => {
+      totalHours += parseFloat(session.calculatedHours) || 0;
+      
+      if (session.sessionType === 'morning_in') {
+        morningClockIn = session.clockIn;
+      } else if (session.sessionType === 'morning_out') {
+        morningClockOut = session.clockOut;
+      } else if (session.sessionType === 'afternoon_in') {
+        afternoonClockIn = session.clockIn;
+      } else if (session.sessionType === 'afternoon_out') {
+        afternoonClockOut = session.clockOut;
+      }
+
+      // Track first clock in and last clock out for overall times
+      if (session.clockIn && (!firstClockIn || new Date(session.clockIn) < new Date(firstClockIn))) {
+        firstClockIn = session.clockIn;
+      }
+      if (session.clockOut && (!lastClockOut || new Date(session.clockOut) > new Date(lastClockOut))) {
+        lastClockOut = session.clockOut;
+      }
+    });
+
     return {
-      todayStatus: row.overallStatus || 'absent',
-      clockInTime: row.clockIn,
-      clockOutTime: row.clockOut,
-      totalHours: row.calculatedHours || 0
+      todayStatus: record.overallStatus || 'absent',
+      clockInTime: firstClockIn,
+      clockOutTime: lastClockOut,
+      totalHours: totalHours,
+      morningClockIn,
+      morningClockOut,
+      afternoonClockIn,
+      afternoonClockOut,
+      breakStart,
+      breakEnd
     };
   }
 
@@ -276,8 +387,8 @@ export class EmployeeService {
   private async getLeaveBalance(employeeId: string): Promise<{
     vacation: number;
     sick: number;
-    personal: number;
-    emergency: number;
+    maternity: number;
+    other: number;
   }> {
     try {
       // Get leave balances from the actual database schema
@@ -294,8 +405,8 @@ export class EmployeeService {
       const balance = {
         vacation: 0,
         sick: 0,
-        personal: 0,
-        emergency: 0
+        maternity: 0,
+        other: 0
       };
       
       result.rows.forEach(row => {
@@ -307,10 +418,10 @@ export class EmployeeService {
             balance.sick = parseFloat(row.balance);
             break;
           case 'other':
-            balance.personal = parseFloat(row.balance);
+            balance.other = parseFloat(row.balance);
             break;
           case 'maternity':
-            balance.emergency = parseFloat(row.balance);
+            balance.maternity = parseFloat(row.balance);
             break;
         }
       });
@@ -321,8 +432,8 @@ export class EmployeeService {
       return {
         vacation: 0,
         sick: 0,
-        personal: 0,
-        emergency: 0
+        maternity: 0,
+        other: 0
       };
     }
   }
@@ -535,11 +646,12 @@ export class EmployeeService {
       FROM attendance_records ar
       LEFT JOIN attendance_sessions s ON ar.id = s.attendance_record_id
       WHERE ar.employee_id = $1
-      ${month ? 'AND DATE_TRUNC(\'month\', ar.date) = DATE_TRUNC(\'month\', $2::date)' : ''}
+      ${month ? 'AND DATE_TRUNC(\'month\', ar.date) = DATE_TRUNC(\'month\', $2::timestamp)' : ''}
       ORDER BY ar.date DESC
     `;
     
-    const params = month ? [employeeId, month] : [employeeId];
+    // Convert month string (e.g., "2025-09") to a proper date (e.g., "2025-09-01")
+    const params = month ? [employeeId, `${month}-01`] : [employeeId];
     const result = await getPool().query(query, params);
     return result.rows;
   }
@@ -560,10 +672,11 @@ export class EmployeeService {
       FROM attendance_records ar
       LEFT JOIN attendance_sessions s ON ar.id = s.attendance_record_id
       WHERE ar.employee_id = $1
-      ${month ? 'AND DATE_TRUNC(\'month\', ar.date) = DATE_TRUNC(\'month\', $2::date)' : ''}
+      ${month ? 'AND DATE_TRUNC(\'month\', ar.date) = DATE_TRUNC(\'month\', $2::timestamp)' : ''}
     `;
     
-    const params = month ? [employeeId, month] : [employeeId];
+    // Convert month string (e.g., "2025-09") to a proper date (e.g., "2025-09-01")
+    const params = month ? [employeeId, `${month}-01`] : [employeeId];
     const result = await getPool().query(query, params);
     const row = result.rows[0];
     
@@ -579,6 +692,266 @@ export class EmployeeService {
   }
 
   /**
+   * Download paystub as PDF
+   */
+  async downloadPaystubPDF(employeeId: string, paystubId: string): Promise<Buffer> {
+    try {
+      logger.info('Downloading paystub PDF', { employeeId, paystubId });
+      
+      // Get the specific paystub data
+      const paystub = await this.getEmployeePaystubs(employeeId, { limit: 1000 });
+      logger.info('Retrieved paystubs', { count: paystub.length, paystubIds: paystub.map(p => p.id) });
+      
+      const targetPaystub = paystub.find(p => p.id === paystubId);
+      
+      if (!targetPaystub) {
+        logger.error('Paystub not found', { employeeId, paystubId, availableIds: paystub.map(p => p.id) });
+        throw new Error('Paystub not found');
+      }
+
+      // Generate PDF using the existing payroll service method
+      logger.info('Starting PDF generation', { paystubId: targetPaystub.id });
+      
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument();
+      const buffers: Buffer[] = [];
+      
+      doc.on('data', buffers.push.bind(buffers));
+      
+      return new Promise((resolve, reject) => {
+        doc.on('end', () => {
+          const pdfBuffer = Buffer.concat(buffers);
+          logger.info('PDF generation completed', { bufferSize: pdfBuffer.length });
+          resolve(pdfBuffer);
+        });
+        
+        doc.on('error', (error: any) => {
+          logger.error('PDF generation error', { error: error.message, stack: error.stack });
+          reject(error);
+        });
+        
+        try {
+          // H1 - Company header
+          doc.fontSize(20).font('Helvetica-Bold')
+             .text('TITO HR MANAGEMENT SYSTEM', 50, 50);
+
+          // H2 - Payslip title
+          doc.fontSize(16).font('Helvetica-Bold')
+             .text('PAYSLIP', 50, 85);
+
+          // H3 - Pay period
+          doc.fontSize(12).font('Helvetica-Bold')
+             .text(`Pay period: ${targetPaystub.periodName}`, 50, 115);
+
+          // H3 - Employee Information
+          doc.fontSize(12).font('Helvetica-Bold')
+             .text('Employee Information', 50, 145);
+          
+          doc.fontSize(10).font('Helvetica')
+             .text(`Employee ID: ${targetPaystub.employeeId}`, 50, 170)
+             .text(`Name: ${targetPaystub.employeeName}`, 50, 185)
+             .text(`Department: ${targetPaystub.department}`, 50, 200)
+             .text(`Base salary: ₱${(Number(targetPaystub.baseSalary) || 0).toFixed(2)}`, 50, 215);
+
+          // Earnings section
+          doc.fontSize(12).font('Helvetica-Bold')
+             .text('Earnings:', 50, 245);
+          
+          doc.fontSize(10).font('Helvetica')
+             .text('Base salary:', 50, 270)
+             .text(`₱${(Number(targetPaystub.baseSalary) || 0).toFixed(2)}`, 400, 270, { align: 'right' });
+          
+          // Add Leave Pay if applicable - using same calculation as payroll system
+          const paidLeaveHours = Number(targetPaystub.paidLeaveHours) || 0;
+          let leavePay = 0;
+          if (paidLeaveHours > 0) {
+            const startDate = new Date(targetPaystub.periodStartDate);
+            const endDate = new Date(targetPaystub.periodEndDate);
+            const expectedWorkingDays = this.calculateWorkingDays(startDate, endDate);
+            const expectedHours = expectedWorkingDays * 8; // 8 hours per working day
+            const baseSalary = Number(targetPaystub.baseSalary) || 0;
+            
+            // Use same proportional calculation as payroll system
+            leavePay = expectedHours > 0 ? (paidLeaveHours / expectedHours) * baseSalary : 0;
+            
+            if (leavePay > 0) {
+              doc.text('Leave pay:', 50, 290)
+                 .text(`₱${leavePay.toFixed(2)}`, 400, 290, { align: 'right' });
+            }
+          }
+          
+          doc.text('Gross pay:', 50, 310)
+             .text(`₱${(Number(targetPaystub.grossPay) || 0).toFixed(2)}`, 400, 310, { align: 'right' })
+             .text('Net pay:', 50, 330)
+             .text(`₱${(Number(targetPaystub.netPay) || 0).toFixed(2)}`, 400, 330, { align: 'right' });
+          
+          // Benefits section
+          let currentY = 360;
+          doc.fontSize(12).font('Helvetica-Bold')
+             .text('Benefits:', 50, currentY);
+          
+          currentY += 25;
+          
+          if (targetPaystub.benefits && targetPaystub.benefits.length > 0) {
+            // Individual benefits
+            targetPaystub.benefits.forEach((benefit: any) => {
+              doc.fontSize(10).font('Helvetica')
+                 .text(`${benefit.name}:`, 50, currentY)
+                 .text(`₱${Number(benefit.amount).toFixed(2)}`, 400, currentY, { align: 'right' });
+              currentY += 15;
+            });
+            
+            // Total Benefits
+            doc.fontSize(10).font('Helvetica')
+               .text('Total benefits:', 50, currentY)
+               .text(`₱${Number(targetPaystub.totalBenefits).toFixed(2)}`, 400, currentY, { align: 'right' });
+          } else if (targetPaystub.totalBenefits && Number(targetPaystub.totalBenefits) > 0) {
+            doc.fontSize(10).font('Helvetica')
+               .text('Total benefits:', 50, currentY)
+               .text(`₱${Number(targetPaystub.totalBenefits).toFixed(2)}`, 400, currentY, { align: 'right' });
+          } else {
+            doc.fontSize(10).font('Helvetica')
+               .text('Total benefits:', 50, currentY)
+               .text(`₱0.00`, 400, currentY, { align: 'right' });
+          }
+          
+          // Deductions section
+          currentY += 30;
+          doc.fontSize(12).font('Helvetica-Bold')
+             .text('Deductions:', 50, currentY);
+          
+          currentY += 25;
+          
+          if (targetPaystub.deductions && targetPaystub.deductions.length > 0) {
+            // Individual deductions
+            targetPaystub.deductions.forEach((deduction: any) => {
+              doc.fontSize(10).font('Helvetica')
+                 .text(`${deduction.name}:`, 50, currentY)
+                 .text(`₱${Number(deduction.amount).toFixed(2)}`, 400, currentY, { align: 'right' });
+              currentY += 15;
+            });
+            
+            // Total Deductions
+            doc.fontSize(10).font('Helvetica')
+               .text('Total deductions:', 50, currentY)
+               .text(`₱${(Number(targetPaystub.totalDeductions) || 0).toFixed(2)}`, 400, currentY, { align: 'right' });
+          } else {
+            doc.fontSize(10).font('Helvetica')
+               .text('Total deductions:', 50, currentY)
+               .text(`₱0.00`, 400, currentY, { align: 'right' });
+          }
+
+          // Footer
+          currentY += 40;
+          doc.fontSize(10).font('Helvetica')
+             .text(`Approved by hr & generated on: ${new Date().toLocaleDateString()}`, 50, currentY);
+          
+          doc.end();
+        } catch (error) {
+          logger.error('Error creating PDF content', { error: error instanceof Error ? error.message : 'Unknown error', stack: error instanceof Error ? error.stack : undefined });
+          reject(error);
+        }
+      });
+    } catch (error) {
+      logger.error('Error generating paystub PDF:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Download paystub as Excel
+   */
+  async downloadPaystubExcel(employeeId: string, paystubId: string): Promise<Buffer> {
+    try {
+      logger.info('Downloading paystub Excel', { employeeId, paystubId });
+      
+      // Get the specific paystub data
+      const paystub = await this.getEmployeePaystubs(employeeId, { limit: 1000 });
+      logger.info('Retrieved paystubs', { count: paystub.length, paystubIds: paystub.map(p => p.id) });
+      
+      const targetPaystub = paystub.find(p => p.id === paystubId);
+      
+      if (!targetPaystub) {
+        logger.error('Paystub not found', { employeeId, paystubId, availableIds: paystub.map(p => p.id) });
+        throw new Error('Paystub not found');
+      }
+
+      // Create Excel file using xlsx library
+      logger.info('Starting Excel generation', { paystubId: targetPaystub.id });
+      
+      const XLSX = require('xlsx');
+      
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      
+      // Calculate Leave Pay using same logic as payroll system
+      const paidLeaveHours = Number(targetPaystub.paidLeaveHours) || 0;
+      let leavePay = 0;
+      if (paidLeaveHours > 0) {
+        const startDate = new Date(targetPaystub.periodStartDate);
+        const endDate = new Date(targetPaystub.periodEndDate);
+        const expectedWorkingDays = this.calculateWorkingDays(startDate, endDate);
+        const expectedHours = expectedWorkingDays * 8; // 8 hours per working day
+        const baseSalary = Number(targetPaystub.baseSalary) || 0;
+        
+        // Use same proportional calculation as payroll system
+        leavePay = expectedHours > 0 ? (paidLeaveHours / expectedHours) * baseSalary : 0;
+      }
+
+      // Employee Information
+      const employeeData = [
+        ['Employee Information', ''],
+        ['Name', targetPaystub.employeeName],
+        ['Employee ID', targetPaystub.employeeId],
+        ['Position', targetPaystub.position],
+        ['Department', targetPaystub.department],
+        ['Period', targetPaystub.periodName],
+        ['', ''],
+        ['Payroll Details', ''],
+        ['Base Salary', targetPaystub.baseSalary],
+        ['Paid Leave Hours', targetPaystub.paidLeaveHours],
+        ['Leave Pay', leavePay],
+        ['Total Benefits', targetPaystub.totalBenefits],
+        ['Total Deductions', targetPaystub.totalDeductions],
+        ['Net Pay', targetPaystub.netPay],
+        ['', ''],
+        ['Benefits Breakdown', ''],
+        ['Benefit Name', 'Amount']
+      ];
+      
+      // Add benefits
+      if (targetPaystub.benefits && targetPaystub.benefits.length > 0) {
+        targetPaystub.benefits.forEach((benefit: any) => {
+          employeeData.push([benefit.name, `+${benefit.amount}`]);
+        });
+        employeeData.push(['', '']); // Add empty row
+      }
+      
+      // Add deductions section
+      employeeData.push(['Deductions Breakdown', '']);
+      employeeData.push(['Deduction Name', 'Amount']);
+      
+      // Add deductions
+      if (targetPaystub.deductions && targetPaystub.deductions.length > 0) {
+        targetPaystub.deductions.forEach((deduction: any) => {
+          employeeData.push([deduction.name, `-${deduction.amount}`]);
+        });
+      }
+      
+      const worksheet = XLSX.utils.aoa_to_sheet(employeeData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Paystub');
+      
+      // Generate Excel buffer
+      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      logger.info('Excel generation completed', { bufferSize: excelBuffer.length });
+      return excelBuffer;
+    } catch (error) {
+      logger.error('Error generating paystub Excel:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get employee requests (all types)
    */
   async getEmployeeRequests(employeeId: string, params: {
@@ -590,7 +963,7 @@ export class EmployeeService {
     const { type, status, limit = 50, offset = 0 } = params;
     
     // Get leave requests
-    const leaveQuery = `
+    let leaveQuery = `
       SELECT 
         l.id,
         'leave' as type,
@@ -604,19 +977,25 @@ export class EmployeeService {
           'startDate', l.start_date,
           'endDate', l.end_date,
           'reason', 'Leave request',
-          'days', EXTRACT(day FROM (l.end_date - l.start_date)) + 1
+          'days', (l.end_date - l.start_date + 1)
         ) as details
       FROM leaves l
       LEFT JOIN users u ON l.approver_id = u.id
       WHERE l.employee_id = $1
-      ${type && type !== 'leave' ? 'AND FALSE' : ''}
-      ${status ? 'AND l.status = $2' : ''}
-      ORDER BY l.created_at DESC
-      LIMIT ${limit} OFFSET ${offset}
     `;
+    
+    if (type && type !== 'leave') {
+      leaveQuery += ' AND FALSE';
+    }
+    
+    if (status) {
+      leaveQuery += ' AND l.status = $2';
+    }
+    
+    leaveQuery += ` ORDER BY l.created_at DESC`;
 
     // Get time correction requests
-    const timeCorrectionQuery = `
+    let timeCorrectionQuery = `
       SELECT 
         tcr.id,
         'time_correction' as type,
@@ -635,39 +1014,55 @@ export class EmployeeService {
       FROM time_correction_requests tcr
       LEFT JOIN users u ON tcr.approver_id = u.id
       WHERE tcr.employee_id = $1
-      ${type && type !== 'time_correction' ? 'AND FALSE' : ''}
-      ${status ? 'AND tcr.status = $2' : ''}
-      ORDER BY tcr.created_at DESC
-      LIMIT ${limit} OFFSET ${offset}
     `;
+    
+    if (type && type !== 'time_correction') {
+      timeCorrectionQuery += ' AND FALSE';
+    }
+    
+    if (status) {
+      timeCorrectionQuery += ' AND tcr.status = $2';
+    }
+    
+    timeCorrectionQuery += ` ORDER BY tcr.created_at DESC`;
 
     // Get overtime requests
-    const overtimeQuery = `
+    let overtimeQuery = `
       SELECT 
-        or.id,
+        ot.id,
         'overtime' as type,
-        or.status,
-        or.created_at as "submittedAt",
+        ot.status,
+        ot.created_at as "submittedAt",
         CONCAT(u.first_name, ' ', u.last_name) as "approverName",
-        or.approved_at as "approvedAt",
-        or.comments as "rejectionReason",
+        ot.approved_at as "approvedAt",
+        ot.comments as "rejectionReason",
         json_build_object(
-          'overtimeDate', or.overtime_date,
-          'startTime', or.start_time,
-          'endTime', or.end_time,
-          'requestedHours', or.requested_hours,
-          'reason', or.reason
+          'overtimeDate', ot.overtime_date,
+          'startTime', ot.start_time,
+          'endTime', ot.end_time,
+          'requestedHours', ot.requested_hours,
+          'reason', ot.reason
         ) as details
-      FROM overtime_requests or
-      LEFT JOIN users u ON or.approver_id = u.id
-      WHERE or.employee_id = $1
-      ${type && type !== 'overtime' ? 'AND FALSE' : ''}
-      ${status ? 'AND or.status = $2' : ''}
-      ORDER BY or.created_at DESC
-      LIMIT ${limit} OFFSET ${offset}
+      FROM overtime_requests ot
+      LEFT JOIN users u ON ot.approver_id = u.id
+      WHERE ot.employee_id = $1
     `;
+    
+    if (type && type !== 'overtime') {
+      overtimeQuery += ' AND FALSE';
+    }
+    
+    if (status) {
+      overtimeQuery += ' AND ot.status = $2';
+    }
+    
+    overtimeQuery += ` ORDER BY ot.created_at DESC`;
 
-    const params_array = status ? [employeeId, status] : [employeeId];
+    // Build parameter array based on what filters are applied
+    const params_array = [employeeId];
+    if (status) {
+      params_array.push(status);
+    }
     
     const [leaveResult, timeCorrectionResult, overtimeResult] = await Promise.all([
       getPool().query(leaveQuery, params_array),
@@ -682,7 +1077,18 @@ export class EmployeeService {
       ...overtimeResult.rows
     ].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
 
-    return allRequests.slice(0, limit);
+    // Apply pagination to the combined results
+    const startIndex = offset;
+    const endIndex = offset + limit;
+    const result = allRequests.slice(startIndex, endIndex);
+    
+    // Debug: Log the results
+    console.log('Total requests found:', allRequests.length);
+    console.log('Request IDs:', allRequests.map(r => r.id));
+    console.log('Returning requests:', result.length);
+    console.log('Returned IDs:', result.map(r => r.id));
+    
+    return result;
   }
 
   /**
@@ -713,6 +1119,273 @@ export class EmployeeService {
       pending: parseInt(row.pending),
       approved: parseInt(row.approved),
       rejected: parseInt(row.rejected),
+    };
+  }
+
+  /**
+   * Get employee paystubs
+   */
+  async getEmployeePaystubs(employeeId: string, params: {
+    year?: number;
+    month?: number;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<PaystubData[]> {
+    const { year, month, page = 1, limit = 10 } = params;
+    const offset = (page - 1) * limit;
+
+    let whereClause = 'WHERE pr.employee_id = $1';
+    const queryParams: any[] = [employeeId];
+    let paramIndex = 2;
+
+    if (year) {
+      whereClause += ` AND EXTRACT(YEAR FROM pp.start_date) = $${paramIndex++}`;
+      queryParams.push(year);
+    }
+
+    if (month) {
+      whereClause += ` AND EXTRACT(MONTH FROM pp.start_date) = $${paramIndex++}`;
+      queryParams.push(month);
+    }
+
+    const query = `
+      SELECT 
+        pr.id,
+        pr.payroll_period_id,
+        pp.period_name as "periodName",
+        pp.start_date as "periodStartDate",
+        pp.end_date as "periodEndDate",
+        e.employee_id as "employeeId",
+        CONCAT(u.first_name, ' ', u.last_name) as "employeeName",
+        e.position,
+        d.name as department,
+        e.base_salary as "baseSalary",
+        pr.total_regular_hours as "totalRegularHours",
+        pr.total_overtime_hours as "totalOvertimeHours",
+        pr.paid_leave_hours as "paidLeaveHours",
+        pr.gross_pay as "grossPay",
+        pr.total_deductions as "totalDeductions",
+        pr.total_benefits as "totalBenefits",
+        pr.net_pay as "netPay",
+        pr.late_deductions as "lateDeductions",
+        pr.created_at as "createdAt"
+      FROM payroll_records pr
+      JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+      JOIN employees e ON pr.employee_id = e.id
+      JOIN users u ON e.user_id = u.id
+      LEFT JOIN departments d ON e.department_id = d.id
+      ${whereClause}
+      ORDER BY pp.start_date DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `;
+
+    queryParams.push(limit, offset);
+    const result = await getPool().query(query, queryParams);
+
+    // Get deductions for each paystub
+    const paystubs: PaystubData[] = [];
+    for (const row of result.rows) {
+      const deductionsQuery = `
+        SELECT 
+          pd.name,
+          pd.amount
+        FROM payroll_deductions pd
+        WHERE pd.payroll_record_id = $1
+        ORDER BY pd.name
+      `;
+
+      const deductionsResult = await getPool().query(deductionsQuery, [row.id]);
+      
+      // Get benefits for this paystub
+      const benefitsQuery = `
+        SELECT 
+          bt.name,
+          eb.amount
+        FROM employee_benefits eb
+        JOIN benefit_types bt ON eb.benefit_type_id = bt.id
+        JOIN payroll_periods pp ON pp.id = $2
+        WHERE eb.employee_id = $1 
+          AND eb.is_active = true
+          AND (eb.end_date IS NULL OR eb.end_date >= pp.start_date)
+          AND eb.start_date <= pp.end_date
+        ORDER BY bt.name
+      `;
+      
+      const benefitsResult = await getPool().query(benefitsQuery, [employeeId, row.payroll_period_id]);
+      
+      paystubs.push({
+        id: row.id,
+        periodName: row.periodName,
+        periodStartDate: row.periodStartDate,
+        periodEndDate: row.periodEndDate,
+        employeeId: row.employeeId,
+        employeeName: row.employeeName,
+        position: row.position,
+        department: row.department || 'Unassigned',
+        baseSalary: parseFloat(row.baseSalary),
+        totalRegularHours: parseFloat(row.totalRegularHours),
+        totalOvertimeHours: parseFloat(row.totalOvertimeHours),
+        paidLeaveHours: parseFloat(row.paidLeaveHours) || 0,
+        grossPay: parseFloat(row.grossPay),
+        totalDeductions: parseFloat(row.totalDeductions),
+        totalBenefits: parseFloat(row.totalBenefits),
+        netPay: parseFloat(row.netPay),
+        lateDeductions: parseFloat(row.lateDeductions),
+        deductions: deductionsResult.rows.map(d => ({
+          name: d.name,
+          amount: parseFloat(d.amount)
+        })),
+        benefits: benefitsResult.rows.map(b => ({
+          name: b.name,
+          amount: parseFloat(b.amount)
+        })),
+        createdAt: row.createdAt
+      });
+    }
+
+    return paystubs;
+  }
+
+  /**
+   * Get latest employee paystub
+   */
+  async getLatestPaystub(employeeId: string): Promise<PaystubData | null> {
+    // First try to get the latest payroll record
+    const query = `
+      SELECT 
+        pr.id,
+        pr.payroll_period_id,
+        pp.period_name as "periodName",
+        e.employee_id as "employeeId",
+        CONCAT(u.first_name, ' ', u.last_name) as "employeeName",
+        e.position,
+        d.name as department,
+        e.base_salary as "baseSalary",
+        pr.total_regular_hours as "totalRegularHours",
+        pr.total_overtime_hours as "totalOvertimeHours",
+        pr.gross_pay as "grossPay",
+        pr.total_deductions as "totalDeductions",
+        pr.total_benefits as "totalBenefits",
+        pr.net_pay as "netPay",
+        pr.late_deductions as "lateDeductions",
+        pr.created_at as "createdAt"
+      FROM payroll_records pr
+      JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
+      JOIN employees e ON pr.employee_id = e.id
+      JOIN users u ON e.user_id = u.id
+      LEFT JOIN departments d ON e.department_id = d.id
+      WHERE pr.employee_id = $1
+      ORDER BY pp.start_date DESC
+      LIMIT 1
+    `;
+
+    const result = await getPool().query(query, [employeeId]);
+    
+    if (result.rows.length === 0) {
+      // If no payroll records exist, return employee info with zero values
+      const employeeQuery = `
+        SELECT 
+          e.employee_id as "employeeId",
+          CONCAT(u.first_name, ' ', u.last_name) as "employeeName",
+          e.position,
+          d.name as department,
+          e.base_salary as "baseSalary"
+        FROM employees e
+        JOIN users u ON e.user_id = u.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        WHERE e.id = $1
+      `;
+
+      const employeeResult = await getPool().query(employeeQuery, [employeeId]);
+      
+      if (employeeResult.rows.length === 0) {
+        return null;
+      }
+
+      const employee = employeeResult.rows[0];
+      
+      return {
+        id: 'no-payroll',
+        periodName: 'No Payroll Period',
+        periodStartDate: new Date().toISOString(),
+        periodEndDate: new Date().toISOString(),
+        employeeId: employee.employeeId,
+        employeeName: employee.employeeName,
+        position: employee.position,
+        department: employee.department || 'Unassigned',
+        baseSalary: parseFloat(employee.baseSalary),
+        totalRegularHours: 0,
+        totalOvertimeHours: 0,
+        paidLeaveHours: 0,
+        grossPay: 0,
+        totalDeductions: 0,
+        totalBenefits: 0,
+        netPay: 0,
+        lateDeductions: 0,
+        deductions: [],
+        benefits: [],
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    const row = result.rows[0];
+
+    // Get deductions for the paystub
+    const deductionsQuery = `
+      SELECT 
+        pd.name,
+        pd.amount
+      FROM payroll_deductions pd
+      WHERE pd.payroll_record_id = $1
+      ORDER BY pd.name
+    `;
+
+    const deductionsResult = await getPool().query(deductionsQuery, [row.id]);
+
+    // Get benefits for this paystub
+    const benefitsQuery = `
+      SELECT 
+        bt.name,
+        eb.amount
+      FROM employee_benefits eb
+      JOIN benefit_types bt ON eb.benefit_type_id = bt.id
+      JOIN payroll_periods pp ON pp.id = $2
+      WHERE eb.employee_id = $1 
+        AND eb.is_active = true
+        AND (eb.end_date IS NULL OR eb.end_date >= pp.start_date)
+        AND eb.start_date <= pp.end_date
+      ORDER BY bt.name
+    `;
+    
+    const benefitsResult = await getPool().query(benefitsQuery, [employeeId, row.payroll_period_id]);
+
+    return {
+      id: row.id,
+      periodName: row.periodName,
+      periodStartDate: row.periodStartDate,
+      periodEndDate: row.periodEndDate,
+      employeeId: row.employeeId,
+      employeeName: row.employeeName,
+      position: row.position,
+      department: row.department || 'Unassigned',
+      baseSalary: parseFloat(row.baseSalary),
+      totalRegularHours: parseFloat(row.totalRegularHours),
+      totalOvertimeHours: parseFloat(row.totalOvertimeHours),
+      paidLeaveHours: parseFloat(row.paidLeaveHours) || 0,
+      grossPay: parseFloat(row.grossPay),
+      totalDeductions: parseFloat(row.totalDeductions),
+      totalBenefits: parseFloat(row.totalBenefits),
+      netPay: parseFloat(row.netPay),
+      lateDeductions: parseFloat(row.lateDeductions),
+      deductions: deductionsResult.rows.map(d => ({
+        name: d.name,
+        amount: parseFloat(d.amount)
+      })),
+      benefits: benefitsResult.rows.map(b => ({
+        name: b.name,
+        amount: parseFloat(b.amount)
+      })),
+      createdAt: row.createdAt
     };
   }
 }

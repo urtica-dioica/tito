@@ -169,6 +169,7 @@ export class PayrollService {
     // Transform snake_case to camelCase and extract employee info
     const transformedRecords = (response.data || []).map((record: any) => ({
       ...record,
+      payrollPeriodId: record.payroll_period_id || record.payrollPeriodId, // Ensure payrollPeriodId is mapped
       employeeName: record.employee?.user ? 
         `${record.employee.user.first_name} ${record.employee.user.last_name}` : 
         record.employee_name || 'Unknown Employee',
@@ -183,12 +184,16 @@ export class PayrollService {
       totalOvertimeHours: record.total_overtime_hours,
       totalLateHours: record.total_late_hours,
       lateDeductions: record.late_deductions,
+      paidLeaveHours: record.paid_leave_hours || 0,
       grossPay: record.gross_pay,
       netPay: record.net_pay,
       totalDeductions: record.total_deductions,
       totalBenefits: record.total_benefits,
       createdAt: record.created_at,
-      updatedAt: record.updated_at
+      updatedAt: record.updated_at,
+      approvalStatus: record.approval_status,
+      approvalApprovedAt: record.approval_approved_at,
+      approvalComments: record.approval_comments
     }));
 
     return {
@@ -416,6 +421,120 @@ export class PayrollService {
     }
     
     return response.blob();
+  }
+
+  /**
+   * Update payroll record status
+   */
+  static async updatePayrollRecordStatus(recordId: string, status: 'draft' | 'processed' | 'paid'): Promise<PayrollRecord> {
+    const response = await apiMethods.put<{ data: PayrollRecord }>(`/payroll/records/${recordId}/status`, { status });
+    return response.data;
+  }
+
+  /**
+   * Bulk update payroll records status for a period
+   */
+  static async bulkUpdatePayrollRecordsStatus(
+    periodId: string, 
+    status: 'draft' | 'processed' | 'paid',
+    departmentId?: string
+  ): Promise<{ updatedCount: number; records: PayrollRecord[] }> {
+    const response = await apiMethods.put<{ data: { updatedCount: number; records: PayrollRecord[] } }>(
+      `/payroll/periods/${periodId}/records/status`, 
+      { status, departmentId }
+    );
+    return response.data;
+  }
+
+  /**
+   * Reprocess payroll records for a period (clears existing and regenerates)
+   */
+  static async reprocessPayrollRecords(periodId: string, departmentId?: string): Promise<{ recordCount: number; records: PayrollRecord[] }> {
+    const params = departmentId ? `?departmentId=${departmentId}` : '';
+    const response = await apiMethods.post<{ data: { recordCount: number; records: PayrollRecord[] } }>(
+      `/payroll/periods/${periodId}/reprocess${params}`
+    );
+    return response.data;
+  }
+
+  /**
+   * Complete payroll period (mark as completed when all departments approve)
+   */
+  static async completePayrollPeriod(periodId: string): Promise<PayrollPeriod> {
+    const response = await apiMethods.put<{ data: PayrollPeriod }>(`/payroll/periods/${periodId}/complete`);
+    return response.data;
+  }
+
+  /**
+   * Bulk update payroll records to paid status
+   */
+  static async bulkUpdatePayrollRecordsToPaid(options: {
+    periodId?: string;
+    departmentId?: string;
+    recordIds?: string[];
+  }): Promise<{ updatedCount: number }> {
+    const response = await apiMethods.put<{ data: { updatedCount: number } }>('/payroll/records/bulk-paid', options);
+    return response.data;
+  }
+
+  /**
+   * Export all employee paystubs for a period as PDF
+   */
+  static async exportPeriodPaystubsPDF(periodId: string): Promise<Blob> {
+    try {
+      console.log('Making PDF export request for period:', periodId);
+      const response = await apiMethods.get(`/payroll/periods/${periodId}/export/paystubs/pdf`, {
+        responseType: 'blob'
+      });
+      
+      console.log('PDF export response:', response);
+      
+      // The response itself is the Blob when using responseType: 'blob'
+      const data = response as Blob;
+      console.log('PDF export data:', data, 'Type:', typeof data, 'Is Blob:', data instanceof Blob);
+      
+      // Check if the response is an error (JSON error response)
+      if (data instanceof Blob && data.type === 'application/json') {
+        const text = await data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || 'Export failed');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error exporting period paystubs PDF:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export department employee paystubs for a period as PDF
+   */
+  static async exportDepartmentPaystubsPDF(periodId: string): Promise<Blob> {
+    try {
+      console.log('Making department PDF export request for period:', periodId);
+      const response = await apiMethods.get(`/payroll/periods/${periodId}/export/paystubs/department/pdf`, {
+        responseType: 'blob'
+      });
+      
+      console.log('Department PDF export response:', response);
+      
+      // The response itself is the Blob when using responseType: 'blob'
+      const data = response as Blob;
+      console.log('Department PDF export data:', data, 'Type:', typeof data, 'Is Blob:', data instanceof Blob);
+      
+      // Check if the response is an error (JSON error response)
+      if (data instanceof Blob && data.type === 'application/json') {
+        const text = await data.text();
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.message || 'Department export failed');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error exporting department paystubs PDF:', error);
+      throw error;
+    }
   }
 
 }

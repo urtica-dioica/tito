@@ -49,12 +49,16 @@ export interface DepartmentHeadPayrollPeriod {
   periodName: string;
   startDate: string;
   endDate: string;
-  status: 'completed' | 'processing' | 'draft';
+  status: 'completed' | 'processing' | 'draft' | 'sent_for_review';
   totalEmployees: number;
   totalAmount: number;
   departmentId: string;
   createdAt: string;
   updatedAt: string;
+  approvalId?: string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvalComments?: string;
+  approvedAt?: string;
 }
 
 export interface DepartmentHeadPayrollRecord {
@@ -63,10 +67,18 @@ export interface DepartmentHeadPayrollRecord {
   employeeName: string;
   position: string;
   baseSalary: number;
-  overtimePay: number;
-  bonuses: number;
-  deductions: number;
+  hourlyRate: number;
+  totalWorkedHours: number;
+  totalRegularHours: number;
+  totalOvertimeHours: number;
+  totalLateHours: number;
+  lateDeductions: number;
+  paidLeaveHours: number;
+  grossPay: number;
   netPay: number;
+  totalDeductions: number;
+  totalBenefits: number;
+  status: string;
   periodId: string;
   createdAt: string;
   updatedAt: string;
@@ -151,8 +163,11 @@ export class DepartmentHeadService {
     type?: 'time_correction' | 'overtime' | 'leave';
     status?: 'pending' | 'approved' | 'rejected';
   }): Promise<{ requests: DepartmentHeadRequest[]; total: number }> {
-    const response = await apiMethods.get<{ data: { requests: DepartmentHeadRequest[]; total: number } }>('/department-head/requests', { params });
-    return response.data;
+    const response = await apiMethods.get<{ data: DepartmentHeadRequest[]; pagination: { total: number } }>('/department-head/requests', { params });
+    return {
+      requests: response.data,
+      total: response.pagination.total
+    };
   }
 
   // Get request statistics
