@@ -98,7 +98,7 @@ export class TimeCorrectionController {
       const requestData = {
         employeeId,
         requestDate: new Date(requestDate),
-        sessionType: sessionType as 'clock_in' | 'clock_out',
+        sessionType: sessionType as 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out',
         requestedTime: parsedRequestedTime,
         reason: reason.trim()
       };

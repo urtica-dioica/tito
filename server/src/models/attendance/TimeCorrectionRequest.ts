@@ -4,7 +4,7 @@ export interface TimeCorrectionRequest {
   id: string;
   employeeId: string;
   requestDate: Date;
-  sessionType: 'clock_in' | 'clock_out';
+  sessionType: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out';
   requestedTime: Date;
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -24,7 +24,7 @@ export interface TimeCorrectionRequestWithDetails extends TimeCorrectionRequest 
 export interface CreateTimeCorrectionRequestData {
   employeeId: string;
   requestDate: Date;
-  sessionType: 'clock_in' | 'clock_out';
+  sessionType: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out';
   requestedTime: Date;
   reason: string;
 }
@@ -41,7 +41,7 @@ export interface TimeCorrectionRequestListParams {
   employeeId?: string | undefined;
   departmentId?: string | undefined;
   status?: 'pending' | 'approved' | 'rejected' | undefined;
-  sessionType?: 'clock_in' | 'clock_out' | undefined;
+  sessionType?: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out' | undefined;
   startDate?: Date | undefined;
   endDate?: Date | undefined;
   search?: string | undefined;
@@ -76,8 +76,8 @@ export class TimeCorrectionRequestModel {
       data.employeeId,
       data.requestDate,
       data.sessionType,
-      data.sessionType === 'clock_in' ? data.requestedTime : null,
-      data.sessionType === 'clock_out' ? data.requestedTime : null,
+      (data.sessionType === 'morning_in' || data.sessionType === 'afternoon_in') ? data.requestedTime : null,
+      (data.sessionType === 'morning_out' || data.sessionType === 'afternoon_out') ? data.requestedTime : null,
       data.reason
     ]);
 
@@ -85,7 +85,7 @@ export class TimeCorrectionRequestModel {
     const row = result.rows[0];
     return {
       ...row,
-      requestedTime: data.sessionType === 'clock_in' ? row.requestedClockIn : row.requestedClockOut
+      requestedTime: (data.sessionType === 'morning_in' || data.sessionType === 'afternoon_in') ? row.requestedClockIn : row.requestedClockOut
     };
   }
 
@@ -120,7 +120,7 @@ export class TimeCorrectionRequestModel {
     const row = result.rows[0];
     return {
       ...row,
-      requestedTime: row.sessionType === 'clock_in' ? row.requestedClockIn : row.requestedClockOut
+      requestedTime: (row.sessionType === 'morning_in' || row.sessionType === 'afternoon_in') ? row.requestedClockIn : row.requestedClockOut
     };
   }
 
@@ -135,8 +135,8 @@ export class TimeCorrectionRequestModel {
         tcr.correction_date as "requestDate",
         tcr.session_type as "sessionType",
         CASE 
-          WHEN tcr.session_type = 'clock_in' THEN tcr.requested_clock_in
-          WHEN tcr.session_type = 'clock_out' THEN tcr.requested_clock_out
+          WHEN tcr.session_type IN ('morning_in', 'afternoon_in') THEN tcr.requested_clock_in
+          WHEN tcr.session_type IN ('morning_out', 'afternoon_out') THEN tcr.requested_clock_out
         END as "requestedTime",
         tcr.reason,
         tcr.status,
@@ -221,7 +221,7 @@ export class TimeCorrectionRequestModel {
     const row = result.rows[0];
     return {
       ...row,
-      requestedTime: row.sessionType === 'clock_in' ? row.requestedClockIn : row.requestedClockOut
+      requestedTime: (row.sessionType === 'morning_in' || row.sessionType === 'afternoon_in') ? row.requestedClockIn : row.requestedClockOut
     };
   }
 
@@ -327,8 +327,8 @@ export class TimeCorrectionRequestModel {
         tcr.correction_date as "requestDate",
         tcr.session_type as "sessionType",
         CASE 
-          WHEN tcr.session_type = 'clock_in' THEN tcr.requested_clock_in
-          WHEN tcr.session_type = 'clock_out' THEN tcr.requested_clock_out
+          WHEN tcr.session_type IN ('morning_in', 'afternoon_in') THEN tcr.requested_clock_in
+          WHEN tcr.session_type IN ('morning_out', 'afternoon_out') THEN tcr.requested_clock_out
         END as "requestedTime",
         tcr.reason,
         tcr.status,
@@ -373,8 +373,8 @@ export class TimeCorrectionRequestModel {
         tcr.correction_date as "requestDate",
         tcr.session_type as "sessionType",
         CASE 
-          WHEN tcr.session_type = 'clock_in' THEN tcr.requested_clock_in
-          WHEN tcr.session_type = 'clock_out' THEN tcr.requested_clock_out
+          WHEN tcr.session_type IN ('morning_in', 'afternoon_in') THEN tcr.requested_clock_in
+          WHEN tcr.session_type IN ('morning_out', 'afternoon_out') THEN tcr.requested_clock_out
         END as "requestedTime",
         tcr.reason,
         tcr.status,
