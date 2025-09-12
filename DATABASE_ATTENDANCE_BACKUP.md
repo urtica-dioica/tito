@@ -2,7 +2,7 @@
 
 ## Overview
 
-The database now includes triggers and functions that implement the same mathematical formulation as the server-side `AttendanceHoursCalculator`. This provides a **backup calculation system** that ensures consistent hours calculation even if the server-side logic fails or produces incorrect results.
+The database includes triggers and functions that implement the same mathematical formulation as the server-side `AttendanceHoursCalculator`. This provides a **redundant calculation system** that ensures consistent hours calculation and data integrity across all components.
 
 ## Database Components
 
@@ -25,13 +25,14 @@ The database now includes triggers and functions that implement the same mathema
 - **Usage**: For reporting and debugging
 
 ### 4. **System Settings**
-New configuration parameters stored in `system_settings` table:
+Configuration parameters stored in `system_settings` table:
 - `attendance_morning_start`: 8.0 (8:00 AM)
 - `attendance_morning_end`: 12.0 (12:00 PM)
 - `attendance_afternoon_start`: 13.0 (1:00 PM)
 - `attendance_afternoon_end`: 17.0 (5:00 PM)
 - `attendance_grace_period_minutes`: 30
 - `attendance_session_cap_hours`: 4.0
+- `attendance_calculation_updated`: 2025-01-27-mathematical-formulation
 
 ## Mathematical Formulation Implementation
 

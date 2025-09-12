@@ -124,51 +124,68 @@ CREATE TABLE employees (
 #### **4. Attendance Records Table**
 ```sql
 CREATE TABLE attendance_records (
-    id SERIAL PRIMARY KEY,
-    employee_id INTEGER NOT NULL REFERENCES employees(id),
-    clock_in_time TIMESTAMP,
-    clock_out_time TIMESTAMP,
-    total_hours DECIMAL(4,2),
-    status VARCHAR(50) DEFAULT 'present',
-    notes TEXT,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    date DATE NOT NULL,
+    overall_status overall_attendance_status_enum DEFAULT 'present',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(employee_id, date)
 );
 ```
 
-**Purpose**: Stores daily attendance records for employees.
+**Purpose**: Stores daily attendance records for employees with mathematical formulation-based calculations.
 
 **Key Fields**:
-- `id`: Primary key, auto-incrementing
+- `id`: Primary key, UUID with auto-generation
 - `employee_id`: Foreign key to employees table
-- `clock_in_time`: Clock in timestamp
-- `clock_out_time`: Clock out timestamp
-- `total_hours`: Calculated total hours worked
-- `status`: Attendance status (present, absent, late, etc.)
+- `date`: Attendance date
+- `overall_status`: Overall attendance status (present, late, absent, partial)
+- `created_at`: Record creation timestamp
+- `updated_at`: Record update timestamp
 
 #### **5. Attendance Sessions Table**
 ```sql
 CREATE TABLE attendance_sessions (
-    id SERIAL PRIMARY KEY,
-    employee_id INTEGER NOT NULL REFERENCES employees(id),
-    session_date DATE NOT NULL,
-    session_type VARCHAR(50) NOT NULL,
-    session_time TIMESTAMP NOT NULL,
-    qr_code_hash VARCHAR(255),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    attendance_record_id UUID NOT NULL REFERENCES attendance_records(id) ON DELETE CASCADE,
+    session_type VARCHAR(50) NOT NULL CHECK (session_type IN ('morning_in', 'morning_out', 'afternoon_in', 'afternoon_out', 'overtime', 'clock_in', 'clock_out')),
+    clock_in TIMESTAMP,
+    clock_out TIMESTAMP,
+    calculated_hours DECIMAL(4,2) GENERATED ALWAYS AS ( 
+        CASE WHEN clock_in IS NOT NULL AND clock_out IS NOT NULL 
+        THEN EXTRACT(EPOCH FROM (clock_out - clock_in)) / 3600.0 
+        ELSE 0 END 
+    ) STORED,
+    regular_hours DECIMAL(4,2) DEFAULT 0,
+    overtime_hours DECIMAL(4,2) DEFAULT 0,
+    late_minutes INTEGER DEFAULT 0,
+    late_hours DECIMAL(4,2) DEFAULT 0,
+    status attendance_status_enum DEFAULT 'present',
     selfie_image_path VARCHAR(500),
-    location_data JSONB,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    selfie_taken_at TIMESTAMP,
+    selfie_image_url VARCHAR(500),
+    qr_code_hash VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(attendance_record_id, session_type)
 );
 ```
 
-**Purpose**: Stores individual attendance sessions (clock in/out events).
+**Purpose**: Stores individual attendance sessions with mathematical formulation-based hour calculations.
 
 **Key Fields**:
-- `id`: Primary key, auto-incrementing
-- `employee_id`: Foreign key to employees table
-- `session_date`: Date of the session
-- `session_type`: Type of session (clock_in, clock_out)
-- `session_time`: Timestamp of the session
+- `id`: Primary key, UUID with auto-generation
+- `attendance_record_id`: Foreign key to attendance_records table
+- `session_type`: Type of session (morning_in, morning_out, afternoon_in, afternoon_out, overtime, clock_in, clock_out)
+- `clock_in`: Clock-in timestamp
+- `clock_out`: Clock-out timestamp
+- `calculated_hours`: Auto-calculated hours from clock_in to clock_out
+- `regular_hours`: Regular hours calculated using mathematical formulation
+- `overtime_hours`: Overtime hours (if applicable)
+- `late_minutes`: Late minutes calculated
+- `late_hours`: Late hours calculated
+- `status`: Session status (present, late, early, absent)
 - `qr_code_hash`: QR code hash used for verification
 - `selfie_image_path`: Path to selfie image (if applicable)
 - `location_data`: GPS location data in JSON format
@@ -783,7 +800,13 @@ The schema includes several important functions:
 
 #### **Attendance Functions**
 - `calculate_attendance_overall_status()`: Automatically calculates overall attendance status
+- `calculate_daily_total_hours()`: Calculates total daily hours using mathematical formulation
+- `calculate_session_payroll_data()`: Calculates session hours using mathematical formulation
 - `convert_overtime_to_leave()`: Converts overtime hours to leave days
+- `validate_attendance_session()`: Validates attendance session creation
+- `validate_attendance_time_window()`: Validates attendance time windows
+- `get_next_session_type()`: Determines next expected session type
+- `is_break_period()`: Checks if timestamp is during break period
 
 #### **Payroll Functions**
 - `calculate_payroll()`: Automatically calculates payroll amounts with deductions and benefits
@@ -791,7 +814,7 @@ The schema includes several important functions:
 - `apply_employee_benefits()`: Automatically applies employee benefits to payroll
 - `process_time_correction_approval()`: Handles time correction approvals
 - `process_overtime_request_approval()`: Handles overtime request approvals
-- `calculate_attendance_hours()`: Calculates attendance hours with grace period and late deductions
+- `calculate_payroll()`: Preserves server-calculated attendance hours and recalculates financial aspects
 
 #### **Department Management Functions**
 - `get_department_employees()`: Returns employees for a department head

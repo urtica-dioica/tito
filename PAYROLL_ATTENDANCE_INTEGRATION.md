@@ -2,27 +2,24 @@
 
 ## Overview
 
-The payroll process now uses the new mathematical formulation for attendance hours calculation, providing consistent and accurate payroll calculations based on the same logic used throughout the attendance system.
+The payroll process uses the **mathematical formulation** for all attendance hours calculations, providing consistent and accurate payroll calculations based on the same precise logic used throughout the attendance system.
 
 ## Integration Status
 
-### ✅ **Updated Payroll Service**
+### ✅ **Unified Calculation Method**
 
-The `PayrollService` has been updated to use the new mathematical formulation:
+The `PayrollService` uses **only** the mathematical formulation:
 
-1. **New Method**: `calculateAttendanceHoursWithNewFormula()`
+1. **Single Method**: `calculateAttendanceHours()`
    - Uses the `AttendanceHoursCalculator` utility
    - Implements grace periods, session caps, and proper calculations
    - Provides detailed logging for debugging
+   - **No legacy methods or fallbacks**
 
-2. **Legacy Method**: `calculateAttendanceHoursLegacy()`
-   - Maintains the old fixed 4-hour approach
-   - Available as fallback option
-   - Preserves existing behavior if needed
-
-3. **Configuration**: Environment variable control
-   - `USE_NEW_ATTENDANCE_CALCULATION=true` (default)
-   - `USE_NEW_ATTENDANCE_CALCULATION=false` (legacy mode)
+2. **Configuration**: System settings in database
+   - All parameters stored in `system_settings` table
+   - No environment variable switching
+   - Consistent across all components
 
 ## Mathematical Formulation in Payroll
 
@@ -46,30 +43,15 @@ The `PayrollService` has been updated to use the new mathematical formulation:
 
 ## Configuration
 
-### **Environment Variables**
+### **System Settings** (Database)
 
-```bash
-# Enable/disable new calculation method
-USE_NEW_ATTENDANCE_CALCULATION=true  # Default: true
-
-# Mathematical formulation parameters
-ATTENDANCE_MORNING_START=8.0
-ATTENDANCE_MORNING_END=12.0
-ATTENDANCE_AFTERNOON_START=13.0
-ATTENDANCE_AFTERNOON_END=17.0
-ATTENDANCE_GRACE_PERIOD_MINUTES=30
-ATTENDANCE_SESSION_CAP_HOURS=4.0
-```
-
-### **System Settings**
-
-The database also stores these parameters in the `system_settings` table:
-- `attendance_morning_start`
-- `attendance_morning_end`
-- `attendance_afternoon_start`
-- `attendance_afternoon_end`
-- `attendance_grace_period_minutes`
-- `attendance_session_cap_hours`
+The database stores these parameters in the `system_settings` table:
+- `attendance_morning_start`: 8.0 (8:00 AM)
+- `attendance_morning_end`: 12.0 (12:00 PM)
+- `attendance_afternoon_start`: 13.0 (1:00 PM)
+- `attendance_afternoon_end`: 17.0 (5:00 PM)
+- `attendance_grace_period_minutes`: 30
+- `attendance_session_cap_hours`: 4.0
 
 ## Payroll Calculation Flow
 
@@ -80,26 +62,29 @@ async calculateEmployeePayroll(employeeId: string, payrollPeriodId: string)
 
 **Process:**
 1. Get payroll period dates
-2. Calculate expected working days
-3. **NEW**: Use mathematical formulation for attendance hours
+2. Calculate expected working days (actual working days per month)
+3. **Use mathematical formulation for attendance hours**
 4. Get approved leave hours
 5. Calculate gross pay, deductions, and net pay
 
 ### **2. Attendance Hours Calculation**
 ```typescript
-// New method (default)
-calculateAttendanceHoursWithNewFormula(employeeId, startDate, endDate)
-
-// Legacy method (fallback)
-calculateAttendanceHoursLegacy(employeeId, startDate, endDate)
+// Single method - mathematical formulation only
+calculateAttendanceHours(employeeId, startDate, endDate)
 ```
 
+**Features:**
+- Uses `defaultHoursCalculator.calculateFromSessions()`
+- Processes each attendance record individually
+- Applies grace periods and session caps
+- Logs detailed calculation breakdown
+
 ### **3. Detailed Logging**
-The system now logs:
-- Which calculation method is being used
+The system logs:
 - Individual day calculations with morning/afternoon breakdown
 - Effective start times after grace period application
-- Total hours calculated
+- Total hours calculated per day
+- Monthly totals for payroll
 
 ## Benefits
 
@@ -112,63 +97,66 @@ The system now logs:
 - Proper grace period handling
 - Session caps prevent over-calculation
 - Precise time calculations
+- Monthly working days calculated dynamically
 
 ### **3. Transparency**
 - Detailed logging of calculations
 - Easy debugging and verification
 - Clear audit trail
 
-### **4. Flexibility**
-- Environment variable control
-- Legacy method available as fallback
-- Easy configuration updates
+### **4. Reliability**
+- Single calculation method
+- No configuration switching
+- Consistent results every time
 
-## Migration Strategy
+## Monthly Working Days Handling
 
-### **Phase 1: Implementation** ✅
-- New calculation method implemented
-- Legacy method preserved
-- Environment variable control added
+### **Dynamic Calculation**
+The system calculates actual working days per month:
 
-### **Phase 2: Testing**
-- Compare old vs new calculations
-- Verify payroll accuracy
-- Test edge cases
+```typescript
+// Examples from database:
+December 2025: 23 working days = 184 hours (23 × 8)
+November 2025: 20 working days = 160 hours (20 × 8)  
+October 2025:  23 working days = 184 hours (23 × 8)
+September 2025: 22 working days = 176 hours (22 × 8)
+August 2025:   21 working days = 168 hours (21 × 8)
+```
 
-### **Phase 3: Rollout**
-- Enable new calculation by default
-- Monitor for issues
-- Keep legacy method as backup
-
-### **Phase 4: Cleanup**
-- Remove legacy method after validation
-- Update documentation
-- Optimize performance
+### **Payroll Impact**
+- **Hourly Rate**: `baseSalary / actualExpectedHours`
+- **Gross Pay**: `(totalPaidHours / actualExpectedHours) × baseSalary`
+- **Fair Compensation**: Proportional to actual month structure
 
 ## Testing
 
 ### **Manual Testing**
 ```bash
-# Test with new calculation
-USE_NEW_ATTENDANCE_CALCULATION=true npm run dev
-
-# Test with legacy calculation
-USE_NEW_ATTENDANCE_CALCULATION=false npm run dev
+# Test payroll calculation
+npm run dev
+# Process payroll for a period
+# Check detailed logs for calculation breakdown
 ```
 
-### **Comparison Testing**
+### **Database Validation**
 ```sql
--- Compare calculations for the same period
+-- Check calculated hours
 SELECT 
     employee_id,
     date,
-    -- New calculation
-    calculate_daily_total_hours(id) as new_calculation,
-    -- Legacy calculation (sum of regular_hours)
-    (SELECT SUM(regular_hours) FROM attendance_sessions 
-     WHERE attendance_record_id = id) as legacy_calculation
+    calculate_daily_total_hours(id) as calculated_hours
 FROM attendance_records 
 WHERE date >= '2025-01-01';
+
+-- Verify payroll records
+SELECT 
+    employee_id,
+    total_worked_hours,
+    total_regular_hours,
+    hourly_rate,
+    gross_pay
+FROM payroll_records 
+WHERE payroll_period_id = 'period-id';
 ```
 
 ## Monitoring
@@ -176,25 +164,31 @@ WHERE date >= '2025-01-01';
 ### **Log Analysis**
 Look for these log entries:
 ```
-Payroll calculation method: {
-  employeeId: "...",
-  useNewCalculation: true,
-  method: "mathematical-formulation"
-}
-
 Payroll hours calculation: {
   employeeId: "...",
   date: "2025-01-27",
   morningHours: 3,
   afternoonHours: 4,
-  totalHours: 7
+  totalHours: 7,
+  effectiveMorningStart: 9.0,
+  effectiveAfternoonStart: 13.0
+}
+
+Gross pay calculation debug: {
+  employeeId: "...",
+  totalWorkedHours: 150,
+  paidLeaveHours: 8,
+  totalPaidHours: 158,
+  expectedHours: 176,
+  baseSalary: 20000,
+  grossPay: 17954.55
 }
 ```
 
 ### **Key Metrics**
 - Total hours calculated per employee
-- Calculation method used
-- Any discrepancies between methods
+- Monthly working days accuracy
+- Payroll calculation consistency
 - Performance impact
 
 ## Troubleshooting
@@ -202,8 +196,8 @@ Payroll hours calculation: {
 ### **Common Issues**
 
 1. **Calculation Discrepancies**
-   - Check environment variables
-   - Verify session times in database
+   - Check system settings in database
+   - Verify session times configuration
    - Review grace period application
 
 2. **Performance Issues**
@@ -212,17 +206,17 @@ Payroll hours calculation: {
    - Consider caching for large datasets
 
 3. **Configuration Problems**
-   - Verify environment variables
-   - Check system settings in database
+   - Verify system settings in database
    - Ensure consistent parameters
+   - Check payroll period working days
 
 ### **Debug Commands**
 ```bash
-# Check current configuration
-echo $USE_NEW_ATTENDANCE_CALCULATION
-
 # View system settings
 psql -d your_database -c "SELECT * FROM system_settings WHERE setting_key LIKE 'attendance_%';"
+
+# Check payroll periods
+psql -d your_database -c "SELECT period_name, working_days, expected_hours FROM payroll_periods ORDER BY start_date DESC;"
 
 # Test calculation for specific employee
 psql -d your_database -c "SELECT calculate_daily_total_hours('attendance-record-id');"
@@ -230,13 +224,13 @@ psql -d your_database -c "SELECT calculate_daily_total_hours('attendance-record-
 
 ## Conclusion
 
-The payroll system now uses the same mathematical formulation as the attendance system, ensuring consistent and accurate calculations. The implementation includes:
+The payroll system uses the **mathematical formulation exclusively**, ensuring consistent and accurate calculations. The implementation includes:
 
-- ✅ New mathematical formulation integration
-- ✅ Legacy method preservation
-- ✅ Environment variable control
-- ✅ Detailed logging and monitoring
-- ✅ Database backup calculations
-- ✅ Comprehensive testing framework
+- ✅ **Single calculation method** (mathematical formulation only)
+- ✅ **Dynamic monthly working days** calculation
+- ✅ **Detailed logging and monitoring**
+- ✅ **Database backup calculations**
+- ✅ **Comprehensive testing framework**
+- ✅ **No legacy code or fallbacks**
 
-This provides a robust, reliable payroll calculation system that accurately reflects employee attendance using the precise mathematical formulation. 🎯
+This provides a robust, reliable payroll calculation system that accurately reflects employee attendance using the precise mathematical formulation with proper monthly working days handling. 🎯
