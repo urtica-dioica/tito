@@ -9,7 +9,7 @@ import { defaultHoursCalculator } from '../../utils/attendanceHoursCalculator';
 export interface CreateTimeCorrectionData {
   employeeId: string;
   requestDate: Date;
-  sessionType: 'clock_in' | 'clock_out';
+  sessionType: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out';
   requestedTime: Date;
   reason: string;
 }
@@ -105,7 +105,7 @@ export class TimeCorrectionService {
     employeeId?: string;
     departmentId?: string;
     status?: 'pending' | 'approved' | 'rejected';
-    sessionType?: 'clock_in' | 'clock_out';
+    sessionType?: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out';
     startDate?: Date;
     endDate?: Date;
     search?: string;
@@ -241,7 +241,7 @@ export class TimeCorrectionService {
   private async getExistingRequest(
     employeeId: string, 
     requestDate: Date, 
-    sessionType: 'clock_in' | 'clock_out'
+    sessionType: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out'
   ): Promise<TimeCorrectionRequest | null> {
     const query = `
       SELECT 

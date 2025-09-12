@@ -30,7 +30,7 @@ const EmployeeRequests: React.FC = () => {
     endTime: '',
     // Time correction fields
     correctionDate: '',
-    sessionType: 'clock_in' as 'clock_in' | 'clock_out',
+    sessionType: 'morning_in' as 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out',
     requestedTime: '',
     // Common fields
     reason: ''
@@ -153,7 +153,7 @@ const EmployeeRequests: React.FC = () => {
       startTime: '',
       endTime: '',
       correctionDate: '',
-      sessionType: 'clock_in',
+      sessionType: 'morning_in',
       requestedTime: '',
       reason: ''
     });
@@ -255,7 +255,7 @@ const EmployeeRequests: React.FC = () => {
         });
         result = await createTimeCorrectionRequest.mutateAsync({
           correctionDate: formData.correctionDate,
-          sessionType: formData.sessionType as 'clock_in' | 'clock_out',
+          sessionType: formData.sessionType as 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out',
           requestedTime: formData.requestedTime,
           reason: formData.reason
         });
@@ -857,14 +857,16 @@ const EmployeeRequests: React.FC = () => {
                   onChange={(e) => handleInputChange('sessionType', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="clock_in">Clock-In Time</option>
-                  <option value="clock_out">Clock-Out Time</option>
+                  <option value="morning_in">Morning Clock-In</option>
+                  <option value="morning_out">Morning Clock-Out</option>
+                  <option value="afternoon_in">Afternoon Clock-In</option>
+                  <option value="afternoon_out">Afternoon Clock-Out</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-2">
-                  Requested {formData.sessionType === 'clock_in' ? 'Clock-In' : 'Clock-Out'} Time
+                  Requested {formData.sessionType.includes('in') ? 'Clock-In' : 'Clock-Out'} Time
                 </label>
                 <input
                   type="time"

@@ -218,11 +218,25 @@ app.use('*', (req, res) => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
+  try {
+    const { schedulerService } = require('./services/scheduler/schedulerService');
+    schedulerService.stop();
+    console.log('⏰ Scheduler service stopped');
+  } catch (error) {
+    console.warn('⚠️  Failed to stop scheduler service:', error);
+  }
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down gracefully');
+  try {
+    const { schedulerService } = require('./services/scheduler/schedulerService');
+    schedulerService.stop();
+    console.log('⏰ Scheduler service stopped');
+  } catch (error) {
+    console.warn('⚠️  Failed to stop scheduler service:', error);
+  }
   process.exit(0);
 });
 
@@ -257,6 +271,15 @@ const startServer = async () => {
       console.log(`🌍 Environment: ${config.server.nodeEnv}`);
       console.log(`🗄️  Database: ${config.database.host}:${config.database.port}/${config.database.name}`);
       console.log(`🔴 Redis: ${config.redis.host}:${config.redis.port}`);
+      
+      // Start scheduler service
+      try {
+        const { schedulerService } = require('./services/scheduler/schedulerService');
+        schedulerService.start();
+        console.log(`⏰ Scheduler service started`);
+      } catch (error) {
+        console.warn('⚠️  Failed to start scheduler service:', error);
+      }
       
       if (!dbConnected) {
         console.log('⚠️  Server started in limited mode - database features disabled');

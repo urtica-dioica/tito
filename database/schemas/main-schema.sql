@@ -185,7 +185,7 @@ CREATE TABLE time_correction_requests (
     employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
     attendance_session_id UUID REFERENCES attendance_sessions(id) ON DELETE SET NULL,
     correction_date DATE NOT NULL,
-    session_type VARCHAR(50) NOT NULL,
+    session_type VARCHAR(50) NOT NULL CHECK (session_type IN ('morning_in', 'morning_out', 'afternoon_in', 'afternoon_out')),
     requested_clock_in TIMESTAMP,
     requested_clock_out TIMESTAMP,
     reason TEXT NOT NULL,
@@ -717,13 +717,18 @@ DECLARE
     v_session_type VARCHAR(50);
     v_employee_id UUID;
     v_correction_date DATE;
+    v_requested_clock_in TIMESTAMP;
+    v_requested_clock_out TIMESTAMP;
 BEGIN
     IF OLD.status != 'approved' AND NEW.status = 'approved' THEN
         
         v_employee_id := NEW.employee_id;
         v_correction_date := NEW.correction_date;
         v_session_type := NEW.session_type;
+        v_requested_clock_in := NEW.requested_clock_in;
+        v_requested_clock_out := NEW.requested_clock_out;
         
+        -- Create or get attendance record for the correction date
         INSERT INTO attendance_records (employee_id, date, overall_status)
         VALUES (v_employee_id, v_correction_date, 'present')
         ON CONFLICT (employee_id, date) DO NOTHING;
@@ -732,6 +737,7 @@ BEGIN
         FROM attendance_records
         WHERE employee_id = v_employee_id AND date = v_correction_date;
         
+        -- Create or update attendance session with new session types
         INSERT INTO attendance_sessions (
             attendance_record_id, 
             session_type, 
@@ -741,14 +747,16 @@ BEGIN
         ) VALUES (
             v_attendance_record_id,
             v_session_type,
-            NEW.requested_clock_in,
-            NEW.requested_clock_out,
+            v_requested_clock_in,
+            v_requested_clock_out,
             'present'
         ) ON CONFLICT (attendance_record_id, session_type) 
         DO UPDATE SET
-            clock_in = NEW.requested_clock_in,
-            clock_out = NEW.requested_clock_out;
+            clock_in = v_requested_clock_in,
+            clock_out = v_requested_clock_out,
+            updated_at = CURRENT_TIMESTAMP;
         
+        -- Update time correction request with approval timestamp
         UPDATE time_correction_requests 
         SET 
             approved_at = CURRENT_TIMESTAMP,
