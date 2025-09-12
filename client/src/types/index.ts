@@ -195,7 +195,7 @@ export interface TimeCorrectionRequest {
   employeeId: string;
   attendanceSessionId: string | null;
   correctionDate: string; // DATE
-  sessionType: 'clock_in' | 'clock_out';
+  sessionType: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out';
   requestedClockIn: string | null; // TIMESTAMP
   requestedClockOut: string | null; // TIMESTAMP
   reason: string;

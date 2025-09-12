@@ -261,7 +261,7 @@ export class EmployeeService {
    */
   static async createTimeCorrectionRequest(data: {
     correctionDate: string;
-    sessionType: 'clock_in' | 'clock_out';
+    sessionType: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out';
     requestedTime: string;
     reason: string;
   }): Promise<{ success: boolean; message: string; requestId?: string }> {

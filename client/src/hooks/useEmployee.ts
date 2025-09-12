@@ -179,7 +179,7 @@ export const useCreateTimeCorrectionRequest = () => {
   return useMutation({
     mutationFn: (data: {
       correctionDate: string;
-      sessionType: 'clock_in' | 'clock_out';
+      sessionType: 'morning_in' | 'morning_out' | 'afternoon_in' | 'afternoon_out';
       requestedTime: string;
       reason: string;
     }) => EmployeeService.createTimeCorrectionRequest(data),
