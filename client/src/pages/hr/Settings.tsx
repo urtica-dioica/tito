@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Clock, DollarSign, User, Shield, Database } from 'lucide-react';
+import { Settings as SettingsIcon, Clock, DollarSign, Database } from 'lucide-react';
 import Card from '../../components/shared/Card';
 import Input from '../../components/shared/Input';
 import PageLayout from '../../components/layout/PageLayout';
@@ -53,51 +53,37 @@ const Settings: React.FC = () => {
     { id: 'general', label: 'General', icon: SettingsIcon },
     { id: 'attendance', label: 'Attendance', icon: Clock },
     { id: 'payroll', label: 'Payroll', icon: DollarSign },
-    { id: 'users', label: 'Users', icon: User },
-    { id: 'security', label: 'Security', icon: Shield },
     { id: 'system', label: 'System', icon: Database },
   ];
 
   const renderGeneralSettings = () => {
-    const generalSettings = settings.filter(setting => 
-      !setting.settingKey.includes('attendance') && 
-      !setting.settingKey.includes('grace') && 
-      !setting.settingKey.includes('late') && 
-      !setting.settingKey.includes('early') &&
-      !setting.settingKey.includes('payroll') && 
-      !setting.settingKey.includes('overtime') && 
-      !setting.settingKey.includes('monthly') &&
-      !setting.settingKey.includes('max_overtime')
-    );
-
+    // Show a welcome message and overview of all settings
     return (
       <div className="space-y-6">
         <Card>
-          <div className="p-6 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-text-primary">System Configuration</h3>
-            <p className="text-sm text-text-secondary">
-              Configure core system settings and parameters
+          <div className="p-6 text-center">
+            <SettingsIcon className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-text-primary mb-2">System Settings Overview</h3>
+            <p className="text-sm text-text-secondary mb-4">
+              Configure your HR system settings across different categories. Use the tabs above to navigate to specific setting categories.
             </p>
-          </div>
-          <div className="p-6 space-y-4">
-            {generalSettings.map((setting) => (
-              <div key={setting.id} className="flex items-center justify-between">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-text-primary mb-1">
-                    {setting.settingKey.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase())}
-                  </label>
-                  <p className="text-sm text-text-secondary">{setting.description}</p>
-                </div>
-                <div className="w-48">
-                  <Input
-                    type={setting.dataType === 'number' || setting.dataType === 'decimal' ? 'number' : 'text'}
-                    value={setting.settingValue}
-                    onChange={(value: string) => handleSettingChange(setting.settingKey, value)}
-                    className="text-right"
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <Clock className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                <h4 className="font-medium text-blue-900">Attendance</h4>
+                <p className="text-sm text-blue-700">Time tracking and session rules</p>
               </div>
-            ))}
+              <div className="p-4 bg-green-50 rounded-lg">
+                <DollarSign className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                <h4 className="font-medium text-green-900">Payroll</h4>
+                <p className="text-sm text-green-700">Payment and calculation settings</p>
+              </div>
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <Database className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                <h4 className="font-medium text-purple-900">System</h4>
+                <p className="text-sm text-purple-700">Core system configuration</p>
+              </div>
+            </div>
           </div>
         </Card>
       </div>
@@ -148,10 +134,8 @@ const Settings: React.FC = () => {
 
   const renderPayrollSettings = () => {
     const payrollSettings = settings.filter(setting => 
-      setting.settingKey.includes('payroll') || 
-      setting.settingKey.includes('overtime') || 
-      setting.settingKey.includes('monthly') ||
-      setting.settingKey.includes('max_overtime')
+      setting.settingKey.includes('expected_monthly') || 
+      setting.settingKey.includes('overtime_to_leave')
     );
 
     return (
@@ -191,6 +175,61 @@ const Settings: React.FC = () => {
     );
   };
 
+
+  const renderSystemSettings = () => {
+    // Show system information and maintenance settings
+    const systemSettings = settings.filter(setting => 
+      setting.settingKey.includes('qr_code') || 
+      setting.settingKey.includes('selfie_retention') ||
+      setting.settingKey.includes('attendance_calculation_updated')
+    );
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-text-primary">System Configuration</h3>
+            <p className="text-sm text-text-secondary">
+              Core system settings and configuration parameters
+            </p>
+          </div>
+          <div className="p-6 space-y-4">
+            {systemSettings.map((setting) => (
+              <div key={setting.id} className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-text-primary mb-1">
+                    {setting.settingKey.replace(/([A-Z])/g, ' $1').replace(/^./, (str: string) => str.toUpperCase())}
+                  </label>
+                  <p className="text-sm text-text-secondary">{setting.description}</p>
+                </div>
+                <div className="w-48">
+                  <Input
+                    type={setting.dataType === 'number' || setting.dataType === 'decimal' ? 'number' : 'text'}
+                    value={setting.settingValue}
+                    onChange={(value: string) => handleSettingChange(setting.settingKey, value)}
+                    className="text-right"
+                    step={setting.dataType === 'decimal' ? '0.1' : undefined}
+                    min={setting.settingKey.includes('day') || setting.settingKey.includes('year') ? '1' : undefined}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        
+        <Card>
+          <div className="p-6 text-center">
+            <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-text-primary mb-2">System Maintenance</h3>
+            <p className="text-sm text-text-secondary">
+              System maintenance tools will be available in a future update.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'general':
@@ -199,42 +238,8 @@ const Settings: React.FC = () => {
         return renderAttendanceSettings();
       case 'payroll':
         return renderPayrollSettings();
-      case 'users':
-        return (
-          <Card>
-            <div className="p-6 text-center">
-              <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-text-primary mb-2">User Management</h3>
-              <p className="text-sm text-text-secondary">
-                User management settings will be available in a future update.
-              </p>
-            </div>
-          </Card>
-        );
-      case 'security':
-        return (
-          <Card>
-            <div className="p-6 text-center">
-              <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-text-primary mb-2">Security Settings</h3>
-              <p className="text-sm text-text-secondary">
-                Security settings will be available in a future update.
-              </p>
-            </div>
-          </Card>
-        );
       case 'system':
-        return (
-          <Card>
-            <div className="p-6 text-center">
-              <Database className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-text-primary mb-2">System Information</h3>
-              <p className="text-sm text-text-secondary">
-                System information and maintenance tools will be available in a future update.
-              </p>
-            </div>
-          </Card>
-        );
+        return renderSystemSettings();
       default:
         return renderGeneralSettings();
     }

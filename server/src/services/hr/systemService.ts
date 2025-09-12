@@ -7,6 +7,7 @@ export interface SystemSetting {
   settingValue: string;
   dataType: string;
   description: string | null;
+  isEditable: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +47,7 @@ export class SystemService {
         setting_value as "settingValue",
         data_type as "dataType",
         description,
+        true as "isEditable",
         created_at as "createdAt",
         updated_at as "updatedAt"
       FROM system_settings
@@ -67,6 +69,7 @@ export class SystemService {
         setting_value as "settingValue",
         data_type as "dataType",
         description,
+        true as "isEditable",
         created_at as "createdAt",
         updated_at as "updatedAt"
       FROM system_settings
@@ -102,6 +105,7 @@ export class SystemService {
           setting_value as "settingValue",
           data_type as "dataType",
           description,
+          true as "isEditable",
           created_at as "createdAt",
           updated_at as "updatedAt"
       `;
@@ -193,6 +197,7 @@ export class SystemService {
           setting_value as "settingValue",
           data_type as "dataType",
           description,
+          true as "isEditable",
           created_at as "createdAt",
           updated_at as "updatedAt"
       `;
