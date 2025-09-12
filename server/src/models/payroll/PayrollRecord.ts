@@ -12,6 +12,7 @@ export interface PayrollRecord {
   total_overtime_hours: number;
   total_late_hours: number;
   late_deductions: number;
+  paid_leave_hours: number; // Hours from approved leave days
   gross_pay: number;
   net_pay: number;
   total_deductions: number;
@@ -25,6 +26,9 @@ export interface PayrollRecordWithEmployee extends PayrollRecord {
   period_name?: string;
   department_id?: string;
   department_name?: string;
+  approval_status?: 'pending' | 'approved' | 'rejected';
+  approval_approved_at?: Date;
+  approval_comments?: string;
   employee: {
     employee_id: string;
     user: {
@@ -48,6 +52,7 @@ export interface CreatePayrollRecordData {
   total_overtime_hours?: number;
   total_late_hours?: number;
   late_deductions?: number;
+  paid_leave_hours?: number; // Hours from approved leave days
   gross_pay?: number;
   net_pay?: number;
   total_deductions?: number;
@@ -63,6 +68,7 @@ export interface UpdatePayrollRecordData {
   total_overtime_hours?: number;
   total_late_hours?: number;
   late_deductions?: number;
+  paid_leave_hours?: number; // Hours from approved leave days
   gross_pay?: number;
   net_pay?: number;
   total_deductions?: number;
@@ -73,6 +79,7 @@ export interface UpdatePayrollRecordData {
 export interface PayrollRecordListParams {
   payroll_period_id?: string;
   employee_id?: string;
+  department_id?: string;
   status?: string;
   page?: number;
   limit?: number;
@@ -88,26 +95,27 @@ class PayrollRecordModel {
         INSERT INTO payroll_records (
           payroll_period_id, employee_id, base_salary, total_worked_hours, 
           hourly_rate, total_regular_hours, total_overtime_hours, total_late_hours,
-          late_deductions, gross_pay, net_pay, total_deductions, total_benefits, status
+          late_deductions, paid_leave_hours, gross_pay, net_pay, total_deductions, total_benefits, status
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING *
       `;
       const values = [
         data.payroll_period_id,
         data.employee_id,
         data.base_salary,
-        data.total_worked_hours || 176,
-        data.hourly_rate || 0,
-        data.total_regular_hours || 176,
-        data.total_overtime_hours || 0,
-        data.total_late_hours || 0,
-        data.late_deductions || 0,
-        data.gross_pay || 0,
-        data.net_pay || 0,
-        data.total_deductions || 0,
-        data.total_benefits || 0,
-        data.status || 'draft'
+        data.total_worked_hours ?? 0,
+        data.hourly_rate ?? 0,
+        data.total_regular_hours ?? 0,
+        data.total_overtime_hours ?? 0,
+        data.total_late_hours ?? 0,
+        data.late_deductions ?? 0,
+        data.paid_leave_hours ?? 0,
+        data.gross_pay ?? 0,
+        data.net_pay ?? 0,
+        data.total_deductions ?? 0,
+        data.total_benefits ?? 0,
+        data.status ?? 'draft'
       ];
       
       const result = await client.query(query, values);
@@ -223,7 +231,7 @@ class PayrollRecordModel {
   async findAllWithEmployee(params: PayrollRecordListParams = {}): Promise<{ records: PayrollRecordWithEmployee[]; total: number }> {
     const client = await this.pool.connect();
     try {
-      const { page = 1, limit = 10, payroll_period_id, employee_id, status } = params;
+      const { page = 1, limit = 10, payroll_period_id, employee_id, department_id, status } = params;
       const offset = (page - 1) * limit;
       
       let whereClause = '';
@@ -241,6 +249,11 @@ class PayrollRecordModel {
         values.push(employee_id);
       }
 
+      if (department_id) {
+        conditions.push(`e.department_id = $${paramIndex++}`);
+        values.push(department_id);
+      }
+
       if (status) {
         conditions.push(`pr.status = $${paramIndex++}`);
         values.push(status);
@@ -253,21 +266,30 @@ class PayrollRecordModel {
       // Get total count
       const countQuery = `
         SELECT COUNT(*) FROM payroll_records pr
+        JOIN employees e ON pr.employee_id = e.id
         ${whereClause}
       `;
       const countResult = await client.query(countQuery, values);
       const total = parseInt(countResult.rows[0].count);
 
-      // Get records with employee info
+      // Get records with employee info and overall period approval status
       const query = `
         SELECT 
           pr.*,
-          e.employee_id,
+          e.employee_id as employee_display_id,
           e.department_id,
           u.first_name,
           u.last_name,
           d.name as department_name,
-          pp.period_name
+          pp.period_name,
+          pp.status as period_status,
+          CASE 
+            WHEN pp.status = 'completed' THEN 'approved'
+            WHEN pp.status = 'sent_for_review' THEN 'pending'
+            ELSE 'pending'
+          END as approval_status,
+          NULL as approval_approved_at,
+          NULL as approval_comments
         FROM payroll_records pr
         JOIN employees e ON pr.employee_id = e.id
         JOIN users u ON e.user_id = u.id
@@ -284,7 +306,7 @@ class PayrollRecordModel {
       const records: PayrollRecordWithEmployee[] = result.rows.map(row => ({
         id: row.id,
         payroll_period_id: row.payroll_period_id,
-        employee_id: row.employee_id,
+        employee_id: row.employee_id, // This is pr.employee_id (UUID)
         period_name: row.period_name,
         department_id: row.department_id,
         department_name: row.department_name,
@@ -295,6 +317,7 @@ class PayrollRecordModel {
         total_overtime_hours: row.total_overtime_hours,
         total_late_hours: row.total_late_hours,
         late_deductions: row.late_deductions,
+        paid_leave_hours: row.paid_leave_hours || 0,
         gross_pay: row.gross_pay,
         net_pay: row.net_pay,
         total_deductions: row.total_deductions,
@@ -302,8 +325,11 @@ class PayrollRecordModel {
         status: row.status,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        approval_status: row.approval_status,
+        approval_approved_at: row.approval_approved_at,
+        approval_comments: row.approval_comments,
         employee: {
-          employee_id: row.employee_id,
+          employee_id: row.employee_display_id,
           user: {
             first_name: row.first_name,
             last_name: row.last_name
@@ -367,6 +393,11 @@ class PayrollRecordModel {
       if (data.late_deductions !== undefined) {
         fields.push(`late_deductions = $${paramIndex++}`);
         values.push(data.late_deductions);
+      }
+
+      if (data.paid_leave_hours !== undefined) {
+        fields.push(`paid_leave_hours = $${paramIndex++}`);
+        values.push(data.paid_leave_hours);
       }
 
       if (data.gross_pay !== undefined) {

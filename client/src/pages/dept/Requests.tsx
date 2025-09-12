@@ -31,6 +31,7 @@ const DepartmentRequests: React.FC = () => {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('pending');
 
@@ -78,9 +79,13 @@ const DepartmentRequests: React.FC = () => {
   const handleConfirmReject = async () => {
     if (selectedRequest) {
       try {
-        await rejectRequestMutation.mutateAsync({ requestId: selectedRequest.id });
+        await rejectRequestMutation.mutateAsync({ 
+          requestId: selectedRequest.id,
+          reason: rejectionReason || 'Rejected by department head'
+        });
         setIsRejectModalOpen(false);
         setSelectedRequest(null);
+        setRejectionReason('');
       } catch (error) {
         console.error('Error rejecting request:', error);
       }
@@ -251,7 +256,14 @@ const DepartmentRequests: React.FC = () => {
               {filteredRequests.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-text-secondary">No requests found</p>
+                  <p className="text-text-secondary">
+                    {requestsLoading ? 'Loading requests...' : 'No requests found'}
+                  </p>
+                  {!requestsLoading && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      Try adjusting your filters or check back later for new requests.
+                    </p>
+                  )}
                 </div>
               ) : (
                 filteredRequests.map((request) => (
@@ -411,16 +423,36 @@ const DepartmentRequests: React.FC = () => {
       {/* Reject Request Modal */}
       <Modal
         isOpen={isRejectModalOpen}
-        onClose={() => setIsRejectModalOpen(false)}
+        onClose={() => {
+          setIsRejectModalOpen(false);
+          setRejectionReason('');
+        }}
         title="Reject Request"
       >
         {selectedRequest && (
           <div className="space-y-4">
             <p>Are you sure you want to reject this request?</p>
+            
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-2">
+                Rejection Reason (Optional)
+              </label>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Enter reason for rejection..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-button-primary focus:border-transparent resize-none"
+                rows={3}
+              />
+            </div>
+            
             <div className="flex justify-end space-x-3">
               <Button
                 variant="secondary"
-                onClick={() => setIsRejectModalOpen(false)}
+                onClick={() => {
+                  setIsRejectModalOpen(false);
+                  setRejectionReason('');
+                }}
               >
                 Cancel
               </Button>

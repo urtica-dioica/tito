@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Plus, Clock, Calendar, FileText, Eye, Edit, Filter } from 'lucide-react';
+import { Plus, Clock, Calendar, FileText, Eye, Edit, Filter, AlertCircle, CheckCircle } from 'lucide-react';
 import Card from '../../components/shared/Card';
 import Badge from '../../components/shared/Badge';
 import Button from '../../components/shared/Button';
 import Modal from '../../components/shared/Modal';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
-import { useEmployeeRequests, useRequestStats, useLeaveBalance } from '../../hooks/useEmployee';
+import { useEmployeeRequests, useRequestStats, useLeaveBalance, useCreateLeaveRequest, useCreateTimeCorrectionRequest, useCreateOvertimeRequest } from '../../hooks/useEmployee';
 import type { Request } from '../../services/employeeService';
 
 const EmployeeRequests: React.FC = () => {
@@ -17,12 +17,44 @@ const EmployeeRequests: React.FC = () => {
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
+  // Form state
+  const [requestType, setRequestType] = useState<'leave' | 'overtime' | 'time_correction'>('leave');
+  const [formData, setFormData] = useState({
+    // Leave request fields
+    leaveType: 'vacation' as 'vacation' | 'sick' | 'maternity' | 'other',
+    startDate: '',
+    endDate: '',
+    // Overtime request fields
+    overtimeDate: '',
+    startTime: '',
+    endTime: '',
+    // Time correction fields
+    correctionDate: '',
+    sessionType: 'clock_in' as 'clock_in' | 'clock_out',
+    requestedTime: '',
+    // Common fields
+    reason: ''
+  });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Mutation hooks
+  const createLeaveRequest = useCreateLeaveRequest();
+  const createTimeCorrectionRequest = useCreateTimeCorrectionRequest();
+  const createOvertimeRequest = useCreateOvertimeRequest();
+
   // Fetch data from API
   const { data: requests = [], isLoading: requestsLoading, error: requestsError } = useEmployeeRequests({
     type: filterType || undefined,
     status: filterStatus || undefined,
     limit: 50
   });
+
+  // Debug: Log requests data
+  console.log('Requests data:', requests);
+  console.log('Requests count:', requests.length);
+  console.log('Request IDs:', requests.map(r => r.id));
   
   const { data: requestStats, isLoading: statsLoading, error: statsError } = useRequestStats();
   const { data: leaveBalance, isLoading: leaveLoading, error: leaveError } = useLeaveBalance();
@@ -88,8 +120,8 @@ const EmployeeRequests: React.FC = () => {
     switch (type) {
       case 'vacation': return 'Vacation Leave';
       case 'sick': return 'Sick Leave';
-      case 'personal': return 'Personal Leave';
-      case 'emergency': return 'Emergency Leave';
+      case 'maternity': return 'Maternity Leave';
+      case 'other': return 'Other Leave';
       default: return type;
     }
   };
@@ -110,6 +142,146 @@ const EmployeeRequests: React.FC = () => {
 
   const handleCreateRequest = () => {
     setIsCreateModalOpen(true);
+    setSubmitSuccess(false);
+    setFormErrors({});
+    // Reset form data
+    setFormData({
+      leaveType: 'vacation',
+      startDate: '',
+      endDate: '',
+      overtimeDate: '',
+      startTime: '',
+      endTime: '',
+      correctionDate: '',
+      sessionType: 'clock_in',
+      requestedTime: '',
+      reason: ''
+    });
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.reason.trim()) {
+      errors.reason = 'Reason is required';
+    }
+
+    if (requestType === 'leave') {
+      if (!formData.startDate) errors.startDate = 'Start date is required';
+      if (!formData.endDate) errors.endDate = 'End date is required';
+      if (formData.startDate && formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
+        errors.endDate = 'End date must be after start date';
+      }
+    } else if (requestType === 'overtime') {
+      if (!formData.overtimeDate) errors.overtimeDate = 'Overtime date is required';
+      if (!formData.startTime) errors.startTime = 'Start time is required';
+      if (!formData.endTime) errors.endTime = 'End time is required';
+      
+      // Validate time format
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (formData.startTime && !timeRegex.test(formData.startTime)) {
+        errors.startTime = 'Invalid time format. Use HH:MM (e.g., 09:30)';
+      }
+      if (formData.endTime && !timeRegex.test(formData.endTime)) {
+        errors.endTime = 'Invalid time format. Use HH:MM (e.g., 09:30)';
+      }
+      
+      if (formData.startTime && formData.endTime && formData.startTime >= formData.endTime) {
+        errors.endTime = 'End time must be after start time';
+      }
+    } else if (requestType === 'time_correction') {
+      if (!formData.correctionDate) errors.correctionDate = 'Correction date is required';
+      if (!formData.requestedTime) errors.requestedTime = 'Requested time is required';
+      
+      // Validate time format
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (formData.requestedTime && !timeRegex.test(formData.requestedTime)) {
+        errors.requestedTime = 'Invalid time format. Use HH:MM (e.g., 09:30)';
+      }
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('Form submitted!', { requestType, formData });
+    
+    if (!validateForm()) {
+      console.log('Form validation failed:', formErrors);
+      return;
+    }
+
+    console.log('Form validation passed, starting submission...');
+    setIsSubmitting(true);
+    setFormErrors({});
+
+    try {
+      let result;
+
+      if (requestType === 'leave') {
+        console.log('Creating leave request with data:', {
+          leaveType: formData.leaveType,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          reason: formData.reason
+        });
+        result = await createLeaveRequest.mutateAsync({
+          leaveType: formData.leaveType,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          reason: formData.reason
+        });
+      } else if (requestType === 'overtime') {
+        console.log('Creating overtime request with data:', {
+          overtimeDate: formData.overtimeDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          reason: formData.reason
+        });
+        result = await createOvertimeRequest.mutateAsync({
+          overtimeDate: formData.overtimeDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          reason: formData.reason
+        });
+      } else if (requestType === 'time_correction') {
+        console.log('Creating time correction request with data:', {
+          correctionDate: formData.correctionDate,
+          sessionType: formData.sessionType,
+          requestedTime: formData.requestedTime,
+          reason: formData.reason
+        });
+        result = await createTimeCorrectionRequest.mutateAsync({
+          correctionDate: formData.correctionDate,
+          sessionType: formData.sessionType as 'clock_in' | 'clock_out',
+          requestedTime: formData.requestedTime,
+          reason: formData.reason
+        });
+      }
+
+      if (result?.success) {
+        setSubmitSuccess(true);
+        setTimeout(() => {
+          setIsCreateModalOpen(false);
+          setSubmitSuccess(false);
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error('Error creating request:', error);
+      setFormErrors({ submit: error?.response?.data?.message || 'Failed to create request. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   return (
@@ -137,19 +309,27 @@ const EmployeeRequests: React.FC = () => {
               {leaveBalance ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">{leaveBalance.vacation.available}</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {typeof leaveBalance.vacation === 'object' ? (leaveBalance.vacation as any).available : leaveBalance.vacation}
+                    </p>
                     <p className="text-sm text-text-secondary">Vacation Days</p>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">{leaveBalance.sick.available}</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {typeof leaveBalance.sick === 'object' ? (leaveBalance.sick as any).available : leaveBalance.sick}
+                    </p>
                     <p className="text-sm text-text-secondary">Sick Days</p>
                   </div>
                   <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <p className="text-2xl font-bold text-purple-600">{leaveBalance.other.available}</p>
-                    <p className="text-sm text-text-secondary">Personal Days</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {typeof leaveBalance.other === 'object' ? (leaveBalance.other as any).available : leaveBalance.other}
+                    </p>
+                    <p className="text-sm text-text-secondary">Other Days</p>
                   </div>
                   <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <p className="text-2xl font-bold text-red-600">{leaveBalance.maternity.available}</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {typeof leaveBalance.maternity === 'object' ? (leaveBalance.maternity as any).available : leaveBalance.maternity}
+                    </p>
                     <p className="text-sm text-text-secondary">Maternity Days</p>
                   </div>
                 </div>
@@ -471,19 +651,274 @@ const EmployeeRequests: React.FC = () => {
         title="Create New Request"
         size="lg"
       >
-        <div className="space-y-4">
-          <p className="text-sm text-text-secondary">
-            Request creation form will be implemented in a future update.
-          </p>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Success Message */}
+          {submitSuccess && (
+            <div className="flex items-center space-x-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              <p className="text-green-800 font-medium">Request submitted successfully!</p>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {formErrors.submit && (
+            <div className="flex items-center space-x-2 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+              <p className="text-red-800">{formErrors.submit}</p>
+            </div>
+          )}
+
+          {/* Request Type Selection */}
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-3">
+              Request Type
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => setRequestType('leave')}
+                className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                  requestType === 'leave'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <Calendar className="h-6 w-6 mx-auto mb-2" />
+                <span className="text-sm font-medium">Leave Request</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRequestType('overtime')}
+                className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                  requestType === 'overtime'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <Clock className="h-6 w-6 mx-auto mb-2" />
+                <span className="text-sm font-medium">Overtime Request</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRequestType('time_correction')}
+                className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                  requestType === 'time_correction'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <FileText className="h-6 w-6 mx-auto mb-2" />
+                <span className="text-sm font-medium">Time Correction</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Leave Request Fields */}
+          {requestType === 'leave' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Leave Type
+                </label>
+                <select
+                  value={formData.leaveType}
+                  onChange={(e) => handleInputChange('leaveType', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="vacation">Vacation Leave</option>
+                  <option value="sick">Sick Leave</option>
+                  <option value="maternity">Maternity Leave</option>
+                  <option value="other">Other Leave</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => handleInputChange('startDate', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      formErrors.startDate ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {formErrors.startDate && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.startDate}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => handleInputChange('endDate', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      formErrors.endDate ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {formErrors.endDate && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.endDate}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Overtime Request Fields */}
+          {requestType === 'overtime' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Overtime Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.overtimeDate}
+                  onChange={(e) => handleInputChange('overtimeDate', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    formErrors.overtimeDate ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {formErrors.overtimeDate && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.overtimeDate}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => handleInputChange('startTime', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      formErrors.startTime ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {formErrors.startTime && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.startTime}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-primary mb-2">
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => handleInputChange('endTime', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      formErrors.endTime ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  />
+                  {formErrors.endTime && (
+                    <p className="text-red-500 text-xs mt-1">{formErrors.endTime}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Time Correction Request Fields */}
+          {requestType === 'time_correction' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Correction Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.correctionDate}
+                  onChange={(e) => handleInputChange('correctionDate', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    formErrors.correctionDate ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {formErrors.correctionDate && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.correctionDate}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Session Type
+                </label>
+                <select
+                  value={formData.sessionType}
+                  onChange={(e) => handleInputChange('sessionType', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="clock_in">Clock-In Time</option>
+                  <option value="clock_out">Clock-Out Time</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-2">
+                  Requested {formData.sessionType === 'clock_in' ? 'Clock-In' : 'Clock-Out'} Time
+                </label>
+                <input
+                  type="time"
+                  value={formData.requestedTime}
+                  onChange={(e) => handleInputChange('requestedTime', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    formErrors.requestedTime ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {formErrors.requestedTime && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.requestedTime}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Reason Field */}
+          <div>
+            <label className="block text-sm font-medium text-text-primary mb-2">
+              Reason <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={formData.reason}
+              onChange={(e) => handleInputChange('reason', e.target.value)}
+              rows={3}
+              placeholder="Please provide a reason for this request..."
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                formErrors.reason ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {formErrors.reason && (
+              <p className="text-red-500 text-xs mt-1">{formErrors.reason}</p>
+            )}
+          </div>
+
+          {/* Submit Buttons */}
           <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-            <Button variant="secondary" onClick={() => setIsCreateModalOpen(false)}>
+            <Button 
+              type="button"
+              variant="secondary" 
+              onClick={() => setIsCreateModalOpen(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
-            <Button variant="primary">
-              Create Request
-            </Button>
+            <button 
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Request'}
+            </button>
           </div>
-        </div>
+        </form>
       </Modal>
 
       {/* Edit Request Modal */}

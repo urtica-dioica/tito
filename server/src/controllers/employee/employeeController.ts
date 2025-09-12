@@ -370,6 +370,7 @@ export class EmployeeController {
     try {
       const requestId = generateRequestId();
       const userId = req.user?.userId;
+      const { year, month, page = 1, limit = 10 } = req.query;
 
       if (!userId) {
         res.status(401).json({
@@ -380,11 +381,23 @@ export class EmployeeController {
         return;
       }
 
-      // const { year, month, page = 1, limit = 10 } = req.query;
-      
-      // This would typically query paystubs from the database
-      // For now, returning placeholder data
-      const paystubs: any[] = [];
+      // Get employee ID from user ID
+      const employeeId = await employeeService.getEmployeeIdByUserId(userId);
+      if (!employeeId) {
+        res.status(404).json({
+          success: false,
+          message: 'Employee not found for this user',
+          requestId
+        });
+        return;
+      }
+
+      const paystubs = await employeeService.getEmployeePaystubs(employeeId, {
+        year: year ? parseInt(year as string) : undefined,
+        month: month ? parseInt(month as string) : undefined,
+        page: parseInt(page as string),
+        limit: parseInt(limit as string)
+      });
       
       res.json({
         success: true,
@@ -399,6 +412,130 @@ export class EmployeeController {
         success: false,
         message: 'Failed to retrieve paystubs',
         error: error instanceof Error ? error.message : 'Unknown error',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Download paystub as PDF
+   */
+  async downloadPaystubPDF(req: Request, res: Response): Promise<void> {
+    const requestId = generateRequestId();
+    
+    try {
+      const userId = req.user?.userId;
+      const { paystubId } = req.params;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User ID not found in token',
+          requestId
+        });
+        return;
+      }
+
+      if (!paystubId) {
+        res.status(400).json({
+          success: false,
+          message: 'Paystub ID is required',
+          requestId
+        });
+        return;
+      }
+
+      const employeeId = await employeeService.getEmployeeIdByUserId(userId);
+      if (!employeeId) {
+        res.status(404).json({
+          success: false,
+          message: 'Employee not found',
+          requestId
+        });
+        return;
+      }
+
+      const pdfBuffer = await employeeService.downloadPaystubPDF(employeeId, paystubId);
+      
+      // Set response headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="paystub-${paystubId}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      logger.error('Error downloading paystub PDF', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId,
+        userId: req.user?.userId,
+        paystubId: req.params.paystubId
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to download paystub PDF',
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Download paystub as Excel
+   */
+  async downloadPaystubExcel(req: Request, res: Response): Promise<void> {
+    const requestId = generateRequestId();
+    
+    try {
+      const userId = req.user?.userId;
+      const { paystubId } = req.params;
+      
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'User ID not found in token',
+          requestId
+        });
+        return;
+      }
+
+      if (!paystubId) {
+        res.status(400).json({
+          success: false,
+          message: 'Paystub ID is required',
+          requestId
+        });
+        return;
+      }
+
+      const employeeId = await employeeService.getEmployeeIdByUserId(userId);
+      if (!employeeId) {
+        res.status(404).json({
+          success: false,
+          message: 'Employee not found',
+          requestId
+        });
+        return;
+      }
+
+      const excelBuffer = await employeeService.downloadPaystubExcel(employeeId, paystubId);
+      
+      // Set response headers for Excel download
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="paystub-${paystubId}.xlsx"`);
+      res.setHeader('Content-Length', excelBuffer.length);
+      
+      res.send(excelBuffer);
+    } catch (error) {
+      logger.error('Error downloading paystub Excel', { 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        requestId,
+        userId: req.user?.userId,
+        paystubId: req.params.paystubId
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to download paystub Excel',
         requestId
       });
     }
@@ -421,9 +558,18 @@ export class EmployeeController {
         return;
       }
 
-      // This would typically query the latest paystub from the database
-      // For now, returning placeholder data
-      const paystub = null;
+      // Get employee ID from user ID
+      const employeeId = await employeeService.getEmployeeIdByUserId(userId);
+      if (!employeeId) {
+        res.status(404).json({
+          success: false,
+          message: 'Employee not found for this user',
+          requestId
+        });
+        return;
+      }
+
+      const paystub = await employeeService.getLatestPaystub(employeeId);
       
       res.json({
         success: true,

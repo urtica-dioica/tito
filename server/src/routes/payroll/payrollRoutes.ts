@@ -54,6 +54,13 @@ router.delete('/periods/:id', authorize(['hr']), payrollController.deletePayroll
 router.post('/periods/:id/generate', authorize(['hr']), payrollController.generatePayrollRecords.bind(payrollController));
 
 /**
+ * @route POST /api/v1/payroll/periods/:id/reprocess
+ * @desc Reprocess payroll records for a period (clears existing and regenerates)
+ * @access HR Admin
+ */
+router.post('/periods/:id/reprocess', authorize(['hr']), payrollController.reprocessPayrollRecords.bind(payrollController));
+
+/**
  * @route GET /api/v1/payroll/periods/:id/summary
  * @desc Get payroll period summary
  * @access HR Admin
@@ -89,6 +96,13 @@ router.get('/records/:id', authorize(['hr']), payrollController.getPayrollRecord
 router.get('/stats', authorize(['hr']), payrollController.getPayrollStats.bind(payrollController));
 
 /**
+ * @route PUT /api/v1/payroll/records/bulk-paid
+ * @desc Bulk update payroll records to paid status
+ * @access HR Admin
+ */
+router.put('/records/bulk-paid', authorize(['hr']), payrollController.bulkUpdatePayrollRecordsToPaid.bind(payrollController));
+
+/**
  * @route PUT /api/v1/payroll/records/:id
  * @desc Update payroll record
  * @access HR Admin
@@ -101,6 +115,41 @@ router.put('/records/:id', authorize(['hr']), payrollController.updatePayrollRec
  * @access HR Admin
  */
 router.post('/records/:id/approve', authorize(['hr']), payrollController.approvePayrollRecord.bind(payrollController));
+
+/**
+ * @route PUT /api/v1/payroll/records/:id/status
+ * @desc Update payroll record status
+ * @access HR Admin
+ */
+router.put('/records/:id/status', authorize(['hr']), payrollController.updatePayrollRecordStatus.bind(payrollController));
+
+/**
+ * @route PUT /api/v1/payroll/periods/:id/complete
+ * @desc Complete payroll period (mark as completed when all departments approve)
+ * @access HR Admin
+ */
+router.put('/periods/:id/complete', authorize(['hr']), payrollController.completePayrollPeriod.bind(payrollController));
+
+/**
+ * @route PUT /api/v1/payroll/periods/:id/records/status
+ * @desc Bulk update payroll records status for a period
+ * @access HR Admin
+ */
+router.put('/periods/:id/records/status', authorize(['hr']), payrollController.bulkUpdatePayrollRecordsStatus.bind(payrollController));
+
+/**
+ * @route GET /api/v1/payroll/periods/:id/export/paystubs/pdf
+ * @desc Export all employee paystubs for a period as PDF
+ * @access HR Admin
+ */
+router.get('/periods/:id/export/paystubs/pdf', authorize(['hr']), payrollController.exportPeriodPaystubsPDF.bind(payrollController));
+
+/**
+ * @route GET /api/v1/payroll/periods/:id/export/paystubs/department/pdf
+ * @desc Export department employee paystubs for a period as PDF
+ * @access Department Head
+ */
+router.get('/periods/:id/export/paystubs/department/pdf', authorize(['department_head']), payrollController.exportDepartmentPaystubsPDF.bind(payrollController));
 
 /**
  * @route POST /api/v1/payroll/records/:id/mark-paid

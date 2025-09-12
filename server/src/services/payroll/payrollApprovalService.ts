@@ -189,7 +189,7 @@ export class PayrollApprovalService {
     return await this.payrollApprovalModel.deletePayrollApproval(id);
   }
 
-  private async checkAndUpdatePayrollPeriodStatus(payrollPeriodId: string): Promise<void> {
+  async checkAndUpdatePayrollPeriodStatus(payrollPeriodId: string): Promise<void> {
     const { getPool } = await import('../../config/database');
     const pool = getPool();
     
@@ -203,20 +203,33 @@ export class PayrollApprovalService {
     
     const approvalsResult = await pool.query(approvalsQuery, [payrollPeriodId]);
     
+    logger.info('Checking payroll period status', {
+      payrollPeriodId,
+      approvalsResult: approvalsResult.rows
+    });
+    
     const totalApprovals = approvalsResult.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
     const approvedCount = approvalsResult.rows.find(r => r.status === 'approved')?.count || 0;
     const rejectedCount = approvalsResult.rows.find(r => r.status === 'rejected')?.count || 0;
+
+    logger.info('Approval counts', {
+      payrollPeriodId,
+      totalApprovals,
+      approvedCount,
+      rejectedCount
+    });
 
     let newStatus: string;
     
     if (rejectedCount > 0) {
       // If any approval is rejected, mark as draft
       newStatus = 'draft';
-    } else if (approvedCount === totalApprovals) {
+    } else if (approvedCount === totalApprovals && totalApprovals > 0) {
       // If all approvals are approved, mark as completed
       newStatus = 'completed';
     } else {
       // Still pending
+      logger.info('Payroll period still pending', { payrollPeriodId });
       return;
     }
 
@@ -228,6 +241,34 @@ export class PayrollApprovalService {
     `;
     
     await pool.query(updateQuery, [newStatus, payrollPeriodId]);
+    
+    logger.info('Updated payroll period status', {
+      payrollPeriodId,
+      newStatus
+    });
+  }
+
+  /**
+   * Reset approval status for all approvals in a payroll period
+   * This is used when reprocessing payroll to require re-approval
+   */
+  async resetApprovalStatusForPeriod(payrollPeriodId: string): Promise<void> {
+    const { getPool } = await import('../../config/database');
+    const pool = getPool();
+    
+    // Reset all approvals for this period to pending
+    await pool.query(
+      'UPDATE payroll_approvals SET status = $1, comments = NULL, approved_at = NULL, updated_at = NOW() WHERE payroll_period_id = $2',
+      ['pending', payrollPeriodId]
+    );
+    
+    // Reset payroll period status to sent_for_review
+    await pool.query(
+      'UPDATE payroll_periods SET status = $1, updated_at = NOW() WHERE id = $2',
+      ['sent_for_review', payrollPeriodId]
+    );
+    
+    logger.info(`Reset approval status for payroll period ${payrollPeriodId}`);
   }
 
   async getApprovalWorkflowStatus(payrollPeriodId: string): Promise<{

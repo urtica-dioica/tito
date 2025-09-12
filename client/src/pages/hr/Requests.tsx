@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Clock, Calendar, User, Filter, Eye } from 'lucide-react';
+import { FileText, Clock, Calendar, User, Filter, Eye, CalendarDays, Timer, UserCheck, CheckCircle } from 'lucide-react';
 import Button from '../../components/shared/Button';
 import Card from '../../components/shared/Card';
 import Badge from '../../components/shared/Badge';
@@ -88,6 +88,169 @@ const Requests: React.FC = () => {
       case 'approved': return 'success';
       case 'rejected': return 'error';
       default: return 'default';
+    }
+  };
+
+  const renderRequestDetails = (request: Request) => {
+    const { type, details } = request;
+
+    switch (type) {
+      case 'leave':
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  Leave Type
+                </label>
+                <p className="text-text-primary capitalize">{details.leaveType || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                  <Timer className="h-4 w-4 mr-2" />
+                  Total Days
+                </label>
+                <p className="text-text-primary">{details.totalDays || 'N/A'}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Start Date
+                </label>
+                <p className="text-text-primary">
+                  {details.startDate ? new Date(details.startDate).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  End Date
+                </label>
+                <p className="text-text-primary">
+                  {details.endDate ? new Date(details.endDate).toLocaleDateString() : 'N/A'}
+                </p>
+              </div>
+            </div>
+            {details.reason && (
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Reason
+                </label>
+                <p className="text-text-primary">{details.reason}</p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'time_correction':
+        return (
+          <div className="space-y-4">
+            <div>
+              <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                <Calendar className="h-4 w-4 mr-2" />
+                Correction Date
+              </label>
+              <p className="text-text-primary">
+                {details.date ? new Date(details.date).toLocaleDateString() : 'N/A'}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Requested Clock In
+                </label>
+                <p className="text-text-primary">
+                  {details.requestedClockIn ? new Date(details.requestedClockIn).toLocaleTimeString() : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Requested Clock Out
+                </label>
+                <p className="text-text-primary">
+                  {details.requestedClockOut ? new Date(details.requestedClockOut).toLocaleTimeString() : 'N/A'}
+                </p>
+              </div>
+            </div>
+            {details.reason && (
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Reason
+                </label>
+                <p className="text-text-primary">{details.reason}</p>
+              </div>
+            )}
+            {details.comments && (
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Comments
+                </label>
+                <p className="text-text-primary">{details.comments}</p>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'overtime':
+        return (
+          <div className="space-y-4">
+            <div>
+              <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                <Calendar className="h-4 w-4 mr-2" />
+                Overtime Date
+              </label>
+              <p className="text-text-primary">
+                {details.date ? new Date(details.date).toLocaleDateString() : 'N/A'}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Start Time
+                </label>
+                <p className="text-text-primary">{details.startTime || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  End Time
+                </label>
+                <p className="text-text-primary">{details.endTime || 'N/A'}</p>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text-secondary mb-1">
+                Hours
+              </label>
+              <p className="text-text-primary">{details.hours || 'N/A'}</p>
+            </div>
+            {details.reason && (
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Reason
+                </label>
+                <p className="text-text-primary">{details.reason}</p>
+              </div>
+            )}
+            {details.comments && (
+              <div>
+                <label className="block text-sm font-medium text-text-secondary mb-1">
+                  Comments
+                </label>
+                <p className="text-text-primary">{details.comments}</p>
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return (
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <pre className="text-sm text-text-primary whitespace-pre-wrap">
+              {JSON.stringify(details, null, 2)}
+            </pre>
+          </div>
+        );
     }
   };
 
@@ -290,15 +453,17 @@ const Requests: React.FC = () => {
       >
         {selectedRequest && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                  <FileText className="h-4 w-4 mr-2" />
                   Request Type
                 </label>
                 <p className="text-text-primary">{getRequestTypeLabel(selectedRequest.type)}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                  <CheckCircle className="h-4 w-4 mr-2" />
                   Status
                 </label>
                 <Badge variant={getStatusColor(selectedRequest.status)}>
@@ -306,18 +471,49 @@ const Requests: React.FC = () => {
                 </Badge>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                  <User className="h-4 w-4 mr-2" />
                   Employee
                 </label>
                 <p className="text-text-primary">{selectedRequest.employeeName}</p>
                 <p className="text-sm text-text-secondary">{selectedRequest.employeeId}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-secondary mb-1">
+                <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                  <UserCheck className="h-4 w-4 mr-2" />
                   Department
                 </label>
                 <p className="text-text-primary">{selectedRequest.departmentName}</p>
               </div>
+              <div>
+                <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Submitted At
+                </label>
+                <p className="text-text-primary">
+                  {new Date(selectedRequest.submittedAt).toLocaleString()}
+                </p>
+              </div>
+              {selectedRequest.approverName && (
+                <div>
+                  <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                    <UserCheck className="h-4 w-4 mr-2" />
+                    Approved By
+                  </label>
+                  <p className="text-text-primary">{selectedRequest.approverName}</p>
+                </div>
+              )}
+              {selectedRequest.approvedAt && (
+                <div>
+                  <label className="flex items-center text-sm font-medium text-text-secondary mb-1">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Approved At
+                  </label>
+                  <p className="text-text-primary">
+                    {new Date(selectedRequest.approvedAt).toLocaleString()}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
@@ -325,9 +521,7 @@ const Requests: React.FC = () => {
                 Request Details
               </label>
               <div className="bg-gray-50 p-4 rounded-lg">
-                <pre className="text-sm text-text-primary whitespace-pre-wrap">
-                  {JSON.stringify(selectedRequest.details, null, 2)}
-                </pre>
+                {renderRequestDetails(selectedRequest)}
               </div>
             </div>
 

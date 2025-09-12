@@ -1,167 +1,212 @@
-import React, { useState } from 'react';
-import { DollarSign, Calendar, Users, Eye, Download, FileText, CheckCircle, XCircle, Search } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { DollarSign, Calendar, Users, Eye, Download, FileText, CheckCircle, XCircle } from 'lucide-react';
 import Button from '../../components/shared/Button';
 import Badge from '../../components/shared/Badge';
-import Card from '../../components/shared/Card';
-import Modal from '../../components/shared/Modal';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
 import PayrollPeriodDetailsModal from '../../components/features/PayrollPeriodDetailsModal';
 import { 
   useDepartmentHeadPayrollPeriods, 
   useDepartmentHeadPayrollRecords, 
-  useDepartmentHeadPayrollStats,
-  useDepartmentHeadPayrollApprovals
+  useDepartmentHeadPayrollStats
 } from '../../hooks/useDepartmentHead';
-import type { PayrollPeriod, PayrollRecord } from '../../types';
+import { PayrollService } from '../../services/payrollService';
+import type { PayrollPeriod } from '../../types';
 
 const DepartmentPayrolls: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
-  const [selectedApproval, setSelectedApproval] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Fetch real data from API
-  const { data: payrollPeriods, isLoading: periodsLoading, error: periodsError } = useDepartmentHeadPayrollPeriods();
-  const { data: payrollRecords, isLoading: recordsLoading } = useDepartmentHeadPayrollRecords(selectedPeriod?.id || '');
-  const { data: stats, isLoading: statsLoading, error: statsError } = useDepartmentHeadPayrollStats();
-  const { data: approvals, refetch: refetchApprovals } = useDepartmentHeadPayrollApprovals();
+  const { data: payrollPeriods, isLoading: periodsLoading, error: periodsError, refetch: refetchPeriods } = useDepartmentHeadPayrollPeriods();
+  
+  // Memoized function to get unique payroll periods
+  const uniquePayrollPeriods = useMemo(() => {
+    if (!payrollPeriods) return [];
+    
+    // Only log duplicates in development
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      const duplicateIds = payrollPeriods
+        .map((p: any) => p.id)
+        .filter((id: string, index: number, self: string[]) => self.indexOf(id) !== index);
+      
+      if (duplicateIds.length > 0) {
+        console.warn('Duplicate payroll period IDs found:', duplicateIds);
+      }
+    }
+    
+    return payrollPeriods
+      .filter((period: any, index: number, self: any[]) => 
+        // Remove duplicates based on period ID
+        index === self.findIndex((p: any) => p.id === period.id)
+      )
+      .map((period: any, index: number) => ({
+        ...period,
+        uniqueKey: `period-${period.id || index}`
+      }));
+  }, [payrollPeriods]);
+  // Only fetch payroll records when a period is selected
+  const { data: payrollRecords, isLoading: recordsLoading, refetch: refetchRecords } = useDepartmentHeadPayrollRecords(selectedPeriod?.id || '');
+  const { data: stats, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useDepartmentHeadPayrollStats();
 
-  const handleViewPeriod = (period: any) => {
+  const handleViewPeriod = useCallback((period: any) => {
     setSelectedPeriod(period);
     setIsViewModalOpen(true);
-  };
+  }, []);
 
-  const handleReviewPayroll = (approval: any) => {
-    setSelectedApproval(approval);
-    setIsApprovalModalOpen(true);
-  };
-
-  const confirmApproval = async (approvalId: string, status: 'approved' | 'rejected', comments?: string) => {
-    try {
-      // Call API to approve/reject payroll
-      const { DepartmentHeadService } = await import('../../services/departmentHeadService');
-      await DepartmentHeadService.approvePayrollApproval(approvalId, status, comments);
-      
-      await refetchApprovals();
-      setIsApprovalModalOpen(false);
-      setSelectedApproval(null);
-      alert(`Payroll ${status} successfully!`);
-    } catch (error) {
-      console.error('Error approving payroll:', error);
-      alert(`Failed to ${status} payroll. Please try again.`);
-    }
-  };
 
   const handleApprovePayroll = async (periodId: string, comments?: string) => {
+    setIsApproving(true);
+    setFeedbackMessage(null);
+    
     try {
       // Find the approval ID for this period
-      const approval = approvals?.find((a: any) => a.payrollPeriodId === periodId);
-      if (!approval) {
-        alert('Approval record not found');
-        return;
+      const period = payrollPeriods?.find((p: any) => p.id === periodId);
+      if (!period || !period.approvalId) {
+        throw new Error('Approval ID not found for this period');
       }
       
-      await confirmApproval(approval.id, 'approved', comments);
+      // Call API to approve payroll using approval ID
+      const { DepartmentHeadService } = await import('../../services/departmentHeadService');
+      await DepartmentHeadService.approvePayrollApproval(period.approvalId, 'approved', comments);
+      
+      // Refresh all data
+      await Promise.all([
+        refetchPeriods(),
+        refetchStats(),
+        refetchRecords()
+      ]);
+      
+      setFeedbackMessage({ type: 'success', message: 'Payroll approved successfully!' });
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setFeedbackMessage(null), 3000);
     } catch (error) {
       console.error('Error approving payroll:', error);
-      alert('Failed to approve payroll. Please try again.');
+      setFeedbackMessage({ type: 'error', message: 'Failed to approve payroll. Please try again.' });
+      
+      // Auto-hide error message after 5 seconds
+      setTimeout(() => setFeedbackMessage(null), 5000);
+    } finally {
+      setIsApproving(false);
     }
   };
 
   const handleRejectPayroll = async (periodId: string, reason?: string) => {
+    setIsRejecting(true);
+    setFeedbackMessage(null);
+    
     try {
       // Find the approval ID for this period
-      const approval = approvals?.find((a: any) => a.payrollPeriodId === periodId);
-      if (!approval) {
-        alert('Approval record not found');
+      const period = payrollPeriods?.find((p: any) => p.id === periodId);
+      if (!period || !period.approvalId) {
+        throw new Error('Approval ID not found for this period');
+      }
+      
+      // Call API to reject payroll using approval ID
+      const { DepartmentHeadService } = await import('../../services/departmentHeadService');
+      await DepartmentHeadService.approvePayrollApproval(period.approvalId, 'rejected', reason);
+      
+      // Refresh all data
+      await Promise.all([
+        refetchPeriods(),
+        refetchStats(),
+        refetchRecords()
+      ]);
+      
+      setFeedbackMessage({ type: 'success', message: 'Payroll rejected successfully!' });
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setFeedbackMessage(null), 3000);
+    } catch (error) {
+      console.error('Error rejecting payroll:', error);
+      setFeedbackMessage({ type: 'error', message: 'Failed to reject payroll. Please try again.' });
+      
+      // Auto-hide error message after 5 seconds
+      setTimeout(() => setFeedbackMessage(null), 5000);
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
+  const handleDownloadPaystubs = useCallback(async (period: any) => {
+    try {
+      console.log(`Downloading department paystubs for period: ${period.periodName}`);
+      
+      const response = await PayrollService.exportDepartmentPaystubsPDF(period.id);
+      
+      // Check if response is a valid Blob
+      if (!(response instanceof Blob)) {
+        console.error('Invalid response type:', typeof response, response);
+        alert('Invalid response from server. Please try again.');
         return;
       }
       
-      await confirmApproval(approval.id, 'rejected', reason);
+      // Create download link
+      const url = window.URL.createObjectURL(response);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `department-paystubs-${period.periodName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log('Department paystubs download completed successfully');
     } catch (error) {
-      console.error('Error rejecting payroll:', error);
-      alert('Failed to reject payroll. Please try again.');
+      console.error('Error downloading department paystubs:', error);
+      alert('Failed to download paystubs. Please try again.');
     }
-  };
+  }, []);
 
-  const formatCurrency = (amount: number | string | null | undefined) => {
-    // Convert to number and handle various input types
-    const numericAmount = typeof amount === 'string' ? parseFloat(amount) : Number(amount);
-    
-    // Check if the conversion resulted in a valid number
-    if (isNaN(numericAmount) || numericAmount === null || numericAmount === undefined) {
-      return new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: 'PHP'
-      }).format(0);
-    }
-    
-    return new Intl.NumberFormat('en-PH', {
-      style: 'currency',
-      currency: 'PHP'
-    }).format(numericAmount);
-  };
-
-  // Convert DepartmentHeadPayrollRecord to PayrollRecord
-  const convertToPayrollRecords = (records: any[] | undefined): PayrollRecord[] | null => {
-    if (!records) return null;
-    return records.map(record => ({
+  // Memoized conversion function
+  const convertedPayrollRecords = useMemo(() => {
+    if (!payrollRecords) return null;
+    return payrollRecords.map(record => ({
       id: record.id,
       payrollPeriodId: record.periodId,
       employeeId: record.employeeId,
       employeeName: record.employeeName,
+      position: record.position,
       baseSalary: record.baseSalary,
-      totalWorkedHours: 0, // Default values for missing fields
-      hourlyRate: 0,
-      totalRegularHours: 0,
-      totalOvertimeHours: 0,
-      totalLateHours: 0,
-      lateDeductions: 0,
-      grossPay: record.baseSalary + (record.overtimePay || 0) + (record.bonuses || 0),
+      totalWorkedHours: record.totalWorkedHours,
+      hourlyRate: record.hourlyRate,
+      totalRegularHours: record.totalRegularHours,
+      totalOvertimeHours: record.totalOvertimeHours,
+      totalLateHours: record.totalLateHours,
+      lateDeductions: record.lateDeductions,
+      paidLeaveHours: record.paidLeaveHours || 0,
+      grossPay: record.grossPay,
       netPay: record.netPay,
-      totalDeductions: record.deductions || 0,
-      totalBenefits: record.bonuses || 0,
-      status: 'processed' as const,
-      deductions: [], // Add missing deductions property
+      totalDeductions: record.totalDeductions,
+      totalBenefits: record.totalBenefits,
+      status: record.status as 'draft' | 'processed' | 'paid',
+      deductions: [], // Empty array for deductions
       createdAt: record.createdAt,
       updatedAt: record.updatedAt
     }));
-  };
+  }, [payrollRecords]);
 
-  // Filter payroll records based on search term
-  const filteredRecords = selectedApproval?.payrollRecords?.filter((record: any) => 
-    record.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge variant="success">Completed</Badge>;
-      case 'processing':
-        return <Badge variant="warning">Processing</Badge>;
-      case 'draft':
-        return <Badge variant="default">Draft</Badge>;
+  const getApprovalStatusBadge = useCallback((approvalStatus: string) => {
+    switch (approvalStatus) {
+      case 'approved':
+        return <Badge variant="success">Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="error">Rejected</Badge>;
+      case 'pending':
+        return <Badge variant="warning">Pending</Badge>;
       default:
-        return <Badge variant="default">{status}</Badge>;
+        return <Badge variant="default">Unknown</Badge>;
     }
-  };
+  }, []);
 
-  // Helper function to get unique pending approvals
-  const getUniquePendingApprovals = () => {
-    if (!approvals) return [];
-    return approvals
-      .filter((a: any) => a.status === 'pending')
-      .filter((approval: any, index: number, self: any[]) => 
-        // Remove duplicates based on approval ID or payroll period ID
-        index === self.findIndex((a: any) => a.id === approval.id || a.payrollPeriodId === approval.payrollPeriodId)
-      );
-  };
 
-  // Loading state
-  if (periodsLoading || statsLoading) {
+  // Loading state - only show loading if both critical data are loading
+  if (periodsLoading && statsLoading) {
     return (
       <PageLayout title="Department Payrolls" subtitle="Loading payroll information...">
         <div className="flex justify-center items-center h-64">
@@ -171,8 +216,8 @@ const DepartmentPayrolls: React.FC = () => {
     );
   }
 
-  // Error state
-  if (periodsError || statsError) {
+  // Error state - only show error if both critical data failed
+  if (periodsError && statsError) {
     return (
       <PageLayout title="Department Payrolls" subtitle="Error loading payroll data">
         <div className="text-center py-12">
@@ -189,39 +234,29 @@ const DepartmentPayrolls: React.FC = () => {
       title="Department Payrolls"
       subtitle="View payroll information for your department employees"
     >
-      {/* Pending Approvals Section */}
-      {approvals && approvals.length > 0 && (
-        <div className="mb-6">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-text-primary">Pending Payroll Approvals</h3>
-              <Badge variant="warning">{getUniquePendingApprovals().length} Pending</Badge>
+      {/* Feedback Message */}
+      {feedbackMessage && (
+        <div className={`mb-4 p-4 rounded-lg border ${
+          feedbackMessage.type === 'success' 
+            ? 'bg-green-50 border-green-200 text-green-800' 
+            : 'bg-red-50 border-red-200 text-red-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {feedbackMessage.type === 'success' ? (
+                <CheckCircle className="h-5 w-5 mr-2" />
+              ) : (
+                <XCircle className="h-5 w-5 mr-2" />
+              )}
+              <span className="font-medium">{feedbackMessage.message}</span>
             </div>
-            <div className="space-y-3">
-              {getUniquePendingApprovals().map((approval: any) => (
-                <div key={approval.id || approval.payrollPeriodId} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-text-primary">{approval.periodName}</h4>
-                      <p className="text-sm text-text-secondary">
-                        {new Date(approval.createdAt).toLocaleDateString()} • {approval.totalEmployees} employees • ${approval.totalAmount.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleReviewPayroll(approval)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        Review
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+            <button
+              onClick={() => setFeedbackMessage(null)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -301,8 +336,8 @@ const DepartmentPayrolls: React.FC = () => {
           </div>
           <div className="flex-1 p-6">
             <div className="space-y-4 h-full overflow-y-auto">
-              {payrollPeriods && payrollPeriods.length > 0 ? payrollPeriods.map((period) => (
-                <div key={period.id} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+              {uniquePayrollPeriods.length > 0 ? uniquePayrollPeriods.map((period) => (
+                <div key={period.uniqueKey} className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-button-primary rounded-full flex items-center justify-center">
@@ -320,7 +355,7 @@ const DepartmentPayrolls: React.FC = () => {
                     </div>
                     
                     <div className="flex items-center space-x-3">
-                      {getStatusBadge(period.status)}
+                      {getApprovalStatusBadge(period.approvalStatus)}
                       <Button
                         variant="secondary"
                         size="sm"
@@ -329,10 +364,11 @@ const DepartmentPayrolls: React.FC = () => {
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
-                      {period.status === 'completed' && (
+                      {period.approvalStatus === 'approved' && (
                         <Button
                           variant="secondary"
                           size="sm"
+                          onClick={() => handleDownloadPaystubs(period)}
                         >
                           <Download className="h-4 w-4 mr-1" />
                           Download
@@ -357,192 +393,16 @@ const DepartmentPayrolls: React.FC = () => {
         isOpen={isViewModalOpen}
         onClose={() => setIsViewModalOpen(false)}
         period={selectedPeriod}
-        payrollRecords={convertToPayrollRecords(payrollRecords)}
+        payrollRecords={convertedPayrollRecords}
         isLoading={recordsLoading}
         onApprovePayroll={handleApprovePayroll}
         onRejectPayroll={handleRejectPayroll}
+        isApproving={isApproving}
+        isRejecting={isRejecting}
       />
 
-      {/* Payroll Approval Modal */}
-      <Modal
-        isOpen={isApprovalModalOpen}
-        onClose={() => setIsApprovalModalOpen(false)}
-        title="Review Payroll for Approval"
-        size="xl"
-      >
-        {selectedApproval && (
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <Calendar className="h-8 w-8 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-text-primary">{selectedApproval.periodName}</h3>
-                <p className="text-text-secondary">
-                  {new Date(selectedApproval.startDate).toLocaleDateString()} - {new Date(selectedApproval.endDate).toLocaleDateString()}
-                </p>
-                <div className="flex items-center space-x-2 mt-2">
-                  <Badge variant="warning">Pending Approval</Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* Summary Stats */}
-            <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">{selectedApproval.totalEmployees}</p>
-                <p className="text-sm text-gray-600">Employees</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedApproval.totalGrossPay)}</p>
-                <p className="text-sm text-gray-600">Gross Pay</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-red-600">{formatCurrency(selectedApproval.totalDeductions)}</p>
-                <p className="text-sm text-gray-600">Deductions</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(selectedApproval.totalAmount)}</p>
-                <p className="text-sm text-gray-600">Net Pay</p>
-              </div>
-            </div>
-
-            {/* Search */}
-            <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search employees..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Employee Records Table */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Employee
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Hours
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Base Salary
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Gross Pay
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Deductions
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Benefits
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Net Pay
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredRecords.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                          <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Employee Records</h3>
-                          <p className="text-gray-600">
-                            No employee records found for this payroll period.
-                          </p>
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredRecords.map((record: any) => (
-                        <tr key={record.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {record.employeeName || 'Unknown Employee'}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {record.employeeId || 'N/A'} • {record.position || 'N/A'}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div>
-                              <div>Regular: {record.totalRegularHours || 0}h</div>
-                              <div>Overtime: {record.totalOvertimeHours || 0}h</div>
-                              <div>Late: {record.totalLateHours || 0}h</div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatCurrency(record.baseSalary)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatCurrency(record.grossPay)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
-                            -{formatCurrency(record.totalDeductions)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
-                            +{formatCurrency(record.totalBenefits)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                            {formatCurrency(record.netPay)}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Comments */}
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">
-                Comments (Optional)
-              </label>
-              <textarea
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={3}
-                placeholder="Add any comments about this payroll approval..."
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => setIsApprovalModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={() => confirmApproval(selectedApproval.id, 'rejected')}
-              >
-                <XCircle className="h-4 w-4 mr-1" />
-                Reject
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => confirmApproval(selectedApproval.id, 'approved')}
-              >
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Approve
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </PageLayout>
   );
 };
 
-export default DepartmentPayrolls;
+export default React.memo(DepartmentPayrolls);

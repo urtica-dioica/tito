@@ -4,6 +4,7 @@ import { attendanceSessionModel } from '../../models/attendance/AttendanceSessio
 import { employeeModel } from '../../models/hr/Employee';
 import { getPool } from '../../config/database';
 import logger from '../../utils/logger';
+import { defaultHoursCalculator } from '../../utils/attendanceHoursCalculator';
 
 export interface CreateTimeCorrectionData {
   employeeId: string;
@@ -246,9 +247,10 @@ export class TimeCorrectionService {
       SELECT 
         id,
         employee_id as "employeeId",
-        request_date as "requestDate",
+        correction_date as "requestDate",
         session_type as "sessionType",
-        requested_time as "requestedTime",
+        requested_clock_in as "requestedClockIn",
+        requested_clock_out as "requestedClockOut",
         reason,
         status,
         approver_id as "approvedBy",
@@ -257,39 +259,34 @@ export class TimeCorrectionService {
         updated_at as "updatedAt"
       FROM time_correction_requests
       WHERE employee_id = $1 
-        AND request_date = $2 
+        AND correction_date = $2 
         AND session_type = $3 
         AND status = 'pending'
     `;
 
     const result = await getPool().query(query, [employeeId, requestDate, sessionType]);
-    return result.rows.length > 0 ? result.rows[0] : null;
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    // Transform the result to match the interface
+    const row = result.rows[0];
+    return {
+      ...row,
+      requestedTime: row.sessionType === 'clock_in' ? row.requestedClockIn : row.requestedClockOut
+    };
   }
 
   /**
-   * Calculate daily hours for an attendance record
+   * Calculate daily hours for an attendance record using the new mathematical formulation
    */
   private async calculateDailyHours(attendanceRecordId: string): Promise<number> {
     const sessions = await attendanceSessionModel.getSessionsByAttendanceRecord(attendanceRecordId);
     
-    const clockInSessions = sessions.filter(s => s.sessionType === 'clock_in');
-    const clockOutSessions = sessions.filter(s => s.sessionType === 'clock_out');
-
-    let totalHours = 0;
-
-    // Calculate hours for each clock in/out pair
-    for (const clockIn of clockInSessions) {
-      const correspondingClockOut = clockOutSessions.find(
-        clockOut => clockOut.timestamp > clockIn.timestamp
-      );
-
-      if (correspondingClockOut) {
-        const hours = (correspondingClockOut.timestamp.getTime() - clockIn.timestamp.getTime()) / (1000 * 60 * 60);
-        totalHours += Math.max(0, hours);
-      }
-    }
-
-    return Math.round(totalHours * 100) / 100; // Round to 2 decimal places
+    // Use the new hours calculator
+    const result = defaultHoursCalculator.calculateFromSessions(sessions);
+    
+    return result.totalHours;
   }
 
   /**
@@ -357,7 +354,7 @@ export class TimeCorrectionService {
     const errors: string[] = [];
 
     // Check if employee exists
-    const employee = await employeeModel.findByUserId(data.employeeId);
+    const employee = await employeeModel.findById(data.employeeId);
     if (!employee) {
       errors.push('Employee not found');
     } else if (employee.status !== 'active') {

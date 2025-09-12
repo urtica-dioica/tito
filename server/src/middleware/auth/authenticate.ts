@@ -40,10 +40,10 @@ export const authenticate = async (
           
           // Map department types to actual user IDs from database
           const departmentHeadUsers: Record<string, { userId: string; email: string; name: string }> = {
-            'it': { userId: '3175e96c-97b8-4405-9536-64a8a0e51a99', email: 'kim404uni@gmail.com', name: 'Kim Galicia' },
+            'it': { userId: '69b333d6-1540-4e11-a302-c7c2fcb97ec4', email: 'kim404uni@gmail.com', name: 'Kim Galicia' },
             'hr': { userId: 'dfc7dfac-90f6-43f9-ab64-5330f960525d', email: 'harmless.rick@gmail.com', name: 'Kate Araba' },
             'finance': { userId: 'd6b6bd4d-19a5-4fc9-80e2-af659c56629a', email: 'net.0.0.0.0.bully@gmail.com', name: 'Ciara kaye Araba' },
-            'default': { userId: '3175e96c-97b8-4405-9536-64a8a0e51a99', email: 'kim404uni@gmail.com', name: 'Kim Galicia' }
+            'default': { userId: '69b333d6-1540-4e11-a302-c7c2fcb97ec4', email: 'kim404uni@gmail.com', name: 'Kim Galicia' }
           };
           
           const selectedUser = departmentHeadUsers[departmentType] || departmentHeadUsers['default'];

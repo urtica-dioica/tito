@@ -56,8 +56,8 @@ export class OvertimeRequestModel {
    */
   async createOvertimeRequest(data: CreateOvertimeRequestData): Promise<OvertimeRequest> {
     const query = `
-      INSERT INTO overtime_requests (employee_id, request_date, start_time, end_time, requested_hours, reason)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO overtime_requests (employee_id, request_date, overtime_date, start_time, end_time, requested_hours, reason)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING 
         id,
         employee_id as "employeeId",
@@ -74,16 +74,51 @@ export class OvertimeRequestModel {
     `;
 
     // Extract time portion from Date objects or use string directly
-    const startTimeStr = data.startTime instanceof Date 
-      ? `${data.startTime.getUTCHours().toString().padStart(2, '0')}:${data.startTime.getUTCMinutes().toString().padStart(2, '0')}:${data.startTime.getUTCSeconds().toString().padStart(2, '0')}` 
-      : data.startTime;
-    const endTimeStr = data.endTime instanceof Date 
-      ? `${data.endTime.getUTCHours().toString().padStart(2, '0')}:${data.endTime.getUTCMinutes().toString().padStart(2, '0')}:${data.endTime.getUTCSeconds().toString().padStart(2, '0')}` 
-      : data.endTime;
+    let startTimeStr: string;
+    let endTimeStr: string;
+    
+    if (typeof data.startTime === 'string') {
+      // Ensure HH:MM:SS format
+      const parts = data.startTime.split(':');
+      if (parts.length === 2) {
+        startTimeStr = `${parts[0]}:${parts[1]}:00`;
+      } else {
+        startTimeStr = data.startTime;
+      }
+    } else if (data.startTime instanceof Date && !isNaN(data.startTime.getTime())) {
+      startTimeStr = `${data.startTime.getUTCHours().toString().padStart(2, '0')}:${data.startTime.getUTCMinutes().toString().padStart(2, '0')}:${data.startTime.getUTCSeconds().toString().padStart(2, '0')}`;
+    } else {
+      startTimeStr = '00:00:00';
+    }
+    
+    if (typeof data.endTime === 'string') {
+      // Ensure HH:MM:SS format
+      const parts = data.endTime.split(':');
+      if (parts.length === 2) {
+        endTimeStr = `${parts[0]}:${parts[1]}:00`;
+      } else {
+        endTimeStr = data.endTime;
+      }
+    } else if (data.endTime instanceof Date && !isNaN(data.endTime.getTime())) {
+      endTimeStr = `${data.endTime.getUTCHours().toString().padStart(2, '0')}:${data.endTime.getUTCMinutes().toString().padStart(2, '0')}:${data.endTime.getUTCSeconds().toString().padStart(2, '0')}`;
+    } else {
+      endTimeStr = '00:00:00';
+    }
+
+    // Debug: Log the time strings being used in the query
+    console.log('Model: Time strings for database:', {
+      startTimeStr,
+      endTimeStr,
+      startTimeType: typeof startTimeStr,
+      endTimeType: typeof endTimeStr,
+      startTimeOriginal: data.startTime,
+      endTimeOriginal: data.endTime
+    });
 
     const result = await getPool().query(query, [
       data.employeeId,
       data.requestDate,
+      data.requestDate, // overtime_date is the same as request_date
       startTimeStr,
       endTimeStr,
       data.requestedHours,

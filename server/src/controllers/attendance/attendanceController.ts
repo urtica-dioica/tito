@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { getRequestId } from '../../utils/types/express';
 import logger from '../../utils/logger';
 import { getPool } from '../../config/database';
+import { attendanceService } from '../../services/attendance/attendanceService';
 
 export class AttendanceController {
   /**
@@ -153,11 +154,27 @@ export class AttendanceController {
           -- Afternoon session
           afternoon_in.clock_in as afternoon_in,
           afternoon_out.clock_out as afternoon_out,
-          -- Total hours calculation
+          -- Total hours calculation by pairing clock-in and clock-out sessions
           COALESCE(
-            EXTRACT(EPOCH FROM (morning_out.clock_out - morning_in.clock_in)) / 3600 +
-            EXTRACT(EPOCH FROM (afternoon_out.clock_out - afternoon_in.clock_in)) / 3600,
-            0
+            -- Morning session hours (if both morning_in and morning_out exist)
+            (SELECT EXTRACT(EPOCH FROM (m_out.clock_out - m_in.clock_in)) / 3600.0
+             FROM attendance_sessions m_in, attendance_sessions m_out
+             WHERE m_in.attendance_record_id = ar.id 
+               AND m_in.session_type = 'morning_in'
+               AND m_in.clock_in IS NOT NULL
+               AND m_out.attendance_record_id = ar.id 
+               AND m_out.session_type = 'morning_out'
+               AND m_out.clock_out IS NOT NULL), 0) +
+          COALESCE(
+            -- Afternoon session hours (if both afternoon_in and afternoon_out exist)
+            (SELECT EXTRACT(EPOCH FROM (a_out.clock_out - a_in.clock_in)) / 3600.0
+             FROM attendance_sessions a_in, attendance_sessions a_out
+             WHERE a_in.attendance_record_id = ar.id 
+               AND a_in.session_type = 'afternoon_in'
+               AND a_in.clock_in IS NOT NULL
+               AND a_out.attendance_record_id = ar.id 
+               AND a_out.session_type = 'afternoon_out'
+               AND a_out.clock_out IS NOT NULL), 0
           ) as total_hours
         FROM attendance_records ar
         JOIN employees e ON ar.employee_id = e.id
@@ -180,6 +197,12 @@ export class AttendanceController {
 
       const result = await getPool().query(query, [targetDate, limit]);
       
+      // Debug logging
+      console.log('Daily attendance query result:', result.rows.length, 'rows');
+      if (result.rows.length > 0) {
+        console.log('First row total_hours:', result.rows[0].total_hours);
+      }
+      
       const dailyAttendance = result.rows.map(row => ({
         attendanceRecordId: row.attendance_record_id,
         employeeId: row.employee_id,
@@ -193,7 +216,7 @@ export class AttendanceController {
         morningOut: row.morning_out,
         afternoonIn: row.afternoon_in,
         afternoonOut: row.afternoon_out,
-        totalHours: parseFloat(row.total_hours) || 0
+        totalHours: Math.round(parseFloat(row.total_hours) || 0)
       }));
 
       res.json({
@@ -404,6 +427,47 @@ export class AttendanceController {
       res.status(500).json({
         success: false,
         message: 'Failed to get attendance detail',
+        error: (error as Error).message,
+        requestId
+      });
+    }
+  }
+
+  /**
+   * Get detailed hours calculation for an attendance record
+   */
+  async getDetailedHoursCalculation(req: Request, res: Response): Promise<void> {
+    const requestId = getRequestId(req);
+
+    try {
+      const { attendanceRecordId } = req.params;
+
+      if (!attendanceRecordId) {
+        res.status(400).json({
+          success: false,
+          message: 'Attendance record ID is required',
+          requestId
+        });
+        return;
+      }
+
+      const detailedCalculation = await attendanceService.getDetailedHoursCalculation(attendanceRecordId);
+
+      res.json({
+        success: true,
+        message: 'Detailed hours calculation retrieved successfully',
+        data: detailedCalculation,
+        requestId
+      });
+    } catch (error) {
+      logger.error('Error getting detailed hours calculation', {
+        error: (error as Error).message,
+        requestId
+      });
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get detailed hours calculation',
         error: (error as Error).message,
         requestId
       });

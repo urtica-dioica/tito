@@ -6,6 +6,7 @@ import Badge from '../../shared/Badge';
 import Modal from '../../shared/Modal';
 import LoadingSpinner from '../../shared/LoadingSpinner';
 import { usePayrollPeriods, usePayrollRecords } from '../../../hooks/usePayroll';
+import { PayrollService } from '../../../services/payrollService';
 import type { PayrollPeriod, PayrollRecord } from '../../../types';
 
 interface PayrollHistoryManagementProps {
@@ -63,9 +64,34 @@ const PayrollHistoryManagement: React.FC<PayrollHistoryManagementProps> = ({ cla
     setIsViewModalOpen(true);
   };
 
-  const handleExportPeriod = (period: PayrollPeriod) => {
-    // Implementation for exporting period data
-    console.log(`Exporting period: ${period.periodName}`);
+  const handleExportPeriod = async (period: PayrollPeriod) => {
+    try {
+      console.log(`Exporting period: ${period.periodName}`);
+      
+      const response = await PayrollService.exportPeriodPaystubsPDF(period.id);
+      
+      // Check if response is a valid Blob
+      if (!(response instanceof Blob)) {
+        console.error('Invalid response type:', typeof response, response);
+        alert('Invalid response from server. Please try again.');
+        return;
+      }
+      
+      // Create download link
+      const url = window.URL.createObjectURL(response);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `paystubs-${period.periodName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log('PDF export completed successfully');
+    } catch (error) {
+      console.error('Error exporting period paystubs:', error);
+      alert('Failed to export paystubs. Please try again.');
+    }
   };
 
   const formatCurrency = (amount: number) => {

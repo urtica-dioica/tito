@@ -7,10 +7,13 @@ import { benefitTypeModel } from '../../models/payroll/BenefitType';
 import { employeeBenefitModel } from '../../models/payroll/EmployeeBenefit';
 import { employeeModel } from '../../models/hr/Employee';
 import { getPool } from '../../config/database';
+import { isLeaveTypePaid, getLeavePaymentPercentage, getMaxPaidDaysPerYear } from '../../config/leavePolicies';
 // import { attendanceRecordModel } from '../../models/attendance/AttendanceRecord';
+import { attendanceSessionModel } from '../../models/attendance/AttendanceSession';
 // import { overtimeRequestModel } from '../../models/attendance/OvertimeRequest';
 // import { systemSettingsModel } from '../../models/hr/SystemSettings'; // Temporarily disabled
 import logger from '../../utils/logger';
+import { defaultHoursCalculator } from '../../utils/attendanceHoursCalculator';
 
 export interface PayrollCalculationData {
   employeeId: string;
@@ -69,6 +72,7 @@ export interface EmployeePayrollData {
   totalDeductions: number;
   totalBenefits: number;
   netPay: number;
+  paidLeaveHours: number; // Hours from approved leave days
 }
 
 class PayrollService {
@@ -156,34 +160,34 @@ class PayrollService {
       const expectedWorkingDays = this.calculateWorkingDays(startDate, endDate);
       const expectedHours = expectedWorkingDays * 8; // 8 hours per working day
 
-      // Get attendance data with proper hour calculations
-      const attendanceQuery = `
-        SELECT 
-          SUM(COALESCE(calculated_hours, 0)) as total_worked_hours,
-          SUM(COALESCE(regular_hours, 0)) as total_regular_hours,
-          SUM(COALESCE(overtime_hours, 0)) as total_overtime_hours,
-          SUM(COALESCE(late_hours, 0)) as total_late_hours,
-          COUNT(*) as total_working_days
-        FROM attendance_sessions s
-        JOIN attendance_records ar ON s.attendance_record_id = ar.id
-        WHERE ar.employee_id = $1 
-          AND ar.date >= $2 
-          AND ar.date <= $3
-          AND s.clock_in IS NOT NULL 
-          AND s.clock_out IS NOT NULL
-      `;
-      
-      const attendanceResult = await getPool().query(attendanceQuery, [
+      // Get attendance data using the mathematical formulation
+      // This uses grace periods, session caps, and proper morning/afternoon calculations
+      const attendanceData = await this.calculateAttendanceHours(
         employeeId, 
         period.start_date, 
         period.end_date
-      ]);
+      );
       
-      const attendanceData = attendanceResult.rows[0];
-      const totalWorkedHours = parseFloat(attendanceData.total_worked_hours) || 0;
-      const totalRegularHours = parseFloat(attendanceData.total_regular_hours) || 0;
-      const totalOvertimeHours = parseFloat(attendanceData.total_overtime_hours) || 0;
-      const totalLateHours = parseFloat(attendanceData.total_late_hours) || 0;
+      const totalWorkedHours = attendanceData.totalWorkedHours;
+      const totalRegularHours = attendanceData.totalRegularHours;
+      const totalOvertimeHours = attendanceData.totalOvertimeHours;
+      const totalLateHours = attendanceData.totalLateHours;
+
+      // Get approved leave days for the payroll period
+      const paidLeaveHours = await this.getPaidLeaveHours(employeeId, startDate, endDate);
+
+      // Debug logging for payroll calculation
+      logger.info('Payroll calculation debug', {
+        employeeId,
+        payrollPeriodId,
+        attendanceData: attendanceData,
+        totalWorkedHours,
+        totalRegularHours,
+        totalOvertimeHours,
+        totalLateHours,
+        expectedHours,
+        baseSalary: employee.base_salary
+      });
 
       // Parse base salary
       const baseSalary = Number(employee.base_salary) || 0;
@@ -232,14 +236,28 @@ class PayrollService {
         totalBenefits += benefitAmount;
       }
 
-      // Calculate actual salary based on worked hours (no work, no pay)
-      const actualSalary = (totalWorkedHours / expectedHours) * baseSalary;
+      // Calculate gross pay based on worked hours + paid leave hours: (total paid hours / total working hours in month) * base salary
+      // Include approved leave days as paid time
+      const totalPaidHours = totalWorkedHours + paidLeaveHours;
+      const grossPay = expectedHours > 0 ? (totalPaidHours / expectedHours) * baseSalary : 0;
       
-      // Calculate gross pay (actual salary + benefits)
-      const grossPay = actualSalary + totalBenefits;
+      // Calculate net pay: gross pay + benefits - deductions
+      const netPay = grossPay + totalBenefits - totalEmployeeDeductions - lateDeductions;
 
-      // Calculate net pay: Actual Salary - Deductions - Late Deductions + Benefits
-      const netPay = actualSalary - totalEmployeeDeductions - lateDeductions + totalBenefits;
+      // Debug logging for gross pay calculation
+      logger.info('Gross pay calculation debug', {
+        employeeId,
+        totalWorkedHours,
+        paidLeaveHours,
+        totalPaidHours,
+        expectedHours,
+        baseSalary,
+        grossPay,
+        totalBenefits,
+        totalEmployeeDeductions,
+        lateDeductions,
+        netPay
+      });
 
       const payrollData: EmployeePayrollData = {
         employee: {
@@ -248,7 +266,7 @@ class PayrollService {
           name: `${employee.user.first_name} ${employee.user.last_name}`,
           department: employee.department?.name || 'N/A'
         },
-        baseSalary: actualSalary,
+        baseSalary: baseSalary, // Full monthly base salary
         totalWorkedHours,
         totalRegularHours,
         totalOvertimeHours,
@@ -260,7 +278,8 @@ class PayrollService {
         employeeBenefits: benefits,
         totalDeductions: totalEmployeeDeductions,
         totalBenefits,
-        netPay
+        netPay,
+        paidLeaveHours // Add paid leave hours to the response
       };
 
       logger.info('Employee payroll calculated', { 
@@ -311,6 +330,7 @@ class PayrollService {
             total_overtime_hours: payrollData.totalOvertimeHours,
             total_late_hours: payrollData.totalLateHours,
             late_deductions: payrollData.lateDeductions,
+            paid_leave_hours: payrollData.paidLeaveHours,
             gross_pay: payrollData.grossPay,
             net_pay: payrollData.netPay,
             total_deductions: payrollData.totalDeductions,
@@ -333,6 +353,7 @@ class PayrollService {
             total_overtime_hours: payrollData.totalOvertimeHours,
             total_late_hours: payrollData.totalLateHours,
             late_deductions: payrollData.lateDeductions,
+            paid_leave_hours: payrollData.paidLeaveHours,
             gross_pay: payrollData.grossPay,
             net_pay: payrollData.netPay,
             total_deductions: payrollData.totalDeductions,
@@ -396,6 +417,258 @@ class PayrollService {
       return await payrollRecordModel.findAllWithEmployee(params);
     } catch (error) {
       logger.error('Error getting payroll records', { error: (error as Error).message, params });
+      throw error;
+    }
+  }
+
+  /**
+   * Update payroll record status
+   */
+  async updatePayrollRecordStatus(recordId: string, status: 'draft' | 'processed' | 'paid'): Promise<PayrollRecord> {
+    try {
+      const updatedRecord = await payrollRecordModel.update(recordId, { status });
+      if (!updatedRecord) {
+        throw new Error('Payroll record not found');
+      }
+
+      logger.info('Payroll record status updated', {
+        recordId,
+        status,
+        employeeId: updatedRecord.employee_id
+      });
+
+      return updatedRecord;
+    } catch (error) {
+      logger.error('Error updating payroll record status', { 
+        error: (error as Error).message, 
+        recordId, 
+        status 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Mark payroll period as completed (when all departments have approved)
+   */
+  async completePayrollPeriod(periodId: string): Promise<PayrollPeriod> {
+    try {
+      const updatedPeriod = await payrollPeriodModel.update(periodId, { status: 'completed' });
+      if (!updatedPeriod) {
+        throw new Error('Payroll period not found');
+      }
+
+      logger.info('Payroll period marked as completed', {
+        periodId,
+        periodName: updatedPeriod.period_name
+      });
+
+      return updatedPeriod;
+    } catch (error) {
+      logger.error('Error completing payroll period', { 
+        error: (error as Error).message, 
+        periodId 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk update payroll records to paid status
+   */
+  async bulkUpdatePayrollRecordsToPaid(options: {
+    periodId?: string;
+    departmentId?: string;
+    recordIds?: string[];
+  }): Promise<{ updatedCount: number }> {
+    try {
+      const { getPool } = await import('../../config/database');
+      const pool = getPool();
+
+      let whereClause = '';
+      const params: any[] = [];
+      let paramIndex = 1;
+
+      if (options.periodId) {
+        whereClause += ` WHERE payroll_period_id = $${paramIndex}`;
+        params.push(options.periodId);
+        paramIndex++;
+      }
+
+      if (options.departmentId) {
+        whereClause += options.periodId ? ' AND' : ' WHERE';
+        whereClause += ` employee_id IN (SELECT id FROM employees WHERE department_id = $${paramIndex})`;
+        params.push(options.departmentId);
+        paramIndex++;
+      }
+
+      if (options.recordIds && options.recordIds.length > 0) {
+        whereClause += options.periodId || options.departmentId ? ' AND' : ' WHERE';
+        whereClause += ` id = ANY($${paramIndex})`;
+        params.push(options.recordIds);
+        paramIndex++;
+      }
+
+      const updateQuery = `
+        UPDATE payroll_records 
+        SET status = 'paid', updated_at = CURRENT_TIMESTAMP
+        ${whereClause}
+      `;
+
+      const result = await pool.query(updateQuery, params);
+
+      logger.info('Bulk updated payroll records to paid', {
+        updatedCount: result.rowCount,
+        options
+      });
+
+      // If updating by periodId, check if all records in the period are now paid
+      if (options.periodId) {
+        await this.checkAndCompletePayrollPeriod(options.periodId);
+      }
+
+      return { updatedCount: result.rowCount || 0 };
+    } catch (error) {
+      logger.error('Error bulk updating payroll records to paid', { 
+        error: (error as Error).message, 
+        options 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Check if all payroll records in a period are paid and auto-complete the period
+   */
+  async checkAndCompletePayrollPeriod(periodId: string): Promise<void> {
+    try {
+      const { getPool } = await import('../../config/database');
+      const pool = getPool();
+
+      // Check if all records in the period are paid
+      const checkQuery = `
+        SELECT 
+          COUNT(*) as total_records,
+          COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid_records
+        FROM payroll_records 
+        WHERE payroll_period_id = $1
+      `;
+      
+      const result = await pool.query(checkQuery, [periodId]);
+      const { total_records, paid_records } = result.rows[0];
+      
+      // If all records are paid, complete the period
+      if (total_records > 0 && parseInt(total_records) === parseInt(paid_records)) {
+        await this.completePayrollPeriod(periodId);
+        logger.info(`Auto-completed payroll period ${periodId} - all records are paid`);
+      }
+    } catch (error) {
+      logger.error('Error checking and completing payroll period', { 
+        error: (error as Error).message, 
+        periodId 
+      });
+    }
+  }
+
+
+
+
+  /**
+   * Bulk update payroll records status for a period
+   */
+  async bulkUpdatePayrollRecordsStatus(
+    payrollPeriodId: string, 
+    status: 'draft' | 'processed' | 'paid',
+    departmentId?: string
+  ): Promise<PayrollRecord[]> {
+    try {
+      // Get all records for the period
+      const { records } = await payrollRecordModel.findAllWithEmployee({
+        payroll_period_id: payrollPeriodId,
+        department_id: departmentId
+      });
+
+      // Update each record
+      const updatedRecords: PayrollRecord[] = [];
+      for (const record of records) {
+        const updatedRecord = await payrollRecordModel.update(record.id, { status });
+        if (updatedRecord) {
+          updatedRecords.push(updatedRecord);
+        }
+      }
+
+      logger.info('Bulk payroll records status updated', {
+        payrollPeriodId,
+        status,
+        departmentId,
+        updatedCount: updatedRecords.length
+      });
+
+      return updatedRecords;
+    } catch (error) {
+      logger.error('Error bulk updating payroll records status', { 
+        error: (error as Error).message, 
+        payrollPeriodId, 
+        status,
+        departmentId
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Reprocess payroll records for a period (clears existing records and regenerates)
+   */
+  async reprocessPayrollRecords(payrollPeriodId: string, departmentId?: string): Promise<PayrollRecord[]> {
+    try {
+      logger.info('Starting payroll reprocessing', {
+        payrollPeriodId,
+        departmentId
+      });
+
+      // First, delete existing payroll records for this period
+      const existingRecords = await payrollRecordModel.findAllWithEmployee({
+        payroll_period_id: payrollPeriodId,
+        department_id: departmentId
+      });
+
+      for (const record of existingRecords.records) {
+        // Delete associated payroll deductions first
+        await payrollDeductionModel.deleteByPayrollRecord(record.id);
+        // Delete the payroll record
+        await payrollRecordModel.delete(record.id);
+      }
+
+      logger.info('Cleared existing payroll records', {
+        payrollPeriodId,
+        departmentId,
+        deletedCount: existingRecords.records.length
+      });
+
+      // Reset approval status for this period (if reprocessing all departments)
+      if (!departmentId) {
+        const { PayrollApprovalService } = await import('./payrollApprovalService');
+        const payrollApprovalService = new PayrollApprovalService();
+        await payrollApprovalService.resetApprovalStatusForPeriod(payrollPeriodId);
+        logger.info('Reset approval status for payroll period', { payrollPeriodId });
+      }
+
+      // Now regenerate the payroll records
+      const newRecords = await this.generatePayrollRecords(payrollPeriodId, departmentId);
+
+      logger.info('Payroll reprocessing completed', {
+        payrollPeriodId,
+        departmentId,
+        newRecordCount: newRecords.length
+      });
+
+      return newRecords;
+    } catch (error) {
+      logger.error('Error reprocessing payroll records', { 
+        error: (error as Error).message, 
+        payrollPeriodId, 
+        departmentId
+      });
       throw error;
     }
   }
@@ -966,6 +1239,67 @@ class PayrollService {
   }
 
   /**
+   * Calculate attendance hours using the mathematical formulation
+   */
+  private async calculateAttendanceHours(employeeId: string, startDate: Date, endDate: Date): Promise<{
+    totalWorkedHours: number;
+    totalRegularHours: number;
+    totalOvertimeHours: number;
+    totalLateHours: number;
+    totalWorkingDays: number;
+  }> {
+    const pool = getPool();
+    
+    // Get all attendance records for the period
+    const attendanceQuery = `
+      SELECT ar.id, ar.date, ar.overall_status
+      FROM attendance_records ar
+      WHERE ar.employee_id = $1 
+        AND ar.date >= $2 
+        AND ar.date <= $3
+        AND ar.overall_status IN ('present', 'late', 'partial')
+      ORDER BY ar.date
+    `;
+
+    const result = await pool.query(attendanceQuery, [employeeId, startDate, endDate]);
+    const attendanceRecords = result.rows;
+
+    let totalWorkedHours = 0;
+    let totalRegularHours = 0;
+    let totalOvertimeHours = 0;
+    let totalLateHours = 0;
+    let totalWorkingDays = attendanceRecords.length;
+
+    // Calculate hours for each attendance record using the new formula
+    for (const record of attendanceRecords) {
+      const sessions = await attendanceSessionModel.getSessionsByAttendanceRecord(record.id);
+      const hoursResult = defaultHoursCalculator.calculateFromSessions(sessions);
+      
+      totalWorkedHours += hoursResult.totalHours;
+      totalRegularHours += hoursResult.totalHours; // All hours are regular hours in the new formula
+      
+      // Log the calculation for debugging
+      logger.info('Payroll hours calculation', {
+        employeeId,
+        date: record.date,
+        morningHours: hoursResult.morningHours,
+        afternoonHours: hoursResult.afternoonHours,
+        totalHours: hoursResult.totalHours,
+        effectiveMorningStart: hoursResult.effectiveMorningStart,
+        effectiveAfternoonStart: hoursResult.effectiveAfternoonStart
+      });
+    }
+
+    return {
+      totalWorkedHours: Math.round(totalWorkedHours * 100) / 100,
+      totalRegularHours: Math.round(totalRegularHours * 100) / 100,
+      totalOvertimeHours: Math.round(totalOvertimeHours * 100) / 100,
+      totalLateHours: Math.round(totalLateHours * 100) / 100,
+      totalWorkingDays
+    };
+  }
+
+  /**
    * Generate payroll records for all departments
    * This creates separate payroll records for each department
    */
@@ -1036,55 +1370,151 @@ class PayrollService {
     }
   }
 
-  async generatePaystubsPDF(records: any[]): Promise<Buffer> {
+  /**
+   * Get paid leave hours for an employee within a payroll period
+   * This method uses the leave payment policies to determine which leave types are paid
+   * and calculates the total hours with proper payment percentages
+   */
+  private async getPaidLeaveHours(employeeId: string, startDate: Date, endDate: Date): Promise<number> {
     try {
-      // For now, we'll create a simple PDF using a basic approach
-      // In a real implementation, you'd use a library like puppeteer, jsPDF, or PDFKit
+      const { getPool } = await import('../../config/database');
+      const pool = getPool();
+
+      // Get all approved leave days within the payroll period
+      const leaveQuery = `
+        SELECT 
+          leave_type,
+          start_date,
+          end_date,
+          (end_date - start_date + 1) as total_days
+        FROM leaves
+        WHERE employee_id = $1 
+          AND status = 'approved'
+          AND (
+            (start_date <= $2 AND end_date >= $3) OR  -- Leave spans the period
+            (start_date >= $3 AND start_date <= $2) OR  -- Leave starts within period
+            (end_date >= $3 AND end_date <= $2)  -- Leave ends within period
+          )
+      `;
+
+      const result = await pool.query(leaveQuery, [
+        employeeId,
+        endDate,
+        startDate
+      ]);
+
+      let totalPaidHours = 0;
       
-      const PDFDocument = require('pdfkit');
-      const doc = new PDFDocument();
-      const buffers: Buffer[] = [];
-      
-      doc.on('data', buffers.push.bind(buffers));
-      
-      // Add each employee's paystub as a separate page
-      records.forEach((record, index) => {
-        if (index > 0) {
-          doc.addPage();
+      for (const leave of result.rows) {
+        const leaveType = leave.leave_type;
+        const leaveDays = parseFloat(leave.total_days) || 0;
+        
+        // Check if this leave type is paid
+        if (!isLeaveTypePaid(leaveType)) {
+          logger.info('Unpaid leave skipped', {
+            employeeId,
+            leaveType,
+            days: leaveDays
+          });
+          continue;
+        }
+
+        // Get payment percentage for this leave type
+        const paymentPercentage = getLeavePaymentPercentage(leaveType);
+        const maxPaidDaysPerYear = getMaxPaidDaysPerYear(leaveType);
+        
+        // Calculate paid days (considering yearly limits if applicable)
+        let paidDays = leaveDays;
+        if (maxPaidDaysPerYear) {
+          // TODO: Implement yearly limit checking (would need to track used days per year)
+          // For now, we'll use the full leave days
+          logger.info('Yearly limit check not implemented yet', {
+            leaveType,
+            maxPaidDaysPerYear,
+            requestedDays: leaveDays
+          });
         }
         
-        // Company header
-        doc.fontSize(20).text('PAYSTUB', 50, 50);
-        doc.fontSize(12).text(`Period: ${record.period_name}`, 50, 80);
-        doc.text(`Department: ${record.department_name}`, 50, 100);
+        // Calculate paid hours with payment percentage
+        const paidHours = (paidDays * 8 * paymentPercentage) / 100; // 8 hours per working day
+        totalPaidHours += paidHours;
         
-        // Employee information
-        doc.fontSize(16).text('Employee Information', 50, 140);
-        doc.fontSize(12)
-          .text(`Name: ${record.first_name} ${record.last_name}`, 50, 170)
-          .text(`Employee ID: ${record.employee_id}`, 50, 190)
-          .text(`Position: ${record.position}`, 50, 210);
-        
-        // Payroll details
-        doc.fontSize(16).text('Payroll Details', 50, 250);
-        doc.fontSize(12)
-          .text(`Base Salary: ₱${record.base_salary?.toFixed(2) || '0.00'}`, 50, 280)
-          .text(`Regular Hours: ${record.total_regular_hours || 0}`, 50, 300)
-          .text(`Overtime Hours: ${record.total_overtime_hours || 0}`, 50, 320)
-          .text(`Gross Pay: ₱${record.gross_pay?.toFixed(2) || '0.00'}`, 50, 340)
-          .text(`Total Deductions: ₱${record.total_deductions?.toFixed(2) || '0.00'}`, 50, 360)
-          .text(`Late Deductions: ₱${record.late_deductions?.toFixed(2) || '0.00'}`, 50, 380)
-          .text(`Benefits: ₱${record.total_benefits?.toFixed(2) || '0.00'}`, 50, 400);
-        
-        // Net pay
-        doc.fontSize(14).text(`Net Pay: ₱${record.net_pay?.toFixed(2) || '0.00'}`, 50, 440, { bold: true });
-        
-        // Footer
-        doc.fontSize(10).text('Generated on: ' + new Date().toLocaleDateString(), 50, 500);
+        logger.info('Paid leave calculated', {
+          employeeId,
+          leaveType,
+          startDate: leave.start_date,
+          endDate: leave.end_date,
+          totalDays: leaveDays,
+          paidDays,
+          paymentPercentage,
+          paidHours,
+          maxPaidDaysPerYear
+        });
+      }
+
+      logger.info('Total paid leave hours calculated', {
+        employeeId,
+        startDate,
+        endDate,
+        totalPaidHours,
+        leaveCount: result.rows.length
       });
-      
+
+      return totalPaidHours;
+    } catch (error) {
+      logger.error('Error calculating paid leave hours', {
+        error: (error as Error).message,
+        employeeId,
+        startDate,
+        endDate
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Export all employee paystubs for a period as PDF
+   */
+  async exportPeriodPaystubsPDF(periodId: string): Promise<Buffer> {
+    try {
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 50 });
+      const buffers: Buffer[] = [];
+
+      doc.on('data', buffers.push.bind(buffers));
+
+      // Get payroll period information
+      const period = await payrollPeriodModel.findById(periodId);
+      if (!period) {
+        throw new Error('Payroll period not found');
+      }
+
+      // Get all payroll records for the period
+      const result = await payrollRecordModel.findAllWithEmployee({ payroll_period_id: periodId, limit: 1000 });
+      const records = result.records;
+
+      // Add title page
+      doc.fontSize(20).text('PAYROLL PAYSTUBS', { align: 'center' });
+      doc.fontSize(16).text(`Period: ${period.period_name}`, { align: 'center' });
+      doc.fontSize(12).text(`From: ${this.formatDate(period.start_date)} To: ${this.formatDate(period.end_date)}`, { align: 'center' });
+      doc.moveDown(2);
+
+      // Generate paystub for each employee
+      for (const record of records) {
+        try {
+          this.addPaystubPage(doc, record, period);
+        } catch (error) {
+          logger.error('Error adding paystub page', { 
+            error: (error as Error).message, 
+            recordId: record.id,
+            employeeId: record.employee_id
+          });
+          // Continue with next record instead of failing completely
+        }
+      }
+
       doc.end();
-      
+
       return new Promise((resolve, reject) => {
         doc.on('end', () => {
           const pdfBuffer = Buffer.concat(buffers);
@@ -1093,9 +1523,185 @@ class PayrollService {
         doc.on('error', reject);
       });
     } catch (error) {
-      logger.error('Error generating paystubs PDF:', error);
+      logger.error('Error exporting period paystubs PDF', { 
+        error: (error as Error).message, 
+        periodId 
+      });
       throw error;
     }
+  }
+
+  /**
+   * Export department employee paystubs for a period as PDF
+   */
+  async exportDepartmentPaystubsPDF(periodId: string, userId: string): Promise<Buffer> {
+    try {
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ margin: 50 });
+      const buffers: Buffer[] = [];
+
+      doc.on('data', buffers.push.bind(buffers));
+
+      // Get department head's department
+      const { DepartmentHeadService } = await import('../department-head/departmentHeadService');
+      const departmentHeadService = new DepartmentHeadService();
+      const department = await departmentHeadService.getDepartmentInfo(userId);
+      
+      if (!department) {
+        throw new Error('Department not found for user');
+      }
+
+      // Get payroll period information
+      const period = await payrollPeriodModel.findById(periodId);
+      if (!period) {
+        throw new Error('Payroll period not found');
+      }
+
+      // Get payroll records for the department
+      const result = await payrollRecordModel.findAllWithEmployee({ 
+        payroll_period_id: periodId,
+        department_id: department.id,
+        limit: 1000
+      });
+      const records = result.records;
+
+      // Add title page
+      doc.fontSize(20).text('DEPARTMENT PAYROLL PAYSTUBS', { align: 'center' });
+      doc.fontSize(16).text(`Department: ${department.name}`, { align: 'center' });
+      doc.fontSize(16).text(`Period: ${period.period_name}`, { align: 'center' });
+      doc.fontSize(12).text(`From: ${this.formatDate(period.start_date)} To: ${this.formatDate(period.end_date)}`, { align: 'center' });
+      doc.moveDown(2);
+
+      // Generate paystub for each employee
+      for (const record of records) {
+        try {
+          this.addPaystubPage(doc, record, period);
+        } catch (error) {
+          logger.error('Error adding paystub page', { 
+            error: (error as Error).message, 
+            recordId: record.id,
+            employeeId: record.employee_id
+          });
+          // Continue with next record instead of failing completely
+        }
+      }
+
+      doc.end();
+
+      return new Promise((resolve, reject) => {
+        doc.on('end', () => {
+          const pdfBuffer = Buffer.concat(buffers);
+          resolve(pdfBuffer);
+        });
+        doc.on('error', reject);
+      });
+    } catch (error) {
+      logger.error('Error exporting department paystubs PDF', { 
+        error: (error as Error).message, 
+        periodId,
+        userId 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Helper function to safely format numbers for PDF
+   */
+  private formatCurrency(amount: any): string {
+    try {
+      if (amount === null || amount === undefined) return '₱0.00';
+      const num = Number(amount);
+      if (isNaN(num) || !isFinite(num)) return '₱0.00';
+      return `₱${num.toFixed(2)}`;
+    } catch (error) {
+      return '₱0.00';
+    }
+  }
+
+  /**
+   * Helper function to safely format dates for PDF
+   */
+  private formatDate(date: any): string {
+    try {
+      if (!date) return 'N/A';
+      return new Date(date).toLocaleDateString();
+    } catch (error) {
+      return 'N/A';
+    }
+  }
+
+  /**
+   * Add a paystub page to the PDF document
+   */
+  private addPaystubPage(doc: any, record: PayrollRecordWithEmployee, period: any): void {
+    // Add new page for each employee
+    doc.addPage();
+
+    // Employee Information
+    doc.fontSize(18).text('PAYSTUB', { align: 'center' });
+    doc.moveDown(1);
+
+    doc.fontSize(12);
+    doc.text(`Employee ID: ${record.employee.employee_id}`, 50, 100);
+    doc.text(`Name: ${record.employee.user.first_name} ${record.employee.user.last_name}`, 50, 120);
+    doc.text(`Department: ${record.employee.department.name}`, 50, 140);
+    doc.text(`Pay Period: ${period.period_name}`, 50, 180);
+    doc.text(`Period: ${this.formatDate(period.start_date)} - ${this.formatDate(period.end_date)}`, 50, 200);
+
+    // Hours Worked Section
+    doc.moveDown(2);
+    doc.fontSize(14).text('HOURS WORKED', { underline: true });
+    doc.moveDown(0.5);
+    
+    doc.fontSize(12);
+    const regularHours = Number(record.total_regular_hours) || 0;
+    const overtimeHours = Number(record.total_overtime_hours) || 0;
+    const lateHours = Number(record.total_late_hours) || 0;
+    const paidLeaveHours = Number(record.paid_leave_hours) || 0;
+    const totalHours = regularHours + overtimeHours + paidLeaveHours;
+    
+    doc.text(`Regular Hours: ${regularHours}`, 50);
+    doc.text(`Overtime Hours: ${overtimeHours}`, 50);
+    doc.text(`Late Hours: ${lateHours}`, 50);
+    doc.text(`Paid Leave Hours: ${paidLeaveHours}`, 50);
+    doc.text(`Total Hours: ${totalHours}`, 50);
+
+    // Earnings Section
+    doc.moveDown(1);
+    doc.fontSize(14).text('EARNINGS', { underline: true });
+    doc.moveDown(0.5);
+    
+    doc.fontSize(12);
+    doc.text(`Base Salary: ${this.formatCurrency(record.base_salary)}`, 50);
+    
+    // Calculate Leave Pay
+    const hourlyRate = Number(record.hourly_rate) || 0;
+    const leavePay = paidLeaveHours * hourlyRate;
+    if (leavePay > 0) {
+      doc.text(`Leave Pay: ${this.formatCurrency(leavePay)}`, 50);
+    }
+    
+    doc.text(`Benefits: ${this.formatCurrency(record.total_benefits)}`, 50);
+    doc.text(`Gross Pay: ${this.formatCurrency(record.gross_pay)}`, 50);
+
+    // Deductions Section
+    doc.moveDown(1);
+    doc.fontSize(14).text('DEDUCTIONS', { underline: true });
+    doc.moveDown(0.5);
+    
+    doc.fontSize(12);
+    doc.text(`Late Deductions: ${this.formatCurrency(record.late_deductions)}`, 50);
+    doc.text(`Total Deductions: ${this.formatCurrency(record.total_deductions)}`, 50);
+
+    // Net Pay Section
+    doc.moveDown(1);
+    doc.fontSize(16).text(`NET PAY: ${this.formatCurrency(record.net_pay)}`, 50, { underline: true });
+
+    // Footer
+    doc.fontSize(10);
+    doc.text(`Generated on: ${this.formatDate(new Date())}`, 50, doc.page.height - 100);
+    doc.text(`Status: ${record.status?.toUpperCase()}`, 50, doc.page.height - 80);
   }
 }
 

@@ -10,7 +10,6 @@ export interface Leave {
   reason: string | null;
   status: 'pending' | 'approved' | 'rejected';
   approvedBy: string | null;
-  approvedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,7 +33,6 @@ export interface CreateLeaveData {
 export interface UpdateLeaveData {
   status?: 'pending' | 'approved' | 'rejected';
   approvedBy?: string;
-  approvedAt?: Date;
 }
 
 export interface LeaveListParams {
@@ -158,10 +156,7 @@ export class LeaveModel {
       paramIndex++;
     }
 
-    if (data.approvedAt !== undefined) {
-      updateValues.push(data.approvedAt);
-      paramIndex++;
-    }
+    // Note: leaves table doesn't have approved_at column, only approver_id
 
     if (updateFields.length === 0) {
       return this.findById(id);

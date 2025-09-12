@@ -133,9 +133,9 @@ const EmployeeAttendance: React.FC = () => {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-text-secondary">Total Hours</p>
-                <p className="text-2xl font-bold text-text-primary">{attendanceSummary.totalHours.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-text-primary">{Math.round(attendanceSummary.totalHours)}</p>
                 <p className="text-xs text-text-secondary">
-                  Avg: {attendanceSummary.averageHours.toFixed(1)}h/day
+                  Avg: {Math.round(attendanceSummary.averageHours)}h/day
                 </p>
               </div>
             </div>

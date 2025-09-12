@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { timeCorrectionService } from '../../services/attendance/timeCorrectionService';
+import { employeeService } from '../../services/employee/employeeService';
 import { generateRequestId } from '../../utils/requestId';
 import logger from '../../utils/logger';
 
@@ -12,12 +13,23 @@ export class TimeCorrectionController {
     
     try {
       const { requestDate, sessionType, requestedTime, reason } = req.body;
-      const employeeId = req.user?.userId;
+      const userId = req.user?.userId;
 
-      if (!employeeId) {
+      if (!userId) {
         res.status(401).json({
           success: false,
-          message: 'Employee ID not found in token',
+          message: 'User ID not found in token',
+          requestId
+        });
+        return;
+      }
+
+      // Get employee ID from user ID
+      const employeeId = await employeeService.getEmployeeIdByUserId(userId);
+      if (!employeeId) {
+        res.status(404).json({
+          success: false,
+          message: 'Employee not found for this user',
           requestId
         });
         return;
@@ -41,11 +53,53 @@ export class TimeCorrectionController {
         return;
       }
 
+      // Parse requestedTime properly - handle both time strings and datetime strings
+      let parsedRequestedTime: Date;
+      
+      if (typeof requestedTime === 'string') {
+        if (requestedTime.includes('T')) {
+          // Full datetime string
+          parsedRequestedTime = new Date(requestedTime);
+          if (isNaN(parsedRequestedTime.getTime())) {
+            res.status(400).json({
+              success: false,
+              message: 'Invalid requested time format',
+              requestId
+            });
+            return;
+          }
+        } else {
+          // Time-only string (HH:MM format) - create Date with same date as requestDate
+          const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+          if (!timeRegex.test(requestedTime)) {
+            res.status(400).json({
+              success: false,
+              message: 'Invalid time format. Expected HH:MM format',
+              requestId
+            });
+            return;
+          }
+          
+          // Create Date object with the same date as requestDate but with the requested time
+          const requestDateObj = new Date(requestDate);
+          const [hours, minutes] = requestedTime.split(':').map(Number);
+          parsedRequestedTime = new Date(requestDateObj);
+          parsedRequestedTime.setHours(hours, minutes, 0, 0);
+        }
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'Requested time must be a string',
+          requestId
+        });
+        return;
+      }
+
       const requestData = {
         employeeId,
         requestDate: new Date(requestDate),
         sessionType: sessionType as 'clock_in' | 'clock_out',
-        requestedTime: new Date(requestedTime),
+        requestedTime: parsedRequestedTime,
         reason: reason.trim()
       };
 

@@ -182,8 +182,7 @@ export class LeaveService {
     // Update the leave request status
     const updateData: UpdateLeaveData = {
       status: approved ? 'approved' : 'rejected',
-      approvedBy: approverId,
-      approvedAt: new Date()
+      approvedBy: approverId
     };
 
     const updatedLeave = await leaveModel.updateLeave(leaveId, updateData);
@@ -262,7 +261,15 @@ export class LeaveService {
   async getEmployeeLeaveBalance(employeeId: string, year?: number): Promise<LeaveBalanceSummary> {
     const currentYear = year || new Date().getFullYear();
     
-    const balances = await leaveBalanceModel.getEmployeeLeaveBalances(employeeId, currentYear);
+    let balances = await leaveBalanceModel.getEmployeeLeaveBalances(employeeId, currentYear);
+    
+    // If no leave balances exist, create default ones
+    if (balances.length === 0) {
+      logger.info('No leave balances found for employee, creating defaults', { employeeId, year: currentYear });
+      await this.initializeEmployeeLeaveBalance(employeeId, currentYear, 15, 10, 0, 0);
+      // Fetch the newly created balances
+      balances = await leaveBalanceModel.getEmployeeLeaveBalances(employeeId, currentYear);
+    }
     
     const summary: LeaveBalanceSummary = {
       vacation: { total: 0, used: 0, available: 0 },
@@ -394,7 +401,7 @@ export class LeaveService {
     const errors: string[] = [];
 
     // Check if employee exists
-    const employee = await employeeModel.findByUserId(data.employeeId);
+    const employee = await employeeModel.findById(data.employeeId);
     if (!employee) {
       errors.push('Employee not found');
     } else if (employee.status !== 'active') {

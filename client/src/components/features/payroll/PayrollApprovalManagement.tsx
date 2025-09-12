@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { CheckCircle, XCircle, Clock, Users, Calendar, Eye, Send, Printer, DollarSign, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { CheckCircle, Clock, Users, Calendar, Eye, Send, Printer, DollarSign, FileText, Zap, CreditCard, Building2 } from 'lucide-react';
 import Button from '../../shared/Button';
 import Card from '../../shared/Card';
 import Badge from '../../shared/Badge';
@@ -17,12 +17,12 @@ const PayrollApprovalManagement: React.FC<PayrollApprovalManagementProps> = ({ c
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedApproval, setSelectedApproval] = useState<PayrollApproval | null>(null);
 
-  // Fetch data
-  const { data: approvalsData, isLoading: approvalsLoading, error: approvalsError } = usePayrollApprovals();
-  const { data: periodsData } = usePayrollPeriods({ page: 1, limit: 100 });
+  // Fetch data with refetch capabilities
+  const { data: approvalsData, isLoading: approvalsLoading, error: approvalsError, refetch: refetchApprovals } = usePayrollApprovals();
+  const { data: periodsData, refetch: refetchPeriods } = usePayrollPeriods({ page: 1, limit: 100 });
   
   // Fetch all payroll records to show individual employee records
-  const { data: allRecordsData, isLoading: allRecordsLoading } = usePayrollRecords({
+  const { data: allRecordsData, isLoading: allRecordsLoading, refetch: refetchRecords } = usePayrollRecords({
     page: 1,
     limit: 1000
   });
@@ -36,9 +36,25 @@ const PayrollApprovalManagement: React.FC<PayrollApprovalManagementProps> = ({ c
   // });
 
   const rawApprovals = approvalsData?.records || [];
-  const periods = periodsData?.periods || [];
+  const allPeriods = periodsData?.periods || [];
+  // Filter out completed periods - they should not be displayed in approvals
+  const periods = allPeriods.filter(p => p.status !== 'completed');
   // const records = recordsData?.records || [];
-  const allRecords = allRecordsData?.records || [];
+  const rawRecords = allRecordsData?.records || [];
+  
+  // Deduplicate payroll records based on record ID
+  const uniqueRecords = new Map<string, PayrollRecord>();
+  rawRecords.forEach(record => {
+    if (!uniqueRecords.has(record.id)) {
+      uniqueRecords.set(record.id, record);
+    }
+  });
+  
+  // Filter out records from completed periods
+  const allRecords = Array.from(uniqueRecords.values()).filter(record => {
+    const period = allPeriods.find(p => p.id === record.payrollPeriodId);
+    return period && period.status !== 'completed';
+  });
 
   // Deduplicate approvals based on department + period combination
   // This prevents the same department from appearing multiple times for the same period
@@ -150,6 +166,78 @@ const PayrollApprovalManagement: React.FC<PayrollApprovalManagementProps> = ({ c
     }
   };
 
+  const handleUpdateRecordStatus = async (recordId: string, status: 'draft' | 'processed' | 'paid') => {
+    try {
+      await PayrollService.updatePayrollRecordStatus(recordId, status);
+      alert(`Record status updated to ${status} successfully!`);
+      // Refresh the data using proper state management
+      await Promise.all([
+        refetchRecords(),
+        refetchApprovals(),
+        refetchPeriods()
+      ]);
+    } catch (error) {
+      console.error('Error updating record status:', error);
+      alert('Failed to update record status. Please try again.');
+    }
+  };
+
+  const handleBulkUpdatePeriodStatus = async (periodId: string, status: 'draft' | 'processed' | 'paid') => {
+    try {
+      const result = await PayrollService.bulkUpdatePayrollRecordsStatus(periodId, status);
+      alert(`Bulk updated ${result.updatedCount} records to ${status} successfully!`);
+      // Refresh the data using proper state management
+      await Promise.all([
+        refetchRecords(),
+        refetchApprovals(),
+        refetchPeriods()
+      ]);
+    } catch (error) {
+      console.error('Error bulk updating period status:', error);
+      alert('Failed to bulk update period status. Please try again.');
+    }
+  };
+
+  const handleCompletePayrollPeriod = async (periodId: string) => {
+    try {
+      await PayrollService.completePayrollPeriod(periodId);
+      alert('Payroll period completed successfully!');
+      // Refresh the data using proper state management
+      await Promise.all([
+        refetchRecords(),
+        refetchApprovals(),
+        refetchPeriods()
+      ]);
+    } catch (error) {
+      console.error('Error completing payroll period:', error);
+      alert('Failed to complete payroll period. Please try again.');
+    }
+  };
+
+  const handleBulkMarkAsPaid = async (periodId: string, departmentId?: string) => {
+    try {
+      console.log('Bulk mark as paid called with:', { periodId, departmentId });
+      
+      const result = await PayrollService.bulkUpdatePayrollRecordsToPaid({
+        periodId,
+        departmentId
+      });
+      
+      console.log('Bulk mark as paid result:', result);
+      alert(`Successfully marked ${result.updatedCount} records as paid!`);
+      
+      // Refresh the data using proper state management
+      await Promise.all([
+        refetchRecords(),
+        refetchApprovals(),
+        refetchPeriods()
+      ]);
+    } catch (error) {
+      console.error('Error marking records as paid:', error);
+      alert(`Failed to mark records as paid: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   // const getStatusColor = (status: string) => {
   //   switch (status) {
   //     case 'approved': return 'success';
@@ -177,6 +265,19 @@ const PayrollApprovalManagement: React.FC<PayrollApprovalManagementProps> = ({ c
   console.log('Periods data:', periods);
   console.log('All records data:', allRecords);
   console.log('Sample record:', allRecords[0]);
+  console.log('Sample record approval status:', allRecords[0]?.approvalStatus);
+  console.log('Sample record status:', allRecords[0]?.status);
+  
+  // Auto-refresh data every 30 seconds to get updates from department head approvals
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchRecords();
+      refetchApprovals();
+      refetchPeriods();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [refetchRecords, refetchApprovals, refetchPeriods]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-PH', {
@@ -203,8 +304,8 @@ const PayrollApprovalManagement: React.FC<PayrollApprovalManagementProps> = ({ c
     }
   };
 
-  // Group individual employee records by payroll period
-  const recordsByPeriod = allRecords.reduce((acc, record) => {
+  // Group individual employee records by payroll period, then by department
+  const recordsByPeriodAndDepartment = allRecords.reduce((acc, record) => {
     // Try to use the period name from the record first, then fall back to getPeriodName
     let periodName = record.periodName || getPeriodName(record.payrollPeriodId);
     
@@ -221,11 +322,28 @@ const PayrollApprovalManagement: React.FC<PayrollApprovalManagementProps> = ({ c
     }
     
     if (!acc[periodName]) {
-      acc[periodName] = [];
+      acc[periodName] = {};
     }
-    acc[periodName].push(record);
+    
+    // Group by department within each period
+    const departmentName = record.departmentName || 'Unknown Department';
+    if (!acc[periodName][departmentName]) {
+      acc[periodName][departmentName] = [];
+    }
+    
+    acc[periodName][departmentName].push(record);
     return acc;
-  }, {} as Record<string, PayrollRecord[]>);
+  }, {} as Record<string, Record<string, PayrollRecord[]>>);
+
+  // Debug records by period and department
+  console.log('Records by period and department:', recordsByPeriodAndDepartment);
+  
+  // Debug each department's records
+  Object.entries(recordsByPeriodAndDepartment).forEach(([periodName, departments]) => {
+    Object.entries(departments).forEach(([departmentName, records]) => {
+      console.log(`${periodName} - ${departmentName}:`, records.map(r => ({ id: r.id, status: r.status, approvalStatus: r.approvalStatus })));
+    });
+  });
 
   if (approvalsLoading || allRecordsLoading) {
     return (
@@ -337,80 +455,237 @@ const PayrollApprovalManagement: React.FC<PayrollApprovalManagementProps> = ({ c
         </Card>
       </div>
 
-      {/* Employee Records by Period */}
+      {/* Employee Records by Period and Department */}
       <div className="space-y-6">
-        {Object.keys(recordsByPeriod).length === 0 ? (
+        {Object.keys(recordsByPeriodAndDepartment).length === 0 ? (
           <Card className="p-8 text-center">
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">No payroll records found</p>
             <p className="text-sm text-gray-400 mt-2">Records will appear here when payroll periods are generated</p>
           </Card>
         ) : (
-          Object.entries(recordsByPeriod).map(([periodName, periodRecords]) => (
-            <Card key={periodName} className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-blue-600" />
+          Object.entries(recordsByPeriodAndDepartment).map(([periodName, departments]) => (
+            <Card key={periodName} className="overflow-hidden">
+              {/* Period Header */}
+              <div className="bg-blue-50 px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-blue-900">{periodName}</h3>
+                      <p className="text-sm text-blue-700">
+                        {Object.values(departments).flat().length} employee{Object.values(departments).flat().length !== 1 ? 's' : ''} across {Object.keys(departments).length} department{Object.keys(departments).length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{periodName}</h3>
-                    <p className="text-sm text-gray-600">
-                      {periodRecords.length} employee{periodRecords.length !== 1 ? 's' : ''}
-                    </p>
+                  
+                  <div className="flex items-center space-x-2">
+                    {/* Complete Payroll Period Button - Show when all departments have approved */}
+                    {Object.values(departments).flat().every(r => r.approvalStatus === 'approved') && 
+                     Object.values(departments).flat().some(r => r.status === 'processed') && (
+                      <Button
+                        variant="success"
+                        size="sm"
+                        icon={<CheckCircle className="h-4 w-4" />}
+                        onClick={() => {
+                          const periodId = Object.values(departments).flat()[0]?.payrollPeriodId;
+                          if (periodId) {
+                            handleCompletePayrollPeriod(periodId);
+                          }
+                        }}
+                      >
+                        Complete Period
+                      </Button>
+                    )}
+                    
+                    {Object.values(departments).flat().every(r => r.status === 'paid') && (
+                      <Badge variant="success">All Paid</Badge>
+                    )}
+                    {Object.values(departments).flat().some(r => r.status === 'processed') && (
+                      <Badge variant="warning">Processing</Badge>
+                    )}
+                    {Object.values(departments).flat().some(r => r.status === 'draft') && (
+                      <Badge variant="default">Draft</Badge>
+                    )}
                   </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  {periodRecords.every(r => r.status === 'paid') && (
-                    <Badge variant="success">All Paid</Badge>
-                  )}
-                  {periodRecords.some(r => r.status === 'processed') && (
-                    <Badge variant="warning">Processing</Badge>
-                  )}
-                  {periodRecords.some(r => r.status === 'draft') && (
-                    <Badge variant="default">Draft</Badge>
-                  )}
                 </div>
               </div>
 
-              <div className="space-y-3">
-                {periodRecords.map((record) => (
-                  <div key={record.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                        <Users className="h-4 w-4 text-gray-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {record.employeeName || 'Unknown Employee'}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {record.employeeId || 'N/A'} • {record.departmentName || 'N/A'}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Net Pay: {formatCurrency(record.netPay || 0)}
-                        </p>
+              {/* Departments */}
+              <div className="space-y-0">
+                {Object.entries(departments).map(([departmentName, departmentRecords]) => (
+                  <div key={departmentName} className="border-b border-gray-200 last:border-b-0">
+                    {/* Department Header */}
+                    <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Building2 className="h-5 w-5 text-gray-600" />
+                          <h4 className="font-medium text-gray-900">{departmentName}</h4>
+                          <Badge variant="default">{departmentRecords.length} employee{departmentRecords.length !== 1 ? 's' : ''}</Badge>
+                        </div>
+                        
+                        {/* Department-level Bulk Actions */}
+                        <div className="flex items-center space-x-2">
+                          {departmentRecords.some(r => r.status === 'draft' && r.approvalStatus === 'approved') && (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              icon={<Zap className="h-4 w-4" />}
+                              onClick={() => {
+                                const periodId = departmentRecords[0]?.payrollPeriodId;
+                                const departmentId = departmentRecords[0]?.departmentId;
+                                if (periodId && departmentId) {
+                                  handleBulkUpdatePeriodStatus(periodId, 'processed');
+                                }
+                              }}
+                            >
+                              Process All
+                            </Button>
+                          )}
+                          {departmentRecords.some(r => r.status === 'draft' && r.approvalStatus === 'pending') && (
+                            <div className="text-xs text-gray-500 italic">
+                              Awaiting department approval
+                            </div>
+                          )}
+                          {departmentRecords.some(r => r.status === 'processed') && (
+                            <Button
+                              variant="success"
+                              size="sm"
+                              icon={<CreditCard className="h-4 w-4" />}
+                              onClick={() => {
+                                const periodId = departmentRecords[0]?.payrollPeriodId;
+                                const departmentId = departmentRecords[0]?.departmentId;
+                                console.log('Mark All Paid button clicked:', { 
+                                  periodId, 
+                                  departmentId, 
+                                  departmentRecords: departmentRecords.map(r => ({ 
+                                    id: r.id, 
+                                    status: r.status, 
+                                    payrollPeriodId: r.payrollPeriodId, 
+                                    departmentId: r.departmentId,
+                                    fullRecord: r // Show the full record to see all available fields
+                                  }))
+                                });
+                                if (periodId) {
+                                  handleBulkMarkAsPaid(periodId, departmentId);
+                                } else {
+                                  alert('Period ID not found');
+                                }
+                              }}
+                            >
+                              Mark All Paid
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={getRecordStatusColor(record.status)}>
-                          {getRecordStatusLabel(record.status)}
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          icon={<Eye className="h-4 w-4" />}
-                          onClick={() => handleViewRecord(record)}
-                        >
-                          View
-                        </Button>
-                      </div>
+
+                    {/* Employee Records */}
+                    <div className="space-y-0">
+                      {departmentRecords.map((record) => (
+                        <div key={record.id} className="flex items-center justify-between p-4 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                              <Users className="h-4 w-4 text-gray-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {record.employeeName || 'Unknown Employee'}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {record.employeeId || 'N/A'}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Net Pay: {formatCurrency(record.netPay || 0)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-2">
+                              <Badge variant={getRecordStatusColor(record.status)}>
+                                {getRecordStatusLabel(record.status)}
+                              </Badge>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                icon={<Eye className="h-4 w-4" />}
+                                onClick={() => handleViewRecord(record)}
+                              >
+                                View
+                              </Button>
+                              
+                              {/* Individual Record Action Buttons */}
+                              {record.status === 'draft' && record.approvalStatus === 'approved' && (
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  icon={<Zap className="h-4 w-4" />}
+                                  onClick={() => handleUpdateRecordStatus(record.id, 'processed')}
+                                >
+                                  Process
+                                </Button>
+                              )}
+                              {record.status === 'draft' && record.approvalStatus === 'pending' && (
+                                <div className="text-xs text-gray-500 italic">
+                                  Awaiting department approval
+                                </div>
+                              )}
+                              {record.status === 'processed' && (
+                                <Button
+                                  variant="success"
+                                  size="sm"
+                                  icon={<CreditCard className="h-4 w-4" />}
+                                  onClick={() => handleUpdateRecordStatus(record.id, 'paid')}
+                                >
+                                  Mark Paid
+                                </Button>
+                              )}
+                              {record.status === 'paid' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  icon={<Printer className="h-4 w-4" />}
+                                  onClick={() => {
+                                    const mockApproval: PayrollApproval = {
+                                      id: record.id,
+                                      payrollPeriodId: record.payrollPeriodId,
+                                      approverId: '',
+                                      departmentId: record.departmentId || undefined,
+                                      status: 'approved',
+                                      comments: undefined,
+                                      approvedAt: undefined,
+                                      createdAt: record.createdAt,
+                                      updatedAt: record.updatedAt,
+                                      approver: undefined,
+                                      department: {
+                                        id: record.departmentId || '',
+                                        name: record.departmentName || 'Unknown Department',
+                                        description: undefined
+                                      },
+                                      payrollPeriod: {
+                                        id: record.payrollPeriodId,
+                                        periodName: record.periodName || 'Unknown Period',
+                                        startDate: '',
+                                        endDate: '',
+                                        status: 'active'
+                                      }
+                                    };
+                                    handlePrintPaystubs(mockApproval);
+                                  }}
+                                >
+                                  Print
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -471,64 +746,115 @@ const PayrollApprovalManagement: React.FC<PayrollApprovalManagementProps> = ({ c
                     </div>
                   </div>
 
-                  {/* Paystub Details */}
-                  <Card className="overflow-hidden">
-                    <div className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Earnings */}
-                        <div className="space-y-4">
-                          <h6 className="font-medium text-gray-900 flex items-center">
-                            <DollarSign className="h-4 w-4 mr-2 text-green-600" />
-                            Earnings
-                          </h6>
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Base Salary:</span>
-                              <span className="font-medium">{formatCurrency(employeeRecord.baseSalary || 0)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Regular Hours:</span>
-                              <span className="font-medium">{employeeRecord.totalRegularHours || 0} hrs</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Overtime Hours:</span>
-                              <span className="font-medium">{employeeRecord.totalOvertimeHours || 0} hrs</span>
-                            </div>
-                            <div className="flex justify-between border-t pt-2">
-                              <span className="font-medium">Gross Pay:</span>
-                              <span className="font-bold text-green-600">{formatCurrency(employeeRecord.grossPay || 0)}</span>
-                            </div>
-                          </div>
+                  {/* Paystub Details - Matching Employee Dashboard Format */}
+                  <div className="space-y-4">
+                    {/* Period and Net Pay Summary */}
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-green-900">{employeeRecord.periodName || 'Payroll Period'}</h4>
+                          <p className="text-sm text-green-700">
+                            {employeeRecord.createdAt ? new Date(employeeRecord.createdAt).toLocaleDateString() : 'N/A'}
+                          </p>
                         </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-green-600">
+                            {formatCurrency(employeeRecord.netPay || 0)}
+                          </p>
+                          <p className="text-sm text-green-700">Net Pay (Total Monthly Income)</p>
+                        </div>
+                      </div>
+                    </div>
 
-                        {/* Deductions & Benefits */}
-                        <div className="space-y-4">
-                          <h6 className="font-medium text-gray-900 flex items-center">
-                            <XCircle className="h-4 w-4 mr-2 text-red-600" />
-                            Deductions & Benefits
-                          </h6>
-                          <div className="space-y-2">
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Total Deductions:</span>
-                              <span className="font-medium text-red-600">-{formatCurrency(employeeRecord.totalDeductions || 0)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Late Deductions:</span>
-                              <span className="font-medium text-red-600">-{formatCurrency(employeeRecord.lateDeductions || 0)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Benefits:</span>
-                              <span className="font-medium text-green-600">+{formatCurrency(employeeRecord.totalBenefits || 0)}</span>
-                            </div>
-                            <div className="flex justify-between border-t pt-2">
-                              <span className="font-medium">Net Pay:</span>
-                              <span className="font-bold text-green-600">{formatCurrency(employeeRecord.netPay || 0)}</span>
-                            </div>
+                    {/* Benefits Section */}
+                    <div className="p-4 bg-green-50 rounded-lg">
+                      <h5 className="font-medium text-green-900 mb-2">Benefits</h5>
+                      <div className="space-y-1">
+                        {employeeRecord.totalBenefits && employeeRecord.totalBenefits > 0 ? (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-green-700">Benefits:</span>
+                            <span className="text-sm font-medium text-green-900">+{formatCurrency(employeeRecord.totalBenefits)}</span>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-green-700">No benefits for this period</p>
+                        )}
+                        <div className="border-t border-green-200 pt-1 mt-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium text-green-900">Total Benefits:</span>
+                            <span className="text-sm font-bold text-green-900">+{formatCurrency(employeeRecord.totalBenefits || 0)}</span>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </Card>
+
+                    {/* Deductions Section */}
+                    <div className="p-4 bg-red-50 rounded-lg">
+                      <h5 className="font-medium text-red-900 mb-2">Deductions</h5>
+                      <div className="space-y-1">
+                        {employeeRecord.totalDeductions && employeeRecord.totalDeductions > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-red-700">Employee Deductions:</span>
+                            <span className="text-sm font-medium text-red-900">-{formatCurrency(employeeRecord.totalDeductions)}</span>
+                          </div>
+                        )}
+                        {employeeRecord.lateDeductions && employeeRecord.lateDeductions > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-red-700">Late Deductions:</span>
+                            <span className="text-sm font-medium text-red-900">-{formatCurrency(employeeRecord.lateDeductions)}</span>
+                          </div>
+                        )}
+                        <div className="border-t border-red-200 pt-1 mt-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium text-red-900">Total Deductions:</span>
+                            <span className="text-sm font-bold text-red-900">-{formatCurrency(Number(employeeRecord.totalDeductions || 0) + Number(employeeRecord.lateDeductions || 0))}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Earnings Summary */}
+                    <div className="p-4 bg-blue-50 rounded-lg">
+                      <h5 className="font-medium text-blue-900 mb-2">Earnings Summary</h5>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-blue-700">Base Salary:</span>
+                          <span className="text-sm font-medium text-blue-900">{formatCurrency(employeeRecord.baseSalary || 0)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-blue-700">Total Hours Worked:</span>
+                          <span className="text-sm font-medium text-blue-900">{employeeRecord.totalWorkedHours || 0} hrs</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-blue-700">Regular Hours:</span>
+                          <span className="text-sm font-medium text-blue-900">{employeeRecord.totalRegularHours || 0} hrs</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-blue-700">Overtime Hours:</span>
+                          <span className="text-sm font-medium text-blue-900">{employeeRecord.totalOvertimeHours || 0} hrs</span>
+                        </div>
+                        {(employeeRecord.paidLeaveHours || 0) > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-blue-700">Paid Leave Hours:</span>
+                            <span className="text-sm font-medium text-blue-900">{employeeRecord.paidLeaveHours || 0} hrs</span>
+                          </div>
+                        )}
+                        {(employeeRecord.paidLeaveHours || 0) > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-sm text-blue-700">Leave Pay:</span>
+                            <span className="text-sm font-medium text-blue-900">
+                              {formatCurrency(((employeeRecord.paidLeaveHours || 0) * (employeeRecord.hourlyRate || 0)))}
+                            </span>
+                          </div>
+                        )}
+                        <div className="border-t border-blue-200 pt-2 mt-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm font-medium text-blue-900">Gross Pay:</span>
+                            <span className="text-sm font-bold text-blue-900">{formatCurrency(employeeRecord.grossPay || 0)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Action Buttons */}
                   <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">

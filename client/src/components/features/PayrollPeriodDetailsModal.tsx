@@ -14,6 +14,8 @@ interface PayrollPeriodDetailsModalProps {
   isLoading: boolean;
   onApprovePayroll?: (periodId: string, comments?: string) => Promise<void>;
   onRejectPayroll?: (periodId: string, reason?: string) => Promise<void>;
+  isApproving?: boolean;
+  isRejecting?: boolean;
 }
 
 const PayrollPeriodDetailsModal: React.FC<PayrollPeriodDetailsModalProps> = ({
@@ -23,7 +25,9 @@ const PayrollPeriodDetailsModal: React.FC<PayrollPeriodDetailsModalProps> = ({
   payrollRecords,
   isLoading,
   onApprovePayroll,
-  onRejectPayroll
+  onRejectPayroll,
+  isApproving = false,
+  isRejecting = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecord, setSelectedRecord] = useState<PayrollRecord | null>(null);
@@ -208,6 +212,9 @@ const PayrollPeriodDetailsModal: React.FC<PayrollPeriodDetailsModalProps> = ({
                             <div>Regular: {record.totalRegularHours || 0}h</div>
                             <div>Overtime: {record.totalOvertimeHours || 0}h</div>
                             <div>Late: {record.totalLateHours || 0}h</div>
+                            {(record.paidLeaveHours || 0) > 0 && (
+                              <div className="text-green-600">Leave: {record.paidLeaveHours || 0}h</div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -255,7 +262,7 @@ const PayrollPeriodDetailsModal: React.FC<PayrollPeriodDetailsModalProps> = ({
             </div>
 
             {/* Payroll Approval Section */}
-            {period.approvalStatus === 'pending' && (
+            {(!period.approvalStatus || period.approvalStatus === 'pending') && (
               <div className="mt-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <h4 className="text-lg font-semibold text-yellow-800 mb-4">Payroll Approval Required</h4>
                 <p className="text-yellow-700 mb-4">
@@ -293,17 +300,26 @@ const PayrollPeriodDetailsModal: React.FC<PayrollPeriodDetailsModalProps> = ({
                     <Button
                       variant="danger"
                       onClick={handleRejectPayroll}
-                      disabled={!rejectionReason.trim()}
+                      disabled={!rejectionReason.trim() || isRejecting || isApproving}
                     >
-                      <XCircle className="h-4 w-4 mr-1" />
-                      Reject Payroll
+                      {isRejecting ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <XCircle className="h-4 w-4 mr-1" />
+                      )}
+                      {isRejecting ? 'Rejecting...' : 'Reject Payroll'}
                     </Button>
                     <Button
                       variant="success"
                       onClick={handleApprovePayroll}
+                      disabled={isApproving || isRejecting}
                     >
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Approve Payroll
+                      {isApproving ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                      )}
+                      {isApproving ? 'Approving...' : 'Approve Payroll'}
                     </Button>
                   </div>
                 </div>
@@ -387,7 +403,7 @@ const PayrollPeriodDetailsModal: React.FC<PayrollPeriodDetailsModalProps> = ({
             </div>
 
             {/* Hours Worked */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg text-center">
                 <Clock className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                 <p className="text-sm text-gray-600">Regular Hours</p>
@@ -403,6 +419,11 @@ const PayrollPeriodDetailsModal: React.FC<PayrollPeriodDetailsModalProps> = ({
                 <p className="text-sm text-gray-600">Late Hours</p>
                 <p className="text-xl font-bold text-red-600">{selectedRecord.totalLateHours || 0}</p>
               </div>
+              <div className="p-4 bg-green-50 rounded-lg text-center">
+                <Clock className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Paid Leave Hours</p>
+                <p className="text-xl font-bold text-green-600">{selectedRecord.paidLeaveHours || 0}</p>
+              </div>
             </div>
 
             {/* Pay Breakdown */}
@@ -417,6 +438,14 @@ const PayrollPeriodDetailsModal: React.FC<PayrollPeriodDetailsModalProps> = ({
                     <span className="text-green-700">Base Salary</span>
                     <span className="font-medium text-green-800">{formatCurrency(selectedRecord.baseSalary || 0)}</span>
                   </div>
+                  {(selectedRecord.paidLeaveHours || 0) > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-green-700">Leave Pay</span>
+                      <span className="font-medium text-green-800">
+                        {formatCurrency(((selectedRecord.paidLeaveHours || 0) * (selectedRecord.hourlyRate || 0)))}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-green-700">Benefits</span>
                     <span className="font-medium text-green-800">{formatCurrency(selectedRecord.totalBenefits || 0)}</span>
