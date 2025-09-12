@@ -6,6 +6,7 @@ export interface ApiResponse {
   timestamp: string;
   requestId?: string;
   path?: string;
+  details?: any;
 }
 
 export interface PaginatedResponse<T> extends ApiResponse {

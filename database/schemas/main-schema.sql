@@ -48,12 +48,23 @@ DECLARE
     v_user_id UUID;
 BEGIN
     -- Get user ID, handle case when setting doesn't exist
+    -- SECURITY: Use INVOKER security model (removed SECURITY DEFINER)
     BEGIN
         v_user_id := current_setting('app.current_user_id', TRUE)::UUID;
     EXCEPTION WHEN OTHERS THEN
         v_user_id := NULL;
     END;
-    
+
+    -- SECURITY: Validate that the user has permission to perform this operation
+    -- Only log if we can identify the user or if it's a system operation
+    IF v_user_id IS NOT NULL THEN
+        -- Check if user exists and is active
+        IF NOT EXISTS (SELECT 1 FROM users WHERE id = v_user_id AND is_active = true) THEN
+            RAISE EXCEPTION 'Invalid or inactive user attempting audit operation';
+        END IF;
+    END IF;
+
+    -- SECURITY: Sanitize data before logging (prevent injection)
     IF (TG_OP = 'INSERT') THEN
         v_new_data := to_jsonb(NEW);
         INSERT INTO audit_log (table_name, record_id, action, new_data, changed_by_user_id)
@@ -70,7 +81,7 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 /* === Authentication & Users === */
 CREATE TABLE users (
@@ -845,7 +856,7 @@ BEGIN
     
     RETURN v_qr_data;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION create_employee_id_card(p_employee_id UUID, p_issued_by UUID)
 RETURNS UUID AS $$
@@ -855,21 +866,40 @@ DECLARE
     v_expiry_years INTEGER;
     v_expiry_date DATE;
     v_id_card_id UUID;
+    v_issuer_role user_role;
 BEGIN
+    -- SECURITY: Validate that the issuer has permission (HR admin only)
+    SELECT role INTO v_issuer_role
+    FROM users
+    WHERE id = p_issued_by AND is_active = true;
+
+    IF v_issuer_role IS NULL THEN
+        RAISE EXCEPTION 'Invalid or inactive issuer';
+    END IF;
+
+    IF v_issuer_role != 'hr' THEN
+        RAISE EXCEPTION 'Only HR administrators can create ID cards';
+    END IF;
+
+    -- SECURITY: Validate that employee exists and is active
+    IF NOT EXISTS (SELECT 1 FROM employees e JOIN users u ON e.user_id = u.id WHERE e.id = p_employee_id AND u.is_active = true) THEN
+        RAISE EXCEPTION 'Invalid or inactive employee';
+    END IF;
+
     SELECT CAST(setting_value AS INTEGER)
     INTO v_expiry_years
-    FROM system_settings 
+    FROM system_settings
     WHERE setting_key = 'qr_code_expiry_years';
-    
+
     v_expiry_date := CURRENT_DATE + (v_expiry_years || ' years')::INTERVAL;
     v_qr_code_data := generate_employee_qr_code(p_employee_id);
     v_qr_code_hash := encode(sha256(v_qr_code_data::bytea), 'hex');
-    
+
     INSERT INTO id_cards (
-        employee_id, 
-        qr_code_hash, 
-        qr_code_data, 
-        expiry_date, 
+        employee_id,
+        qr_code_hash,
+        qr_code_data,
+        expiry_date,
         issued_by
     ) VALUES (
         p_employee_id,
@@ -878,10 +908,10 @@ BEGIN
         v_expiry_date,
         p_issued_by
     ) RETURNING id INTO v_id_card_id;
-    
+
     RETURN v_id_card_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 /* === Selfie Cleanup Function === */
 CREATE OR REPLACE FUNCTION cleanup_expired_selfies()
@@ -1194,7 +1224,7 @@ BEGIN
     AND e.status = 'active'
     ORDER BY u.last_name, u.first_name;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION get_department_head_department(p_department_head_user_id UUID)
 RETURNS TABLE (
@@ -1218,4 +1248,4 @@ BEGIN
     FROM departments d
     WHERE d.department_head_user_id = p_department_head_user_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;

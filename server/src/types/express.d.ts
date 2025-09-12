@@ -6,6 +6,11 @@ declare global {
       user?: JWTPayload;
       requestId?: string;
       startTime?: number;
+      kioskContext?: {
+        authenticated: boolean;
+        apiKey?: string;
+        type?: string;
+      };
     }
   }
 }
