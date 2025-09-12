@@ -101,12 +101,25 @@ export const useDeleteEmployee = () => {
 
 export const useHardDeleteEmployee = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: HREmployeeService.hardDeleteEmployee,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['employees', 'stats'] });
+    },
+  });
+};
+
+export const useCreateBulkEmployees = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (csvFile: File) => HREmployeeService.createBulkEmployees(csvFile),
+    onSuccess: () => {
+      // Invalidate employee-related queries
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employeeStats'] });
     },
   });
 };

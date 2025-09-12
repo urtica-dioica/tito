@@ -4,6 +4,7 @@ import { authenticate } from '../../middleware/auth/authenticate';
 import { requireHR } from '../../middleware/auth/authorize';
 import { validateBody, validateQuery, validateParams } from '../../middleware/validation/validate';
 import { createEmployeeSchema, updateEmployeeSchema, employeeParamsSchema, employeeQuerySchema } from '../../middleware/validation/schemas/employeeSchemas';
+import { uploadCSV, handleCSVUploadError } from '../../config/csvUpload';
 
 const router = Router();
 const employeeController = new EmployeeController();
@@ -21,6 +22,18 @@ router.post(
   '/',
   validateBody(createEmployeeSchema),
   employeeController.createEmployee
+);
+
+/**
+ * @route POST /api/v1/hr/employees/bulk
+ * @desc Create multiple employees from CSV file
+ * @access HR Admin only
+ */
+router.post(
+  '/bulk',
+  uploadCSV,
+  handleCSVUploadError,
+  employeeController.createBulkEmployees
 );
 
 /**

@@ -483,10 +483,7 @@ export class EmployeeService {
       // - Leave requests
       // - Other related records
 
-      // Hard delete employee record
-      await this.employeeModel.deleteEmployee(employeeId);
-
-      // Hard delete user account
+      // Hard delete user account first (this will cascade delete the employee due to FK constraint)
       await this.userModel.deleteUser(employee.userId);
 
       await client.query('COMMIT');
@@ -579,5 +576,83 @@ export class EmployeeService {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return password;
+  }
+
+  /**
+   * Create multiple employees from CSV data
+   */
+  async createBulkEmployees(csvData: CreateEmployeeData[]): Promise<{
+    success: EmployeeWithUser[];
+    errors: Array<{ row: number; data: CreateEmployeeData; error: string }>;
+    totalProcessed: number;
+    successCount: number;
+    errorCount: number;
+  }> {
+    const results = {
+      success: [] as EmployeeWithUser[],
+      errors: [] as Array<{ row: number; data: CreateEmployeeData; error: string }>,
+      totalProcessed: csvData.length,
+      successCount: 0,
+      errorCount: 0
+    };
+
+    // Process each employee sequentially to handle individual errors
+    for (let i = 0; i < csvData.length; i++) {
+      const employeeData = csvData[i];
+      const rowNumber = i + 1; // 1-based row numbering for user feedback
+
+      try {
+        // Validate required fields
+        if (!employeeData.email || !employeeData.firstName || !employeeData.lastName || 
+            !employeeData.departmentId || !employeeData.position || !employeeData.hireDate || 
+            !employeeData.baseSalary) {
+          throw new Error('Missing required fields');
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(employeeData.email)) {
+          throw new Error('Invalid email format');
+        }
+
+        // Validate salary is positive
+        if (employeeData.baseSalary <= 0) {
+          throw new Error('Base salary must be greater than 0');
+        }
+
+        // Validate employment type
+        if (!['regular', 'contractual', 'jo'].includes(employeeData.employmentType)) {
+          throw new Error('Invalid employment type. Must be: regular, contractual, or jo');
+        }
+
+        // Validate hire date
+        const hireDate = new Date(employeeData.hireDate);
+        if (isNaN(hireDate.getTime())) {
+          throw new Error('Invalid hire date format');
+        }
+
+        // Create the employee using existing logic
+        const employee = await this.createEmployee(employeeData);
+        results.success.push(employee);
+        results.successCount++;
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        results.errors.push({
+          row: rowNumber,
+          data: employeeData,
+          error: errorMessage
+        });
+        results.errorCount++;
+        
+        logger.error(`Bulk employee creation failed for row ${rowNumber}:`, {
+          error: errorMessage,
+          data: employeeData
+        });
+      }
+    }
+
+    logger.info(`Bulk employee creation completed: ${results.successCount} successful, ${results.errorCount} failed`);
+    return results;
   }
 }

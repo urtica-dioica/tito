@@ -154,6 +154,43 @@ export class HREmployeeService {
    * Hard delete employee (permanently remove from database)
    */
   static async hardDeleteEmployee(id: string): Promise<void> {
-    await apiMethods.delete(`/hr/employees/${id}/hard`);
+    await apiMethods.delete(`/hr/employees/${id}/hard-delete`);
+  }
+
+  /**
+   * Create multiple employees from CSV file
+   */
+  static async createBulkEmployees(csvFile: File): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      totalProcessed: number;
+      successCount: number;
+      errorCount: number;
+      successfulEmployees: HREmployee[];
+      errors: Array<{ row: number; data: any; error: string }>;
+    };
+  }> {
+    const formData = new FormData();
+    formData.append('csvFile', csvFile);
+
+    const response = await apiMethods.post('/hr/employees/bulk', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 300000, // 5 minutes timeout for bulk operations
+    });
+    
+    return response as {
+      success: boolean;
+      message: string;
+      data: {
+        totalProcessed: number;
+        successCount: number;
+        errorCount: number;
+        successfulEmployees: HREmployee[];
+        errors: Array<{ row: number; data: any; error: string }>;
+      };
+    };
   }
 }

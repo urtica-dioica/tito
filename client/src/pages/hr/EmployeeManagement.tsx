@@ -7,13 +7,14 @@ import Input from '../../components/shared/Input';
 import Card from '../../components/shared/Card';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/shared/LoadingSpinner';
-import { useEmployees, useEmployeeStats, useCreateEmployee, useUpdateEmployee, useDeleteEmployee, useHardDeleteEmployee } from '../../hooks/useEmployees';
+import { useEmployees, useEmployeeStats, useCreateEmployee, useUpdateEmployee, useDeleteEmployee, useHardDeleteEmployee, useCreateBulkEmployees } from '../../hooks/useEmployees';
 import { useDepartments } from '../../hooks/useDepartments';
 import { useCreateIdCard, useQrCodeData, useIdCards } from '../../hooks/useIdCards';
 import type { CreateHREmployeeRequest, HREmployee } from '../../services/hrEmployeeService';
 
 const EmployeeManagement: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isBulkAddModalOpen, setIsBulkAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isHardDeleteModalOpen, setIsHardDeleteModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<HREmployee | null>(null);
@@ -39,6 +40,17 @@ const EmployeeManagement: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Bulk add employee form state
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
+  const [bulkFormError, setBulkFormError] = useState<string | null>(null);
+  const [bulkResults, setBulkResults] = useState<{
+    totalProcessed: number;
+    successCount: number;
+    errorCount: number;
+    errors: Array<{ row: number; data: any; error: string }>;
+  } | null>(null);
 
   // Edit employee form state
   const [editFormData, setEditFormData] = useState({
@@ -71,6 +83,7 @@ const EmployeeManagement: React.FC = () => {
   const updateEmployeeMutation = useUpdateEmployee();
   const deleteEmployeeMutation = useDeleteEmployee();
   const hardDeleteEmployeeMutation = useHardDeleteEmployee();
+  const createBulkEmployeesMutation = useCreateBulkEmployees();
   
   // ID Card hooks
   const createIdCardMutation = useCreateIdCard();
@@ -144,6 +157,13 @@ const EmployeeManagement: React.FC = () => {
     });
     setFormError(null);
     setIsAddModalOpen(true);
+  };
+
+  const handleBulkAddEmployee = () => {
+    setCsvFile(null);
+    setBulkFormError(null);
+    setBulkResults(null);
+    setIsBulkAddModalOpen(true);
   };
 
   const handleEditEmployee = (employee: HREmployee) => {
@@ -229,6 +249,72 @@ const EmployeeManagement: React.FC = () => {
       setFormError(error.response?.data?.message || 'Failed to create employee. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCSVFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.name.toLowerCase().endsWith('.csv')) {
+        setBulkFormError('Please select a CSV file');
+        return;
+      }
+      
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        setBulkFormError('File size must be less than 10MB');
+        return;
+      }
+      
+      setCsvFile(file);
+      setBulkFormError(null);
+    }
+  };
+
+  const handleBulkFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!csvFile) {
+      setBulkFormError('Please select a CSV file');
+      return;
+    }
+
+    try {
+      setIsBulkSubmitting(true);
+      setBulkFormError(null);
+      setBulkResults(null);
+
+      // Show progress message
+      setBulkFormError('Processing CSV file and creating employees... This may take a few minutes for large files.');
+
+      const result = await createBulkEmployeesMutation.mutateAsync(csvFile);
+      
+      setBulkResults(result.data);
+      setBulkFormError(null); // Clear progress message
+      
+      // Refresh employees list
+      await refetch();
+      
+      // Show results
+      if (result.data.successCount > 0) {
+        alert(`Successfully created ${result.data.successCount} employee(s)! ${result.data.errorCount > 0 ? `${result.data.errorCount} failed.` : ''}`);
+      }
+      
+      if (result.data.errorCount > 0 && result.data.successCount === 0) {
+        setBulkFormError(`Failed to create all ${result.data.errorCount} employees. Please check the CSV format and try again.`);
+      }
+    } catch (error: any) {
+      console.error('Error in bulk employee creation:', error);
+      
+      // Handle timeout errors specifically
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        setBulkFormError('The operation timed out. This can happen with large CSV files. Please try with a smaller batch or contact support if the issue persists.');
+      } else {
+        setBulkFormError(error.response?.data?.message || 'An unexpected error occurred during bulk creation.');
+      }
+    } finally {
+      setIsBulkSubmitting(false);
     }
   };
 
@@ -562,9 +648,14 @@ const EmployeeManagement: React.FC = () => {
       title="Employee Management"
       subtitle="Manage employees and their information"
       actions={
-        <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={handleAddEmployee}>
-          Add Employee
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" icon={<Plus className="h-4 w-4" />} onClick={handleBulkAddEmployee}>
+            Bulk Add
+          </Button>
+          <Button variant="primary" icon={<Plus className="h-4 w-4" />} onClick={handleAddEmployee}>
+            Add Employee
+          </Button>
+        </div>
       }
     >
       <div className={`flex gap-6 transition-all duration-300 ease-in-out ${selectedEmployeeForIdCard ? 'h-auto' : 'h-[600px]'}`}>
@@ -649,7 +740,6 @@ const EmployeeManagement: React.FC = () => {
             <div className="p-4 flex-1 overflow-hidden flex flex-col">
               {/* Employee Selection - Fixed Height */}
               <div className="mb-4">
-                <h4 className="text-md font-semibold text-text-primary mb-3">Select Employee</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-text-primary mb-1">
@@ -1175,6 +1265,156 @@ const EmployeeManagement: React.FC = () => {
               disabled={isSubmitting || !addFormData.email || !addFormData.firstName || !addFormData.lastName || !addFormData.departmentId || !addFormData.position || !addFormData.hireDate || addFormData.baseSalary <= 0}
             >
               {isSubmitting ? 'Creating...' : 'Add Employee'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Bulk Add Employee Modal */}
+      <Modal
+        isOpen={isBulkAddModalOpen}
+        onClose={() => setIsBulkAddModalOpen(false)}
+        title="Bulk Add Employees from CSV"
+        size="xl"
+      >
+        <form onSubmit={handleBulkFormSubmit} className="space-y-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-blue-800 mb-2">CSV Format Requirements</h4>
+            <p className="text-sm text-blue-700 mb-3">
+              Your CSV file must include the following columns (case-insensitive):
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-sm text-blue-700">
+              <div>• Email</div>
+              <div>• First Name</div>
+              <div>• Last Name</div>
+              <div>• Department ID</div>
+              <div>• Position</div>
+              <div>• Employment Type</div>
+              <div>• Hire Date</div>
+              <div>• Base Salary</div>
+            </div>
+            <p className="text-xs text-blue-600 mt-3">
+              Employment Type must be: regular, contractual, or jo<br/>
+              Hire Date format: YYYY-MM-DD<br/>
+              Base Salary must be a positive number<br/>
+              <strong>Note:</strong> Large CSV files may take several minutes to process
+            </p>
+          </div>
+          
+          {bulkFormError && (
+            <div className={`p-3 border rounded-md ${
+              bulkFormError.includes('Processing CSV file') 
+                ? 'bg-blue-50 border-blue-200' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <p className={`text-sm ${
+                bulkFormError.includes('Processing CSV file') 
+                  ? 'text-blue-600' 
+                  : 'text-red-600'
+              }`}>
+                {bulkFormError}
+              </p>
+            </div>
+          )}
+
+          {bulkResults && (
+            <div className="space-y-3">
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-600">
+                  <strong>Processing Complete:</strong> {bulkResults.successCount} successful, {bulkResults.errorCount} failed out of {bulkResults.totalProcessed} total
+                </p>
+              </div>
+              
+              {bulkResults.errors.length > 0 && (
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <h5 className="text-sm font-semibold text-yellow-800 mb-2">Errors Found:</h5>
+                  <div className="max-h-32 overflow-y-auto space-y-1">
+                    {bulkResults.errors.map((error, index) => (
+                      <div key={index} className="text-xs text-yellow-700">
+                        <strong>Row {error.row}:</strong> {error.error}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-2">
+                Select CSV File
+              </label>
+              <div className="flex items-center space-x-4">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCSVFileChange}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  disabled={isBulkSubmitting}
+                />
+              </div>
+              {csvFile && (
+                <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-md">
+                  <p className="text-sm text-gray-700">
+                    <strong>Selected:</strong> {csvFile.name} ({(csvFile.size / 1024).toFixed(1)} KB)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="flex justify-between items-center mb-2">
+                <h5 className="text-sm font-semibold text-gray-800">Sample CSV Format:</h5>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    const csvContent = `Email,First Name,Last Name,Department ID,Position,Employment Type,Hire Date,Base Salary
+john.doe@company.com,John,Doe,dept-123,Software Engineer,regular,2024-01-15,50000
+jane.smith@company.com,Jane,Smith,dept-456,HR Manager,regular,2024-02-01,60000
+mike.johnson@company.com,Mike,Johnson,dept-789,Marketing Specialist,contractual,2024-02-15,45000
+sarah.wilson@company.com,Sarah,Wilson,dept-123,UI/UX Designer,regular,2024-03-01,55000
+david.brown@company.com,David,Brown,dept-456,Accountant,regular,2024-03-15,48000`;
+                    
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'employee_bulk_template.csv';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                  }}
+                >
+                  Download Template
+                </Button>
+              </div>
+              <div className="text-xs text-gray-600 font-mono bg-white p-2 rounded border">
+                Email,First Name,Last Name,Department ID,Position,Employment Type,Hire Date,Base Salary<br/>
+                john.doe@company.com,John,Doe,dept-123,Software Engineer,regular,2024-01-15,50000<br/>
+                jane.smith@company.com,Jane,Smith,dept-456,HR Manager,regular,2024-02-01,60000
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+            <Button 
+              type="button"
+              variant="secondary" 
+              onClick={() => setIsBulkAddModalOpen(false)}
+              disabled={isBulkSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              variant="primary"
+              disabled={isBulkSubmitting || !csvFile}
+            >
+              {isBulkSubmitting ? 'Processing...' : 'Upload and Create Employees'}
             </Button>
           </div>
         </form>
