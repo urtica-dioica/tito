@@ -268,7 +268,6 @@ export class AttendanceSessionModel {
 
     if (data.selfieImagePath !== undefined) {
       updateFields.push(`selfie_image_path = $${paramIndex}`);
-      updateFields.push(`selfie_image_url = $${paramIndex}`);
       updateValues.push(data.selfieImagePath);
       paramIndex++;
     }

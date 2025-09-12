@@ -800,7 +800,6 @@ The schema includes several important functions:
 
 #### **Attendance Functions**
 - `calculate_attendance_overall_status()`: Automatically calculates overall attendance status
-- `calculate_daily_total_hours()`: Calculates total daily hours using mathematical formulation
 - `calculate_session_payroll_data()`: Calculates session hours using mathematical formulation
 - `convert_overtime_to_leave()`: Converts overtime hours to leave days
 - `validate_attendance_session()`: Validates attendance session creation
@@ -816,9 +815,6 @@ The schema includes several important functions:
 - `process_overtime_request_approval()`: Handles overtime request approvals
 - `calculate_payroll()`: Preserves server-calculated attendance hours and recalculates financial aspects
 
-#### **Department Management Functions**
-- `get_department_employees()`: Returns employees for a department head
-- `get_department_head_department()`: Returns department info for a department head
 
 #### **Utility Functions**
 - `update_updated_at()`: Automatically updates timestamp fields

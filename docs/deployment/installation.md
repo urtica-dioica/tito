@@ -53,9 +53,8 @@ createdb tito_hr_system
 
 # Run database migrations
 cd server
+npm run db:setup
 npm run db:migrate
-
-# Seed initial data
 npm run db:seed
 ```
 
@@ -231,16 +230,19 @@ GRANT ALL PRIVILEGES ON DATABASE tito_hr_system TO tito_user;
 \i database/schemas/main-schema.sql;
 ```
 
-#### **Database Migrations**
+#### **Database Operations**
 ```bash
+# Setup database
+npm run db:setup
+
 # Run migrations
 npm run db:migrate
 
-# Rollback migrations
-npm run db:rollback
+# Seed data
+npm run db:seed
 
-# Check migration status
-npm run db:status
+# Reset database (setup + migrate + seed)
+npm run db:reset
 ```
 
 ## Verification

@@ -281,7 +281,7 @@ export class LeaveBalanceService {
         AVG(CASE WHEN lb.leave_type = 'other' THEN lb.total_days ELSE 0 END) as other_days,
         COUNT(DISTINCT e.id) as employee_count
       FROM employees e
-      LEFT JOIN leave_balances lb ON e.id = lb.employee_id AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+      LEFT JOIN leave_balances lb ON e.id = lb.employee_id
       WHERE e.status = 'active'
       GROUP BY e.position
       ORDER BY e.position

@@ -35,6 +35,8 @@ npm install
 
 # Setup database
 npm run db:setup
+npm run db:migrate
+npm run db:seed
 
 # Start development servers
 npm run dev
@@ -116,9 +118,14 @@ tito-hr-system/
 │   │   ├── 📁 models/         # Data Models
 │   │   ├── 📁 routes/         # API Routes
 │   │   └── 📁 middleware/     # Express Middleware
+│   ├── 📁 scripts/            # Database Scripts
+│   │   ├── setup-database.js  # Database setup
+│   │   ├── migrate-database.js # Database migrations
+│   │   └── seed-database.js   # Database seeding
 │   └── 📁 docs/               # Backend Documentation
 ├── 📁 database/               # Database Schema & Scripts
 │   └── 📁 schemas/            # SQL Schema Files
+│       └── main-schema.sql    # Complete database schema
 ├── 📁 docs/                   # 📚 Complete Documentation
 │   ├── 📁 overview/           # System Overview
 │   ├── 📁 architecture/       # System Architecture
@@ -186,22 +193,27 @@ tito-hr-system/
 npm install
 
 # Setup environment variables
-cp .env.example .env
+cp server/.env.example server/.env
+cp client/.env.example client/.env
 
 # Setup database
+cd server
 npm run db:setup
+npm run db:migrate
+npm run db:seed
 
-# Start development servers
+# Start development servers (from root directory)
 npm run dev
 ```
 
 ### **2. Production Deployment**
 ```bash
 # Build applications
-npm run build
+cd server && npm run build
+cd ../client && npm run build
 
 # Start production servers
-npm run start
+cd server && npm run start
 ```
 
 ### **3. Docker Deployment**
@@ -248,19 +260,18 @@ docker-compose up -d
 
 ```bash
 # Run all tests
-npm test
-
-# Run frontend tests
-npm run test:client
+cd server && npm run test:all
 
 # Run backend tests
-npm run test:server
+cd server && npm test
 
-# Run integration tests
-npm run test:integration
+# Run specific test types
+cd server && npm run test:unit
+cd server && npm run test:integration
+cd server && npm run test:e2e
 
 # Generate coverage report
-npm run test:coverage
+cd server && npm run test:coverage
 ```
 
 ---

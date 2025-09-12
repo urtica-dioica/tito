@@ -260,19 +260,17 @@ export class LeaveAccrualService {
     const { getPool } = await import('../../config/database');
     const pool = getPool();
     
-    const currentYear = new Date().getFullYear();
-    
     // Upsert leave balance
     const upsertQuery = `
-      INSERT INTO leave_balances (employee_id, leave_type, balance, year, updated_at)
-      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-      ON CONFLICT (employee_id, leave_type, year)
+      INSERT INTO leave_balances (employee_id, leave_type, balance, updated_at)
+      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+      ON CONFLICT (employee_id, leave_type)
       DO UPDATE SET 
         balance = leave_balances.balance + $3,
         updated_at = CURRENT_TIMESTAMP
     `;
     
-    await pool.query(upsertQuery, [employeeId, leaveType, daysToAdd, currentYear]);
+    await pool.query(upsertQuery, [employeeId, leaveType, daysToAdd]);
   }
 
   async recalculateEmployeeAccruals(employeeId: string, year: number): Promise<{
