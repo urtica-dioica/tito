@@ -35,9 +35,13 @@ export class EmployeeDeductionBalanceService {
     if (params?.isActive !== undefined) queryParams.append('is_active', params.isActive.toString());
     if (params?.search) queryParams.append('search', params.search);
 
-    const response = await apiMethods.get<{ data: { records: any[]; total: number } }>(
-      `/payroll/employee-deduction-balances?${queryParams.toString()}`
-    );
+    const response = await apiMethods.get<{
+      records: any[];
+      total: number;
+      page?: number;
+      limit?: number;
+      totalPages?: number;
+    }>(`/payroll/employee-deduction-balances?${queryParams.toString()}`);
 
     // Transform snake_case to camelCase
     const transformedData = {
@@ -57,9 +61,9 @@ export class EmployeeDeductionBalanceService {
         };
       }),
       total: response.data?.total || 0,
-      page: parseInt(queryParams.get('page') || '1'),
-      limit: parseInt(queryParams.get('limit') || '10'),
-      totalPages: Math.ceil((response.data?.total || 0) / parseInt(queryParams.get('limit') || '10'))
+      page: response.data?.page || parseInt(queryParams.get('page') || '1'),
+      limit: response.data?.limit || parseInt(queryParams.get('limit') || '10'),
+      totalPages: response.data?.totalPages || Math.ceil((response.data?.total || 0) / parseInt(queryParams.get('limit') || '10'))
     };
 
     return transformedData;
@@ -69,7 +73,10 @@ export class EmployeeDeductionBalanceService {
    * Get employee deduction balance by ID
    */
   static async getEmployeeDeductionBalance(id: string): Promise<EmployeeDeductionBalance> {
-    const response = await apiMethods.get<{ data: EmployeeDeductionBalance }>(`/payroll/employee-deduction-balances/${id}`);
+    const response = await apiMethods.get<EmployeeDeductionBalance>(`/payroll/employee-deduction-balances/${id}`);
+    if (!response.data) {
+      throw new Error('Failed to fetch employee deduction balance');
+    }
     return response.data;
   }
 
@@ -77,8 +84,8 @@ export class EmployeeDeductionBalanceService {
    * Get employee deduction balances by employee ID
    */
   static async getEmployeeDeductionBalancesByEmployee(employeeId: string): Promise<EmployeeDeductionBalance[]> {
-    const response = await apiMethods.get<{ data: EmployeeDeductionBalance[] }>(`/payroll/employee-deduction-balances/employee/${employeeId}`);
-    return response.data;
+    const response = await apiMethods.get<EmployeeDeductionBalance[]>(`/payroll/employee-deduction-balances/employee/${employeeId}`);
+    return response.data || [];
   }
 
   /**
@@ -96,8 +103,11 @@ export class EmployeeDeductionBalanceService {
       end_date: data.endDate && data.endDate.trim() !== '' ? data.endDate : null,
       is_active: data.isActive
     };
-    
-    const response = await apiMethods.post<{ data: EmployeeDeductionBalance }>('/payroll/employee-deduction-balances', transformedData);
+
+    const response = await apiMethods.post<EmployeeDeductionBalance>('/payroll/employee-deduction-balances', transformedData);
+    if (!response.data) {
+      throw new Error('Failed to create employee deduction balance');
+    }
     return response.data;
   }
 
@@ -117,8 +127,11 @@ export class EmployeeDeductionBalanceService {
       transformedData.end_date = data.endDate && data.endDate.trim() !== '' ? data.endDate : null;
     }
     if (data.isActive !== undefined) transformedData.is_active = data.isActive;
-    
-    const response = await apiMethods.put<{ data: EmployeeDeductionBalance }>(`/payroll/employee-deduction-balances/${id}`, transformedData);
+
+    const response = await apiMethods.put<EmployeeDeductionBalance>(`/payroll/employee-deduction-balances/${id}`, transformedData);
+    if (!response.data) {
+      throw new Error('Failed to update employee deduction balance');
+    }
     return response.data;
   }
 
@@ -133,7 +146,10 @@ export class EmployeeDeductionBalanceService {
    * Upload employee deduction balances from CSV
    */
   static async uploadEmployeeDeductionBalances(csvData: EmployeeDeductionBalanceCSVRow[]): Promise<CSVUploadResponse> {
-    const response = await apiMethods.post<{ data: CSVUploadResponse }>('/payroll/employee-deduction-balances/upload', csvData);
+    const response = await apiMethods.post<CSVUploadResponse>('/payroll/employee-deduction-balances/upload', { data: csvData });
+    if (!response.data) {
+      throw new Error('Failed to upload employee deduction balances');
+    }
     return response.data;
   }
 
@@ -141,7 +157,7 @@ export class EmployeeDeductionBalanceService {
    * Get active employee deduction balances by employee ID
    */
   static async getActiveEmployeeDeductionBalancesByEmployee(employeeId: string): Promise<EmployeeDeductionBalance[]> {
-    const response = await apiMethods.get<{ data: EmployeeDeductionBalance[] }>(`/payroll/employee-deduction-balances/employee/${employeeId}/active`);
-    return response.data;
+    const response = await apiMethods.get<EmployeeDeductionBalance[]>(`/payroll/employee-deduction-balances/employee/${employeeId}/active`);
+    return response.data || [];
   }
 }

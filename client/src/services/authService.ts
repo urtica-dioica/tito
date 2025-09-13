@@ -2,34 +2,55 @@
 
 import { apiMethods } from '../lib/api';
 import type { LoginCredentials, AuthResponse, User } from '../types';
+import Cookies from 'js-cookie';
+
+interface UserData {
+  id: string;
+  email: string;
+  first_name?: string;
+  firstName?: string;
+  last_name?: string;
+  lastName?: string;
+  role: string;
+  is_active?: boolean;
+  isActive?: boolean;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
+}
 
 export class AuthService {
   // Transform user data from snake_case to camelCase
-  private static transformUser(userData: any): User {
+  private static transformUser(userData: UserData): User {
     return {
       id: userData.id,
       email: userData.email,
-      firstName: userData.first_name || userData.firstName,
-      lastName: userData.last_name || userData.lastName,
-      role: userData.role,
-      isActive: userData.is_active || userData.isActive,
-      createdAt: userData.created_at || userData.createdAt,
-      updatedAt: userData.updated_at || userData.updatedAt,
+      firstName: userData.first_name || userData.firstName || '',
+      lastName: userData.last_name || userData.lastName || '',
+      role: userData.role as any, // TODO: Fix UserRole type
+      isActive: userData.is_active ?? userData.isActive ?? true,
+      createdAt: userData.created_at || userData.createdAt || '',
+      updatedAt: userData.updated_at || userData.updatedAt || '',
     };
   }
 
   // Login user
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await apiMethods.post<any>('/auth/login', credentials);
-    
-    // Store tokens and user data
+    const response = await apiMethods.post<{ accessToken: string; refreshToken: string; user: UserData }>('/auth/login', credentials as unknown as Record<string, unknown>);
+
+    // Store tokens and user data securely
     if (response.success && response.data) {
       const transformedUser = this.transformUser(response.data.user);
-      
-      localStorage.setItem('accessToken', response.data.accessToken);
-      localStorage.setItem('refreshToken', response.data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(transformedUser));
-      
+
+      // Store tokens in HttpOnly cookies (set by server)
+      // Store user data in secure cookie (not HttpOnly for client access)
+      Cookies.set('user', JSON.stringify(transformedUser), {
+        secure: true,
+        sameSite: 'strict',
+        expires: 7 // 7 days
+      });
+
       // Return transformed response
       return {
         success: response.success,
@@ -41,8 +62,8 @@ export class AuthService {
         },
       };
     }
-    
-    return response;
+
+    return response as AuthResponse;
   }
 
   // Logout user (with API call)
@@ -50,67 +71,70 @@ export class AuthService {
     try {
       await apiMethods.post('/auth/logout');
     } finally {
-      // Clear local storage regardless of API call success
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      // Clear cookies regardless of API call success
+      Cookies.remove('user');
+      // Note: HttpOnly cookies (accessToken, refreshToken) are cleared by server
     }
   }
 
-  // Clear local auth data only (no API call)
+  // Clear auth data only (no API call)
   static clearAuthData(): void {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
+    Cookies.remove('user');
+    // Note: HttpOnly cookies (accessToken, refreshToken) are cleared by server
   }
 
   // Refresh access token
   static async refreshToken(): Promise<string> {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
+    // Note: refreshToken is stored in HttpOnly cookie, accessed via API
+    const response = await apiMethods.post<{ accessToken: string }>('/auth/refresh');
+
+    if (!response.data) {
+      throw new Error('No access token received from refresh');
     }
 
-    const response = await apiMethods.post<{ data: { accessToken: string } }>('/auth/refresh', {
-      refreshToken,
-    });
-
     const newAccessToken = response.data.accessToken;
-    localStorage.setItem('accessToken', newAccessToken);
-    
+    // New access token will be set in HttpOnly cookie by server
+
     return newAccessToken;
   }
 
-  // Get current user from localStorage
+  // Get current user from secure cookie
   static getCurrentUser(): User | null {
-    const userStr = localStorage.getItem('user');
+    const userStr = Cookies.get('user');
     if (!userStr) return null;
-    
+
     try {
       const userData = JSON.parse(userStr);
       // Transform if needed (for backward compatibility)
       return this.transformUser(userData);
     } catch (error) {
-      console.error('Error parsing user data from localStorage:', error);
+      console.error('Error parsing user data from cookie:', error);
       return null;
     }
   }
 
   // Check if user is authenticated
   static isAuthenticated(): boolean {
-    const token = localStorage.getItem('accessToken');
+    // Note: We can't directly check HttpOnly accessToken cookie from client
+    // Server will validate tokens on protected routes
     const user = this.getCurrentUser();
-    return !!(token && user);
+    return !!user;
   }
 
-  // Get access token
+  // Get access token (Note: HttpOnly cookies can't be accessed by client-side JavaScript)
   static getAccessToken(): string | null {
-    return localStorage.getItem('accessToken');
+    // Access tokens are now HttpOnly and can't be read by client-side code
+    // They are automatically sent with requests via httpOnly cookies
+    return null; // Client-side code should not need direct access to tokens
   }
 
-  // Update user data in localStorage
+  // Update user data in secure cookie
   static updateUser(user: User): void {
-    localStorage.setItem('user', JSON.stringify(user));
+    Cookies.set('user', JSON.stringify(user), {
+      secure: true,
+      sameSite: 'strict',
+      expires: 7 // 7 days
+    });
   }
 
   // Check if user has specific role

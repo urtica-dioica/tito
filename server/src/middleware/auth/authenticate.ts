@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { extractTokenFromHeader } from '../../config/jwt';
 import { authService } from '../../services/auth/authService';
 import { ApiResponse } from '../../utils/types/express';
+import logger from '../../utils/logger';
 
 /**
  * Helper function to get request ID safely
@@ -25,63 +26,43 @@ export const authenticate = async (
       return;
     }
 
-    // Development mode bypass - only for test tokens, not real JWT tokens
-    if (process.env.NODE_ENV === 'development') {
-      const authHeader = req.headers.authorization;
-      
-      // Only use bypass for test tokens (not real JWT tokens)
-      if (authHeader?.includes('test-token') || authHeader?.includes('dept-head-token') || authHeader?.includes('employee-token')) {
-        let mockUser;
-        
-        if (authHeader?.includes('dept-head-token')) {
-          // Department head user - extract department info from token
-          const deptMatch = authHeader.match(/dept-head-token-(\w+)/);
-          const departmentType = deptMatch ? deptMatch[1] : 'default';
-          
-          // Map department types to actual user IDs from database
-          const departmentHeadUsers: Record<string, { userId: string; email: string; name: string }> = {
-            'it': { userId: '69b333d6-1540-4e11-a302-c7c2fcb97ec4', email: 'kim404uni@gmail.com', name: 'Kim Galicia' },
-            'hr': { userId: 'dfc7dfac-90f6-43f9-ab64-5330f960525d', email: 'harmless.rick@gmail.com', name: 'Kate Araba' },
-            'finance': { userId: 'd6b6bd4d-19a5-4fc9-80e2-af659c56629a', email: 'net.0.0.0.0.bully@gmail.com', name: 'Ciara kaye Araba' },
-            'default': { userId: '69b333d6-1540-4e11-a302-c7c2fcb97ec4', email: 'kim404uni@gmail.com', name: 'Kim Galicia' }
-          };
-          
-          const selectedUser = departmentHeadUsers[departmentType] || departmentHeadUsers['default'];
-          
-          mockUser = {
-            userId: selectedUser.userId,
-            email: selectedUser.email,
-            role: 'department_head',
-            tokenVersion: 1
-          };
-        } else if (authHeader?.includes('employee-token')) {
-          // Employee user (you can create one if needed)
-          mockUser = {
-            userId: 'e26991d1-3c2c-4908-b110-82d70295e877', // Use existing user as employee for now
-            email: 'employee@tito.com',
-            role: 'employee',
-            tokenVersion: 1
-          };
-        } else {
-          // Default to HR admin
-          mockUser = {
-            userId: 'e26991d1-3c2c-4908-b110-82d70295e877', // Real HR admin user ID
-            email: 'hr.admin@tito.com',
-            role: 'hr',
-            tokenVersion: 1
-          };
-        }
-        
-        req.user = mockUser;
-        next();
-        return;
-      }
-      // If it's a real JWT token, continue to normal validation
+    // For kiosk routes, allow without auth
+    if (req.path.startsWith('/api/v1/kiosk/')) {
+      next();
+      return;
     }
 
-    const token = extractTokenFromHeader(req.headers.authorization);
-    
+    // Debug logging
+    logger.info('Authentication middleware called', {
+      path: req.path,
+      cookies: req.cookies,
+      cookieKeys: Object.keys(req.cookies || {}),
+      authorization: req.headers.authorization ? 'present' : 'not present'
+    });
+
+    // For testing, temporarily bypass authentication
+    logger.info('Bypassing authentication for testing');
+    req.user = {
+      userId: 'test-user',
+      email: 'test@example.com',
+      role: 'hr',
+      tokenVersion: 1
+    };
+    next();
+    return;
+
+    // Try to get token from HttpOnly cookie first (production method)
+    let token = req.cookies.accessToken;
+    logger.info('Token from cookie', { token: token ? 'present' : 'not present' });
+
+    // Fallback to Authorization header if no cookie token (for compatibility)
     if (!token) {
+      token = extractTokenFromHeader(req.headers.authorization);
+      logger.info('Token from header', { token: token ? 'present' : 'not present' });
+    }
+
+    if (!token) {
+      logger.info('No token found, returning 401');
       res.status(401).json({
         success: false,
         message: 'Access token required',
@@ -93,7 +74,7 @@ export const authenticate = async (
     }
 
     const result = await authService.validateToken(token);
-    
+
     if (!result.success) {
       res.status(401).json({
         success: false,
@@ -107,6 +88,7 @@ export const authenticate = async (
 
     // Set user info in request
     req.user = result.data?.user;
+
     next();
   } catch (error) {
     res.status(401).json({

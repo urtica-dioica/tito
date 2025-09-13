@@ -140,7 +140,7 @@ export class EmployeeService {
   private calculateWorkingDays(startDate: Date, endDate: Date): number {
     let workingDays = 0;
     const currentDate = new Date(startDate);
-    
+
     while (currentDate <= endDate) {
       const dayOfWeek = currentDate.getDay();
       // Count Monday (1) through Friday (5) as working days
@@ -149,9 +149,10 @@ export class EmployeeService {
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     return workingDays;
   }
+
 
   /**
    * Get employee ID by user ID
@@ -977,7 +978,13 @@ export class EmployeeService {
           'startDate', l.start_date,
           'endDate', l.end_date,
           'reason', 'Leave request',
-          'days', (l.end_date - l.start_date + 1)
+          'days', CASE
+            WHEN l.start_date IS NOT NULL AND l.end_date IS NOT NULL
+            THEN EXTRACT(DAY FROM (l.end_date - l.start_date)) + 1 -
+                 CASE WHEN EXTRACT(DOW FROM l.start_date) = 0 THEN 1 ELSE 0 END -
+                 CASE WHEN EXTRACT(DOW FROM l.end_date) = 6 THEN 1 ELSE 0 END
+            ELSE 0
+          END
         ) as details
       FROM leaves l
       LEFT JOIN users u ON l.approver_id = u.id
@@ -1152,23 +1159,27 @@ export class EmployeeService {
       SELECT 
         pr.id,
         pr.payroll_period_id,
-        pp.period_name as "periodName",
-        pp.start_date as "periodStartDate",
-        pp.end_date as "periodEndDate",
-        e.employee_id as "employeeId",
-        CONCAT(u.first_name, ' ', u.last_name) as "employeeName",
+        pp.period_name,
+        pp.start_date as period_start_date,
+        pp.end_date as period_end_date,
+        e.employee_id,
+        CONCAT(u.first_name, ' ', u.last_name) as employee_name,
         e.position,
-        d.name as department,
-        e.base_salary as "baseSalary",
-        pr.total_regular_hours as "totalRegularHours",
-        pr.total_overtime_hours as "totalOvertimeHours",
-        pr.paid_leave_hours as "paidLeaveHours",
-        pr.gross_pay as "grossPay",
-        pr.total_deductions as "totalDeductions",
-        pr.total_benefits as "totalBenefits",
-        pr.net_pay as "netPay",
-        pr.late_deductions as "lateDeductions",
-        pr.created_at as "createdAt"
+        e.department_id,
+        d.name as department_name,
+        e.base_salary,
+        pr.total_regular_hours,
+        pr.total_overtime_hours,
+        pr.total_late_hours,
+        pr.paid_leave_hours,
+        pr.gross_pay,
+        pr.total_deductions,
+        pr.total_benefits,
+        pr.net_pay,
+        pr.late_deductions,
+        pr.status,
+        pr.created_at,
+        pr.updated_at
       FROM payroll_records pr
       JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
       JOIN employees e ON pr.employee_id = e.id
@@ -1215,22 +1226,22 @@ export class EmployeeService {
       
       paystubs.push({
         id: row.id,
-        periodName: row.periodName,
-        periodStartDate: row.periodStartDate,
-        periodEndDate: row.periodEndDate,
-        employeeId: row.employeeId,
-        employeeName: row.employeeName,
+        periodName: row.period_name,
+        periodStartDate: row.period_start_date,
+        periodEndDate: row.period_end_date,
+        employeeId: row.employee_id,
+        employeeName: row.employee_name,
         position: row.position,
-        department: row.department || 'Unassigned',
-        baseSalary: parseFloat(row.baseSalary),
-        totalRegularHours: parseFloat(row.totalRegularHours),
-        totalOvertimeHours: parseFloat(row.totalOvertimeHours),
-        paidLeaveHours: parseFloat(row.paidLeaveHours) || 0,
-        grossPay: parseFloat(row.grossPay),
-        totalDeductions: parseFloat(row.totalDeductions),
-        totalBenefits: parseFloat(row.totalBenefits),
-        netPay: parseFloat(row.netPay),
-        lateDeductions: parseFloat(row.lateDeductions),
+        department: row.department_name || 'Unassigned',
+        baseSalary: parseFloat(row.base_salary),
+        totalRegularHours: parseFloat(row.total_regular_hours),
+        totalOvertimeHours: parseFloat(row.total_overtime_hours),
+        paidLeaveHours: parseFloat(row.paid_leave_hours) || 0,
+        grossPay: parseFloat(row.gross_pay),
+        totalDeductions: parseFloat(row.total_deductions),
+        totalBenefits: parseFloat(row.total_benefits),
+        netPay: parseFloat(row.net_pay),
+        lateDeductions: parseFloat(row.late_deductions),
         deductions: deductionsResult.rows.map(d => ({
           name: d.name,
           amount: parseFloat(d.amount)
@@ -1239,7 +1250,7 @@ export class EmployeeService {
           name: b.name,
           amount: parseFloat(b.amount)
         })),
-        createdAt: row.createdAt
+        createdAt: row.created_at
       });
     }
 
@@ -1255,20 +1266,25 @@ export class EmployeeService {
       SELECT 
         pr.id,
         pr.payroll_period_id,
-        pp.period_name as "periodName",
-        e.employee_id as "employeeId",
-        CONCAT(u.first_name, ' ', u.last_name) as "employeeName",
+        pp.period_name,
+        e.employee_id,
+        CONCAT(u.first_name, ' ', u.last_name) as employee_name,
         e.position,
-        d.name as department,
-        e.base_salary as "baseSalary",
-        pr.total_regular_hours as "totalRegularHours",
-        pr.total_overtime_hours as "totalOvertimeHours",
-        pr.gross_pay as "grossPay",
-        pr.total_deductions as "totalDeductions",
-        pr.total_benefits as "totalBenefits",
-        pr.net_pay as "netPay",
-        pr.late_deductions as "lateDeductions",
-        pr.created_at as "createdAt"
+        e.department_id,
+        d.name as department_name,
+        e.base_salary,
+        pr.total_regular_hours,
+        pr.total_overtime_hours,
+        pr.total_late_hours,
+        pr.paid_leave_hours,
+        pr.gross_pay,
+        pr.total_deductions,
+        pr.total_benefits,
+        pr.net_pay,
+        pr.late_deductions,
+        pr.status,
+        pr.created_at,
+        pr.updated_at
       FROM payroll_records pr
       JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
       JOIN employees e ON pr.employee_id = e.id
@@ -1361,22 +1377,22 @@ export class EmployeeService {
 
     return {
       id: row.id,
-      periodName: row.periodName,
+      periodName: row.period_name,
       periodStartDate: row.periodStartDate,
       periodEndDate: row.periodEndDate,
-      employeeId: row.employeeId,
-      employeeName: row.employeeName,
+      employeeId: row.employee_id,
+      employeeName: row.employee_name,
       position: row.position,
-      department: row.department || 'Unassigned',
-      baseSalary: parseFloat(row.baseSalary),
-      totalRegularHours: parseFloat(row.totalRegularHours),
-      totalOvertimeHours: parseFloat(row.totalOvertimeHours),
-      paidLeaveHours: parseFloat(row.paidLeaveHours) || 0,
-      grossPay: parseFloat(row.grossPay),
-      totalDeductions: parseFloat(row.totalDeductions),
-      totalBenefits: parseFloat(row.totalBenefits),
-      netPay: parseFloat(row.netPay),
-      lateDeductions: parseFloat(row.lateDeductions),
+      department: row.department_name || 'Unassigned',
+      baseSalary: parseFloat(row.base_salary),
+      totalRegularHours: parseFloat(row.total_regular_hours),
+      totalOvertimeHours: parseFloat(row.total_overtime_hours),
+      paidLeaveHours: parseFloat(row.paid_leave_hours) || 0,
+      grossPay: parseFloat(row.gross_pay),
+      totalDeductions: parseFloat(row.total_deductions),
+      totalBenefits: parseFloat(row.total_benefits),
+      netPay: parseFloat(row.net_pay),
+      lateDeductions: parseFloat(row.late_deductions),
       deductions: deductionsResult.rows.map(d => ({
         name: d.name,
         amount: parseFloat(d.amount)
@@ -1385,7 +1401,7 @@ export class EmployeeService {
         name: b.name,
         amount: parseFloat(b.amount)
       })),
-      createdAt: row.createdAt
+      createdAt: row.created_at
     };
   }
 }

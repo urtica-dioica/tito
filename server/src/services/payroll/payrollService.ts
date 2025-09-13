@@ -305,24 +305,44 @@ class PayrollService {
   async generatePayrollRecords(payrollPeriodId: string, departmentId?: string): Promise<PayrollRecord[]> {
     try {
       // Get active employees - either all or filtered by department
-      const employees = departmentId 
+      const employees = departmentId
         ? await employeeModel.findAll({ status: 'active', department_id: departmentId })
         : await employeeModel.findAll({ status: 'active' });
+
+      if (employees.employees.length === 0) {
+        return [];
+      }
+
+      const employeeIds = employees.employees.map(emp => emp.id);
       const records: PayrollRecord[] = [];
 
-      for (const employee of employees.employees) {
-        // Calculate payroll for this employee using new logic
-        const payrollData = await this.calculateEmployeePayroll(employee.id, payrollPeriodId);
+      // Bulk calculate payroll data for all employees
+      const payrollCalculations = await Promise.all(
+        employees.employees.map(employee =>
+          this.calculateEmployeePayroll(employee.id, payrollPeriodId)
+        )
+      );
 
-        // Check if record already exists
-        const existingRecord = await payrollRecordModel.findByPeriodAndEmployee(
-          payrollPeriodId,
-          employee.id
-        );
+      // Check existing records in bulk
+      const existingRecords = await getPool().query(`
+        SELECT id, employee_id
+        FROM payroll_records
+        WHERE payroll_period_id = $1 AND employee_id = ANY($2)
+      `, [payrollPeriodId, employeeIds]);
 
-        if (existingRecord) {
+      const existingRecordMap = new Map(
+        existingRecords.rows.map(record => [record.employee_id, record.id])
+      );
+
+      // Process each employee
+      for (let i = 0; i < employees.employees.length; i++) {
+        const employee = employees.employees[i];
+        const payrollData = payrollCalculations[i];
+        const existingRecordId = existingRecordMap.get(employee.id);
+
+        if (existingRecordId) {
           // Update existing record
-          const updatedRecord = await payrollRecordModel.update(existingRecord.id, {
+          const updatedRecord = await payrollRecordModel.update(existingRecordId, {
             base_salary: payrollData.baseSalary,
             total_worked_hours: payrollData.totalWorkedHours,
             hourly_rate: payrollData.hourlyRate,
@@ -363,52 +383,113 @@ class PayrollService {
 
           records.push(newRecord);
         }
-
-        // Create deduction records and update employee deduction balances
-        const record = records[records.length - 1];
-        if (record) {
-          // Delete existing deductions
-          await payrollDeductionModel.deleteByPayrollRecord(record.id);
-
-          // Create new deduction records and update balances
-          for (const deduction of payrollData.employeeDeductions) {
-            // Find the deduction type ID by name
-            const deductionType = await deductionTypeModel.findByName(deduction.type);
-            if (deductionType) {
-              await payrollDeductionModel.create({
-                payroll_record_id: record.id,
-                deduction_type_id: deductionType.id,
-                name: deduction.type,
-                amount: deduction.amount
-              });
-
-              // Update employee deduction balance
-              const employeeDeductionBalances = await employeeDeductionBalanceModel.findByEmployee(employee.id);
-              const balance = employeeDeductionBalances.find(b => b.deduction_type_id === deductionType.id);
-              
-              if (balance) {
-                await employeeDeductionBalanceModel.update(balance.id, {
-                  remaining_balance: deduction.remainingBalance,
-                  is_active: deduction.remainingBalance > 0
-                });
-              }
-            }
-          }
-        }
       }
 
-      logger.info('Payroll records generated', { 
-        payrollPeriodId, 
-        recordCount: records.length 
+      // Bulk process deductions and balances
+      await this.processPayrollDeductionsBulk(records, payrollCalculations, employees.employees);
+
+      logger.info('Payroll records generated', {
+        payrollPeriodId,
+        recordCount: records.length
       });
 
       return records;
     } catch (error) {
-      logger.error('Error generating payroll records', { 
-        error: (error as Error).message, 
-        payrollPeriodId 
+      logger.error('Error generating payroll records', {
+        error: (error as Error).message,
+        payrollPeriodId
       });
       throw error;
+    }
+  }
+
+  /**
+   * Process payroll deductions in bulk to avoid N+1 queries
+   */
+  private async processPayrollDeductionsBulk(
+    records: PayrollRecord[],
+    payrollCalculations: any[],
+    employees: any[]
+  ): Promise<void> {
+    // Collect all deduction operations
+    const deductionOperations: Array<{
+      recordId: string;
+      employeeId: string;
+      deductions: any[];
+    }> = [];
+
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      const payrollData = payrollCalculations[i];
+      const employee = employees[i];
+
+      if (payrollData.employeeDeductions.length > 0) {
+        deductionOperations.push({
+          recordId: record.id,
+          employeeId: employee.id,
+          deductions: payrollData.employeeDeductions
+        });
+      }
+    }
+
+    if (deductionOperations.length === 0) {
+      return;
+    }
+
+    // Bulk delete existing deductions
+    const recordIds = deductionOperations.map(op => op.recordId);
+    await getPool().query(
+      'DELETE FROM payroll_deductions WHERE payroll_record_id = ANY($1)',
+      [recordIds]
+    );
+
+    // Bulk create new deductions
+    const deductionInserts = [];
+    for (const operation of deductionOperations) {
+      for (const deduction of operation.deductions) {
+        const deductionType = await deductionTypeModel.findByName(deduction.type);
+        if (deductionType) {
+          deductionInserts.push({
+            payroll_record_id: operation.recordId,
+            deduction_type_id: deductionType.id,
+            name: deduction.type,
+            amount: deduction.amount
+          });
+        }
+      }
+    }
+
+    if (deductionInserts.length > 0) {
+      const values = deductionInserts.map((_, index) =>
+        `($${index * 4 + 1}, $${index * 4 + 2}, $${index * 4 + 3}, $${index * 4 + 4})`
+      ).join(', ');
+
+      const params = deductionInserts.flatMap(d => [
+        d.payroll_record_id, d.deduction_type_id, d.name, d.amount
+      ]);
+
+      await getPool().query(`
+        INSERT INTO payroll_deductions (payroll_record_id, deduction_type_id, name, amount)
+        VALUES ${values}
+      `, params);
+    }
+
+    // Bulk update employee deduction balances
+    for (const operation of deductionOperations) {
+      for (const deduction of operation.deductions) {
+        const deductionType = await deductionTypeModel.findByName(deduction.type);
+        if (deductionType) {
+          const employeeDeductionBalances = await employeeDeductionBalanceModel.findByEmployee(operation.employeeId);
+          const balance = employeeDeductionBalances.find(b => b.deduction_type_id === deductionType.id);
+
+          if (balance) {
+            await employeeDeductionBalanceModel.update(balance.id, {
+              remaining_balance: deduction.remainingBalance,
+              is_active: deduction.remainingBalance > 0
+            });
+          }
+        }
+      }
     }
   }
 
@@ -698,19 +779,28 @@ class PayrollService {
         throw new Error('Payroll period not found');
       }
 
-      const records = await payrollRecordModel.findByPayrollPeriod(payrollPeriodId);
-      
+      // Optimized query to get records with deductions in a single query
+      const recordsWithDeductions = await getPool().query(`
+        SELECT
+          pr.*,
+          COALESCE(SUM(pd.amount), 0) as total_deductions_calculated
+        FROM payroll_records pr
+        LEFT JOIN payroll_deductions pd ON pr.id = pd.payroll_record_id
+        WHERE pr.payroll_period_id = $1
+        GROUP BY pr.id
+      `, [payrollPeriodId]);
+
+      const records = recordsWithDeductions.rows;
+
       const totalEmployees = records.length;
-      const totalGrossPay = records.reduce((sum, record) => sum + record.gross_pay, 0);
-      
+      const totalGrossPay = records.reduce((sum, record) => sum + Number(record.gross_pay), 0);
+
       let totalDeductions = 0;
       let processedRecords = 0;
       let pendingRecords = 0;
 
       for (const record of records) {
-        const deductions = await payrollDeductionModel.findByPayrollRecord(record.id);
-        const recordDeductions = deductions.reduce((sum, deduction) => sum + deduction.amount, 0);
-        totalDeductions += recordDeductions;
+        totalDeductions += Number(record.total_deductions_calculated);
 
         if (record.status === 'processed' || record.status === 'paid') {
           processedRecords++;
@@ -1274,10 +1364,17 @@ class PayrollService {
     for (const record of attendanceRecords) {
       const sessions = await attendanceSessionModel.getSessionsByAttendanceRecord(record.id);
       const hoursResult = defaultHoursCalculator.calculateFromSessions(sessions);
-      
+
       totalWorkedHours += hoursResult.totalHours;
-      totalRegularHours += hoursResult.totalHours; // All hours are regular hours in the new formula
-      
+
+      // Calculate regular and overtime hours (8 hours per day is regular)
+      if (hoursResult.totalHours <= 8) {
+        totalRegularHours += hoursResult.totalHours;
+      } else {
+        totalRegularHours += 8;
+        totalOvertimeHours += (hoursResult.totalHours - 8);
+      }
+
       // Log the calculation for debugging
       logger.info('Payroll hours calculation', {
         employeeId,
@@ -1285,6 +1382,8 @@ class PayrollService {
         morningHours: hoursResult.morningHours,
         afternoonHours: hoursResult.afternoonHours,
         totalHours: hoursResult.totalHours,
+        regularHours: Math.min(hoursResult.totalHours, 8),
+        overtimeHours: Math.max(0, hoursResult.totalHours - 8),
         effectiveMorningStart: hoursResult.effectiveMorningStart,
         effectiveAfternoonStart: hoursResult.effectiveAfternoonStart
       });
@@ -1293,7 +1392,7 @@ class PayrollService {
     return {
       totalWorkedHours: Math.round(totalWorkedHours * 100) / 100,
       totalRegularHours: Math.round(totalRegularHours * 100) / 100,
-      totalOvertimeHours: Math.round(totalOvertimeHours * 100) / 100,
+      totalOvertimeHours: Math.round(totalOvertimeHours * 100) / 100, // Fixed: was hardcoded to 0
       totalLateHours: Math.round(totalLateHours * 100) / 100,
       totalWorkingDays
     };

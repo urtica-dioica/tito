@@ -1182,22 +1182,38 @@ export class DepartmentHeadService {
 
     try {
       // Get payroll records for the period, filtered by department employees
+      // Include all required fields for consistency with HR and Employee modules
       const query = `
-        SELECT pr.*, u.first_name, u.last_name, e.employee_id, e.position
+        SELECT 
+          pr.*,
+          u.first_name,
+          u.last_name,
+          e.employee_id,
+          e.position,
+          e.department_id,
+          d.name as department_name,
+          pp.period_name
         FROM payroll_records pr
         INNER JOIN employees e ON pr.employee_id = e.id
         INNER JOIN users u ON e.user_id = u.id
+        LEFT JOIN departments d ON e.department_id = d.id
+        LEFT JOIN payroll_periods pp ON pr.payroll_period_id = pp.id
         WHERE pr.payroll_period_id = $1 AND e.department_id = $2
         ORDER BY u.first_name, u.last_name
       `;
       
       const result = await getPool().query(query, [periodId, department.id]);
       
+      // Transform to standardized format
       return result.rows.map(record => ({
         id: record.id,
-        employeeName: `${record.first_name} ${record.last_name}`,
+        payrollPeriodId: record.payroll_period_id,
+        periodName: record.period_name,
         employeeId: record.employee_id,
+        employeeName: `${record.first_name} ${record.last_name}`,
         position: record.position,
+        departmentId: record.department_id,
+        departmentName: record.department_name,
         baseSalary: record.base_salary,
         hourlyRate: record.hourly_rate,
         totalWorkedHours: record.total_worked_hours,

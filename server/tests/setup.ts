@@ -8,6 +8,10 @@ process.env.JWT_EXPIRES_IN = '15m';
 process.env.JWT_REFRESH_EXPIRES_IN = '7d';
 process.env.PORT = '3001';
 
+// Mock services for tests
+import { mockRedisService } from './utils/mockRedisService';
+import { mockDatabaseService } from './utils/mockDatabaseService';
+
 // Global test database connection (only for tests that need it)
 let testDbPool: any = null;
 let testRedisClient: any = null;
@@ -27,13 +31,8 @@ export async function initializeTestConnections() {
 export async function setupTestDatabase() {
   if (testDbPool) return testDbPool;
   
-  const { Pool } = await import('pg');
-  testDbPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    max: 5,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-  });
+  // Use mock database service for tests
+  testDbPool = mockDatabaseService;
   
   return testDbPool;
 }
@@ -41,11 +40,8 @@ export async function setupTestDatabase() {
 export async function setupTestRedis() {
   if (testRedisClient) return testRedisClient;
   
-  const { createClient } = await import('redis');
-  testRedisClient = createClient({
-    url: process.env.REDIS_URL,
-  });
-  
+  // Use mock Redis service for tests
+  testRedisClient = mockRedisService;
   await testRedisClient.connect();
   return testRedisClient;
 }
@@ -117,7 +113,7 @@ export async function cleanupTestRedis() {
   try {
     await testRedisClient.flushDb();
   } catch (error) {
-    console.warn('Redis cleanup failed (this is expected if Redis is not available):', (error as Error).message);
+    console.warn('Redis cleanup failed:', (error as Error).message);
   }
 }
 

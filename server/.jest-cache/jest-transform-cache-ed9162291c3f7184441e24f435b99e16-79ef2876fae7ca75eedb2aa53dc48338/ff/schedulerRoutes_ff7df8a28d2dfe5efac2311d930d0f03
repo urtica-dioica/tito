@@ -1,0 +1,237 @@
+c81a34d6afe90c0591723500117b7655
+"use strict";
+
+/* istanbul ignore next */
+function cov_1nwl1wd7ui() {
+  var path = "/home/kim/tito/server/src/routes/scheduler/schedulerRoutes.ts";
+  var hash = "95b693fe7546f15aac4e045bca732a8442b0357c";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/home/kim/tito/server/src/routes/scheduler/schedulerRoutes.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 2,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 3,
+          column: 18
+        },
+        end: {
+          line: 3,
+          column: 36
+        }
+      },
+      "2": {
+        start: {
+          line: 4,
+          column: 30
+        },
+        end: {
+          line: 4,
+          column: 88
+        }
+      },
+      "3": {
+        start: {
+          line: 5,
+          column: 23
+        },
+        end: {
+          line: 5,
+          column: 68
+        }
+      },
+      "4": {
+        start: {
+          line: 6,
+          column: 20
+        },
+        end: {
+          line: 6,
+          column: 62
+        }
+      },
+      "5": {
+        start: {
+          line: 7,
+          column: 16
+        },
+        end: {
+          line: 7,
+          column: 54
+        }
+      },
+      "6": {
+        start: {
+          line: 8,
+          column: 15
+        },
+        end: {
+          line: 8,
+          column: 38
+        }
+      },
+      "7": {
+        start: {
+          line: 14,
+          column: 0
+        },
+        end: {
+          line: 14,
+          column: 205
+        }
+      },
+      "8": {
+        start: {
+          line: 16,
+          column: 0
+        },
+        end: {
+          line: 16,
+          column: 201
+        }
+      },
+      "9": {
+        start: {
+          line: 18,
+          column: 0
+        },
+        end: {
+          line: 18,
+          column: 199
+        }
+      },
+      "10": {
+        start: {
+          line: 20,
+          column: 0
+        },
+        end: {
+          line: 20,
+          column: 226
+        }
+      },
+      "11": {
+        start: {
+          line: 22,
+          column: 0
+        },
+        end: {
+          line: 22,
+          column: 231
+        }
+      },
+      "12": {
+        start: {
+          line: 23,
+          column: 0
+        },
+        end: {
+          line: 23,
+          column: 25
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "/home/kim/tito/server/src/routes/scheduler/schedulerRoutes.ts",
+      mappings: ";;AAAA,qCAAiC;AACjC,yFAAsF;AACtF,qEAAkE;AAClE,+DAA4D;AAC5D,uDAAyD;AAEzD,MAAM,MAAM,GAAG,IAAA,gBAAM,GAAE,CAAC;AAExB;;;GAGG;AAEH,uBAAuB;AACvB,MAAM,CAAC,GAAG,CAAC,SAAS,EAClB,2BAAY,EACZ,IAAA,qBAAS,EAAC,CAAC,kBAAU,CAAC,EAAE,CAAC,CAAC,EAC1B,yCAAmB,CAAC,SAAS,CAAC,IAAI,CAAC,yCAAmB,CAAC,CACxD,CAAC;AAEF,0BAA0B;AAC1B,MAAM,CAAC,IAAI,CAAC,QAAQ,EAClB,2BAAY,EACZ,IAAA,qBAAS,EAAC,CAAC,kBAAU,CAAC,EAAE,CAAC,CAAC,EAC1B,yCAAmB,CAAC,KAAK,CAAC,IAAI,CAAC,yCAAmB,CAAC,CACpD,CAAC;AAEF,yBAAyB;AACzB,MAAM,CAAC,IAAI,CAAC,OAAO,EACjB,2BAAY,EACZ,IAAA,qBAAS,EAAC,CAAC,kBAAU,CAAC,EAAE,CAAC,CAAC,EAC1B,yCAAmB,CAAC,IAAI,CAAC,IAAI,CAAC,yCAAmB,CAAC,CACnD,CAAC;AAEF,kCAAkC;AAClC,MAAM,CAAC,IAAI,CAAC,kBAAkB,EAC5B,2BAAY,EACZ,IAAA,qBAAS,EAAC,CAAC,kBAAU,CAAC,EAAE,CAAC,CAAC,EAC1B,yCAAmB,CAAC,oBAAoB,CAAC,IAAI,CAAC,yCAAmB,CAAC,CACnE,CAAC;AAEF,qCAAqC;AACrC,MAAM,CAAC,IAAI,CAAC,qBAAqB,EAC/B,2BAAY,EACZ,IAAA,qBAAS,EAAC,CAAC,kBAAU,CAAC,EAAE,CAAC,CAAC,EAC1B,yCAAmB,CAAC,sBAAsB,CAAC,IAAI,CAAC,yCAAmB,CAAC,CACrE,CAAC;AAEF,kBAAe,MAAM,CAAC",
+      names: [],
+      sources: ["/home/kim/tito/server/src/routes/scheduler/schedulerRoutes.ts"],
+      sourcesContent: ["import { Router } from 'express';\nimport { schedulerController } from '../../controllers/scheduler/schedulerController';\nimport { authenticate } from '../../middleware/auth/authenticate';\nimport { authorize } from '../../middleware/auth/authorize';\nimport { USER_ROLES } from '../../utils/constants/roles';\n\nconst router = Router();\n\n/**\n * Scheduler Management Routes\n * These routes require HR admin access for security\n */\n\n// Get scheduler status\nrouter.get('/status', \n  authenticate, \n  authorize([USER_ROLES.HR]), \n  schedulerController.getStatus.bind(schedulerController)\n);\n\n// Start scheduler service\nrouter.post('/start', \n  authenticate, \n  authorize([USER_ROLES.HR]), \n  schedulerController.start.bind(schedulerController)\n);\n\n// Stop scheduler service\nrouter.post('/stop', \n  authenticate, \n  authorize([USER_ROLES.HR]), \n  schedulerController.stop.bind(schedulerController)\n);\n\n// Manually trigger selfie cleanup\nrouter.post('/cleanup/selfies', \n  authenticate, \n  authorize([USER_ROLES.HR]), \n  schedulerController.triggerSelfieCleanup.bind(schedulerController)\n);\n\n// Manually trigger audit log cleanup\nrouter.post('/cleanup/audit-logs', \n  authenticate, \n  authorize([USER_ROLES.HR]), \n  schedulerController.triggerAuditLogCleanup.bind(schedulerController)\n);\n\nexport default router;\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "95b693fe7546f15aac4e045bca732a8442b0357c"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1nwl1wd7ui = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1nwl1wd7ui();
+cov_1nwl1wd7ui().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+const express_1 =
+/* istanbul ignore next */
+(cov_1nwl1wd7ui().s[1]++, require("express"));
+const schedulerController_1 =
+/* istanbul ignore next */
+(cov_1nwl1wd7ui().s[2]++, require("../../controllers/scheduler/schedulerController"));
+const authenticate_1 =
+/* istanbul ignore next */
+(cov_1nwl1wd7ui().s[3]++, require("../../middleware/auth/authenticate"));
+const authorize_1 =
+/* istanbul ignore next */
+(cov_1nwl1wd7ui().s[4]++, require("../../middleware/auth/authorize"));
+const roles_1 =
+/* istanbul ignore next */
+(cov_1nwl1wd7ui().s[5]++, require("../../utils/constants/roles"));
+const router =
+/* istanbul ignore next */
+(cov_1nwl1wd7ui().s[6]++, (0, express_1.Router)());
+/**
+ * Scheduler Management Routes
+ * These routes require HR admin access for security
+ */
+// Get scheduler status
+/* istanbul ignore next */
+cov_1nwl1wd7ui().s[7]++;
+router.get('/status', authenticate_1.authenticate, (0, authorize_1.authorize)([roles_1.USER_ROLES.HR]), schedulerController_1.schedulerController.getStatus.bind(schedulerController_1.schedulerController));
+// Start scheduler service
+/* istanbul ignore next */
+cov_1nwl1wd7ui().s[8]++;
+router.post('/start', authenticate_1.authenticate, (0, authorize_1.authorize)([roles_1.USER_ROLES.HR]), schedulerController_1.schedulerController.start.bind(schedulerController_1.schedulerController));
+// Stop scheduler service
+/* istanbul ignore next */
+cov_1nwl1wd7ui().s[9]++;
+router.post('/stop', authenticate_1.authenticate, (0, authorize_1.authorize)([roles_1.USER_ROLES.HR]), schedulerController_1.schedulerController.stop.bind(schedulerController_1.schedulerController));
+// Manually trigger selfie cleanup
+/* istanbul ignore next */
+cov_1nwl1wd7ui().s[10]++;
+router.post('/cleanup/selfies', authenticate_1.authenticate, (0, authorize_1.authorize)([roles_1.USER_ROLES.HR]), schedulerController_1.schedulerController.triggerSelfieCleanup.bind(schedulerController_1.schedulerController));
+// Manually trigger audit log cleanup
+/* istanbul ignore next */
+cov_1nwl1wd7ui().s[11]++;
+router.post('/cleanup/audit-logs', authenticate_1.authenticate, (0, authorize_1.authorize)([roles_1.USER_ROLES.HR]), schedulerController_1.schedulerController.triggerAuditLogCleanup.bind(schedulerController_1.schedulerController));
+/* istanbul ignore next */
+cov_1nwl1wd7ui().s[12]++;
+exports.default = router;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMW53bDF3ZDd1aSIsImFjdHVhbENvdmVyYWdlIiwicyIsImV4cHJlc3NfMSIsInJlcXVpcmUiLCJzY2hlZHVsZXJDb250cm9sbGVyXzEiLCJhdXRoZW50aWNhdGVfMSIsImF1dGhvcml6ZV8xIiwicm9sZXNfMSIsInJvdXRlciIsIlJvdXRlciIsImdldCIsImF1dGhlbnRpY2F0ZSIsImF1dGhvcml6ZSIsIlVTRVJfUk9MRVMiLCJIUiIsInNjaGVkdWxlckNvbnRyb2xsZXIiLCJnZXRTdGF0dXMiLCJiaW5kIiwicG9zdCIsInN0YXJ0Iiwic3RvcCIsInRyaWdnZXJTZWxmaWVDbGVhbnVwIiwidHJpZ2dlckF1ZGl0TG9nQ2xlYW51cCIsImV4cG9ydHMiLCJkZWZhdWx0Il0sInNvdXJjZXMiOlsiL2hvbWUva2ltL3RpdG8vc2VydmVyL3NyYy9yb3V0ZXMvc2NoZWR1bGVyL3NjaGVkdWxlclJvdXRlcy50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBSb3V0ZXIgfSBmcm9tICdleHByZXNzJztcbmltcG9ydCB7IHNjaGVkdWxlckNvbnRyb2xsZXIgfSBmcm9tICcuLi8uLi9jb250cm9sbGVycy9zY2hlZHVsZXIvc2NoZWR1bGVyQ29udHJvbGxlcic7XG5pbXBvcnQgeyBhdXRoZW50aWNhdGUgfSBmcm9tICcuLi8uLi9taWRkbGV3YXJlL2F1dGgvYXV0aGVudGljYXRlJztcbmltcG9ydCB7IGF1dGhvcml6ZSB9IGZyb20gJy4uLy4uL21pZGRsZXdhcmUvYXV0aC9hdXRob3JpemUnO1xuaW1wb3J0IHsgVVNFUl9ST0xFUyB9IGZyb20gJy4uLy4uL3V0aWxzL2NvbnN0YW50cy9yb2xlcyc7XG5cbmNvbnN0IHJvdXRlciA9IFJvdXRlcigpO1xuXG4vKipcbiAqIFNjaGVkdWxlciBNYW5hZ2VtZW50IFJvdXRlc1xuICogVGhlc2Ugcm91dGVzIHJlcXVpcmUgSFIgYWRtaW4gYWNjZXNzIGZvciBzZWN1cml0eVxuICovXG5cbi8vIEdldCBzY2hlZHVsZXIgc3RhdHVzXG5yb3V0ZXIuZ2V0KCcvc3RhdHVzJywgXG4gIGF1dGhlbnRpY2F0ZSwgXG4gIGF1dGhvcml6ZShbVVNFUl9ST0xFUy5IUl0pLCBcbiAgc2NoZWR1bGVyQ29udHJvbGxlci5nZXRTdGF0dXMuYmluZChzY2hlZHVsZXJDb250cm9sbGVyKVxuKTtcblxuLy8gU3RhcnQgc2NoZWR1bGVyIHNlcnZpY2VcbnJvdXRlci5wb3N0KCcvc3RhcnQnLCBcbiAgYXV0aGVudGljYXRlLCBcbiAgYXV0aG9yaXplKFtVU0VSX1JPTEVTLkhSXSksIFxuICBzY2hlZHVsZXJDb250cm9sbGVyLnN0YXJ0LmJpbmQoc2NoZWR1bGVyQ29udHJvbGxlcilcbik7XG5cbi8vIFN0b3Agc2NoZWR1bGVyIHNlcnZpY2VcbnJvdXRlci5wb3N0KCcvc3RvcCcsIFxuICBhdXRoZW50aWNhdGUsIFxuICBhdXRob3JpemUoW1VTRVJfUk9MRVMuSFJdKSwgXG4gIHNjaGVkdWxlckNvbnRyb2xsZXIuc3RvcC5iaW5kKHNjaGVkdWxlckNvbnRyb2xsZXIpXG4pO1xuXG4vLyBNYW51YWxseSB0cmlnZ2VyIHNlbGZpZSBjbGVhbnVwXG5yb3V0ZXIucG9zdCgnL2NsZWFudXAvc2VsZmllcycsIFxuICBhdXRoZW50aWNhdGUsIFxuICBhdXRob3JpemUoW1VTRVJfUk9MRVMuSFJdKSwgXG4gIHNjaGVkdWxlckNvbnRyb2xsZXIudHJpZ2dlclNlbGZpZUNsZWFudXAuYmluZChzY2hlZHVsZXJDb250cm9sbGVyKVxuKTtcblxuLy8gTWFudWFsbHkgdHJpZ2dlciBhdWRpdCBsb2cgY2xlYW51cFxucm91dGVyLnBvc3QoJy9jbGVhbnVwL2F1ZGl0LWxvZ3MnLCBcbiAgYXV0aGVudGljYXRlLCBcbiAgYXV0aG9yaXplKFtVU0VSX1JPTEVTLkhSXSksIFxuICBzY2hlZHVsZXJDb250cm9sbGVyLnRyaWdnZXJBdWRpdExvZ0NsZWFudXAuYmluZChzY2hlZHVsZXJDb250cm9sbGVyKVxuKTtcblxuZXhwb3J0IGRlZmF1bHQgcm91dGVyO1xuIl0sIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0lBcUJZO0lBQUFBLGNBQUEsWUFBQUEsQ0FBQTtNQUFBLE9BQUFDLGNBQUE7SUFBQTtFQUFBO0VBQUEsT0FBQUEsY0FBQTtBQUFBO0FBQUFELGNBQUE7QUFBQUEsY0FBQSxHQUFBRSxDQUFBOzs7O0FBckJaLE1BQUFDLFNBQUE7QUFBQTtBQUFBLENBQUFILGNBQUEsR0FBQUUsQ0FBQSxPQUFBRSxPQUFBO0FBQ0EsTUFBQUMscUJBQUE7QUFBQTtBQUFBLENBQUFMLGNBQUEsR0FBQUUsQ0FBQSxPQUFBRSxPQUFBO0FBQ0EsTUFBQUUsY0FBQTtBQUFBO0FBQUEsQ0FBQU4sY0FBQSxHQUFBRSxDQUFBLE9BQUFFLE9BQUE7QUFDQSxNQUFBRyxXQUFBO0FBQUE7QUFBQSxDQUFBUCxjQUFBLEdBQUFFLENBQUEsT0FBQUUsT0FBQTtBQUNBLE1BQUFJLE9BQUE7QUFBQTtBQUFBLENBQUFSLGNBQUEsR0FBQUUsQ0FBQSxPQUFBRSxPQUFBO0FBRUEsTUFBTUssTUFBTTtBQUFBO0FBQUEsQ0FBQVQsY0FBQSxHQUFBRSxDQUFBLE9BQUcsSUFBQUMsU0FBQSxDQUFBTyxNQUFNLEdBQUU7QUFFdkI7Ozs7QUFLQTtBQUFBO0FBQUFWLGNBQUEsR0FBQUUsQ0FBQTtBQUNBTyxNQUFNLENBQUNFLEdBQUcsQ0FBQyxTQUFTLEVBQ2xCTCxjQUFBLENBQUFNLFlBQVksRUFDWixJQUFBTCxXQUFBLENBQUFNLFNBQVMsRUFBQyxDQUFDTCxPQUFBLENBQUFNLFVBQVUsQ0FBQ0MsRUFBRSxDQUFDLENBQUMsRUFDMUJWLHFCQUFBLENBQUFXLG1CQUFtQixDQUFDQyxTQUFTLENBQUNDLElBQUksQ0FBQ2IscUJBQUEsQ0FBQVcsbUJBQW1CLENBQUMsQ0FDeEQ7QUFFRDtBQUFBO0FBQUFoQixjQUFBLEdBQUFFLENBQUE7QUFDQU8sTUFBTSxDQUFDVSxJQUFJLENBQUMsUUFBUSxFQUNsQmIsY0FBQSxDQUFBTSxZQUFZLEVBQ1osSUFBQUwsV0FBQSxDQUFBTSxTQUFTLEVBQUMsQ0FBQ0wsT0FBQSxDQUFBTSxVQUFVLENBQUNDLEVBQUUsQ0FBQyxDQUFDLEVBQzFCVixxQkFBQSxDQUFBVyxtQkFBbUIsQ0FBQ0ksS0FBSyxDQUFDRixJQUFJLENBQUNiLHFCQUFBLENBQUFXLG1CQUFtQixDQUFDLENBQ3BEO0FBRUQ7QUFBQTtBQUFBaEIsY0FBQSxHQUFBRSxDQUFBO0FBQ0FPLE1BQU0sQ0FBQ1UsSUFBSSxDQUFDLE9BQU8sRUFDakJiLGNBQUEsQ0FBQU0sWUFBWSxFQUNaLElBQUFMLFdBQUEsQ0FBQU0sU0FBUyxFQUFDLENBQUNMLE9BQUEsQ0FBQU0sVUFBVSxDQUFDQyxFQUFFLENBQUMsQ0FBQyxFQUMxQlYscUJBQUEsQ0FBQVcsbUJBQW1CLENBQUNLLElBQUksQ0FBQ0gsSUFBSSxDQUFDYixxQkFBQSxDQUFBVyxtQkFBbUIsQ0FBQyxDQUNuRDtBQUVEO0FBQUE7QUFBQWhCLGNBQUEsR0FBQUUsQ0FBQTtBQUNBTyxNQUFNLENBQUNVLElBQUksQ0FBQyxrQkFBa0IsRUFDNUJiLGNBQUEsQ0FBQU0sWUFBWSxFQUNaLElBQUFMLFdBQUEsQ0FBQU0sU0FBUyxFQUFDLENBQUNMLE9BQUEsQ0FBQU0sVUFBVSxDQUFDQyxFQUFFLENBQUMsQ0FBQyxFQUMxQlYscUJBQUEsQ0FBQVcsbUJBQW1CLENBQUNNLG9CQUFvQixDQUFDSixJQUFJLENBQUNiLHFCQUFBLENBQUFXLG1CQUFtQixDQUFDLENBQ25FO0FBRUQ7QUFBQTtBQUFBaEIsY0FBQSxHQUFBRSxDQUFBO0FBQ0FPLE1BQU0sQ0FBQ1UsSUFBSSxDQUFDLHFCQUFxQixFQUMvQmIsY0FBQSxDQUFBTSxZQUFZLEVBQ1osSUFBQUwsV0FBQSxDQUFBTSxTQUFTLEVBQUMsQ0FBQ0wsT0FBQSxDQUFBTSxVQUFVLENBQUNDLEVBQUUsQ0FBQyxDQUFDLEVBQzFCVixxQkFBQSxDQUFBVyxtQkFBbUIsQ0FBQ08sc0JBQXNCLENBQUNMLElBQUksQ0FBQ2IscUJBQUEsQ0FBQVcsbUJBQW1CLENBQUMsQ0FDckU7QUFBQztBQUFBaEIsY0FBQSxHQUFBRSxDQUFBO0FBRUZzQixPQUFBLENBQUFDLE9BQUEsR0FBZWhCLE1BQU0iLCJpZ25vcmVMaXN0IjpbXX0=

@@ -1,0 +1,192 @@
+0fd2399bbb2ee2b761f8ed77e7579c86
+"use strict";
+
+/* istanbul ignore next */
+function cov_wd6pk31ox() {
+  var path = "/home/kim/tito/server/src/routes/hr/dashboardRoutes.ts";
+  var hash = "3af29f2a04cdf432a989c6c53262300fe14e8ff4";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/home/kim/tito/server/src/routes/hr/dashboardRoutes.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 2,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 3,
+          column: 18
+        },
+        end: {
+          line: 3,
+          column: 36
+        }
+      },
+      "2": {
+        start: {
+          line: 4,
+          column: 30
+        },
+        end: {
+          line: 4,
+          column: 81
+        }
+      },
+      "3": {
+        start: {
+          line: 5,
+          column: 23
+        },
+        end: {
+          line: 5,
+          column: 68
+        }
+      },
+      "4": {
+        start: {
+          line: 6,
+          column: 20
+        },
+        end: {
+          line: 6,
+          column: 62
+        }
+      },
+      "5": {
+        start: {
+          line: 7,
+          column: 15
+        },
+        end: {
+          line: 7,
+          column: 38
+        }
+      },
+      "6": {
+        start: {
+          line: 9,
+          column: 0
+        },
+        end: {
+          line: 9,
+          column: 40
+        }
+      },
+      "7": {
+        start: {
+          line: 10,
+          column: 0
+        },
+        end: {
+          line: 10,
+          column: 34
+        }
+      },
+      "8": {
+        start: {
+          line: 16,
+          column: 0
+        },
+        end: {
+          line: 16,
+          column: 74
+        }
+      },
+      "9": {
+        start: {
+          line: 17,
+          column: 0
+        },
+        end: {
+          line: 17,
+          column: 25
+        }
+      }
+    },
+    fnMap: {},
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0
+    },
+    f: {},
+    b: {},
+    inputSourceMap: {
+      file: "/home/kim/tito/server/src/routes/hr/dashboardRoutes.ts",
+      mappings: ";;AAAA,qCAAiC;AACjC,kFAAiF;AACjF,qEAAkE;AAClE,+DAA4D;AAE5D,MAAM,MAAM,GAAG,IAAA,gBAAM,GAAE,CAAC;AAExB,gEAAgE;AAChE,MAAM,CAAC,GAAG,CAAC,2BAAY,CAAC,CAAC;AACzB,MAAM,CAAC,GAAG,CAAC,qBAAS,CAAC,CAAC;AAEtB;;;;GAIG;AACH,MAAM,CAAC,GAAG,CACR,GAAG,EACH,2CAAqB,CAAC,YAAY,CACnC,CAAC;AAEF,kBAAe,MAAM,CAAC",
+      names: [],
+      sources: ["/home/kim/tito/server/src/routes/hr/dashboardRoutes.ts"],
+      sourcesContent: ["import { Router } from 'express';\nimport { hrDashboardController } from '../../controllers/hr/dashboardController';\nimport { authenticate } from '../../middleware/auth/authenticate';\nimport { requireHR } from '../../middleware/auth/authorize';\n\nconst router = Router();\n\n// Apply authentication and HR admin authorization to all routes\nrouter.use(authenticate);\nrouter.use(requireHR);\n\n/**\n * @route GET /api/v1/hr/dashboard\n * @desc Get HR dashboard data\n * @access HR Admin only\n */\nrouter.get(\n  '/',\n  hrDashboardController.getDashboard\n);\n\nexport default router;\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "3af29f2a04cdf432a989c6c53262300fe14e8ff4"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_wd6pk31ox = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_wd6pk31ox();
+cov_wd6pk31ox().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+const express_1 =
+/* istanbul ignore next */
+(cov_wd6pk31ox().s[1]++, require("express"));
+const dashboardController_1 =
+/* istanbul ignore next */
+(cov_wd6pk31ox().s[2]++, require("../../controllers/hr/dashboardController"));
+const authenticate_1 =
+/* istanbul ignore next */
+(cov_wd6pk31ox().s[3]++, require("../../middleware/auth/authenticate"));
+const authorize_1 =
+/* istanbul ignore next */
+(cov_wd6pk31ox().s[4]++, require("../../middleware/auth/authorize"));
+const router =
+/* istanbul ignore next */
+(cov_wd6pk31ox().s[5]++, (0, express_1.Router)());
+// Apply authentication and HR admin authorization to all routes
+/* istanbul ignore next */
+cov_wd6pk31ox().s[6]++;
+router.use(authenticate_1.authenticate);
+/* istanbul ignore next */
+cov_wd6pk31ox().s[7]++;
+router.use(authorize_1.requireHR);
+/**
+ * @route GET /api/v1/hr/dashboard
+ * @desc Get HR dashboard data
+ * @access HR Admin only
+ */
+/* istanbul ignore next */
+cov_wd6pk31ox().s[8]++;
+router.get('/', dashboardController_1.hrDashboardController.getDashboard);
+/* istanbul ignore next */
+cov_wd6pk31ox().s[9]++;
+exports.default = router;
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3Zfd2Q2cGszMW94IiwiYWN0dWFsQ292ZXJhZ2UiLCJzIiwiZXhwcmVzc18xIiwicmVxdWlyZSIsImRhc2hib2FyZENvbnRyb2xsZXJfMSIsImF1dGhlbnRpY2F0ZV8xIiwiYXV0aG9yaXplXzEiLCJyb3V0ZXIiLCJSb3V0ZXIiLCJ1c2UiLCJhdXRoZW50aWNhdGUiLCJyZXF1aXJlSFIiLCJnZXQiLCJockRhc2hib2FyZENvbnRyb2xsZXIiLCJnZXREYXNoYm9hcmQiLCJleHBvcnRzIiwiZGVmYXVsdCJdLCJzb3VyY2VzIjpbIi9ob21lL2tpbS90aXRvL3NlcnZlci9zcmMvcm91dGVzL2hyL2Rhc2hib2FyZFJvdXRlcy50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBSb3V0ZXIgfSBmcm9tICdleHByZXNzJztcbmltcG9ydCB7IGhyRGFzaGJvYXJkQ29udHJvbGxlciB9IGZyb20gJy4uLy4uL2NvbnRyb2xsZXJzL2hyL2Rhc2hib2FyZENvbnRyb2xsZXInO1xuaW1wb3J0IHsgYXV0aGVudGljYXRlIH0gZnJvbSAnLi4vLi4vbWlkZGxld2FyZS9hdXRoL2F1dGhlbnRpY2F0ZSc7XG5pbXBvcnQgeyByZXF1aXJlSFIgfSBmcm9tICcuLi8uLi9taWRkbGV3YXJlL2F1dGgvYXV0aG9yaXplJztcblxuY29uc3Qgcm91dGVyID0gUm91dGVyKCk7XG5cbi8vIEFwcGx5IGF1dGhlbnRpY2F0aW9uIGFuZCBIUiBhZG1pbiBhdXRob3JpemF0aW9uIHRvIGFsbCByb3V0ZXNcbnJvdXRlci51c2UoYXV0aGVudGljYXRlKTtcbnJvdXRlci51c2UocmVxdWlyZUhSKTtcblxuLyoqXG4gKiBAcm91dGUgR0VUIC9hcGkvdjEvaHIvZGFzaGJvYXJkXG4gKiBAZGVzYyBHZXQgSFIgZGFzaGJvYXJkIGRhdGFcbiAqIEBhY2Nlc3MgSFIgQWRtaW4gb25seVxuICovXG5yb3V0ZXIuZ2V0KFxuICAnLycsXG4gIGhyRGFzaGJvYXJkQ29udHJvbGxlci5nZXREYXNoYm9hcmRcbik7XG5cbmV4cG9ydCBkZWZhdWx0IHJvdXRlcjtcbiJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztJQWlCRTtJQUFBQSxhQUFBLFlBQUFBLENBQUE7TUFBQSxPQUFBQyxjQUFBO0lBQUE7RUFBQTtFQUFBLE9BQUFBLGNBQUE7QUFBQTtBQUFBRCxhQUFBO0FBQUFBLGFBQUEsR0FBQUUsQ0FBQTs7OztBQWpCRixNQUFBQyxTQUFBO0FBQUE7QUFBQSxDQUFBSCxhQUFBLEdBQUFFLENBQUEsT0FBQUUsT0FBQTtBQUNBLE1BQUFDLHFCQUFBO0FBQUE7QUFBQSxDQUFBTCxhQUFBLEdBQUFFLENBQUEsT0FBQUUsT0FBQTtBQUNBLE1BQUFFLGNBQUE7QUFBQTtBQUFBLENBQUFOLGFBQUEsR0FBQUUsQ0FBQSxPQUFBRSxPQUFBO0FBQ0EsTUFBQUcsV0FBQTtBQUFBO0FBQUEsQ0FBQVAsYUFBQSxHQUFBRSxDQUFBLE9BQUFFLE9BQUE7QUFFQSxNQUFNSSxNQUFNO0FBQUE7QUFBQSxDQUFBUixhQUFBLEdBQUFFLENBQUEsT0FBRyxJQUFBQyxTQUFBLENBQUFNLE1BQU0sR0FBRTtBQUV2QjtBQUFBO0FBQUFULGFBQUEsR0FBQUUsQ0FBQTtBQUNBTSxNQUFNLENBQUNFLEdBQUcsQ0FBQ0osY0FBQSxDQUFBSyxZQUFZLENBQUM7QUFBQztBQUFBWCxhQUFBLEdBQUFFLENBQUE7QUFDekJNLE1BQU0sQ0FBQ0UsR0FBRyxDQUFDSCxXQUFBLENBQUFLLFNBQVMsQ0FBQztBQUVyQjs7Ozs7QUFBQTtBQUFBWixhQUFBLEdBQUFFLENBQUE7QUFLQU0sTUFBTSxDQUFDSyxHQUFHLENBQ1IsR0FBRyxFQUNIUixxQkFBQSxDQUFBUyxxQkFBcUIsQ0FBQ0MsWUFBWSxDQUNuQztBQUFDO0FBQUFmLGFBQUEsR0FBQUUsQ0FBQTtBQUVGYyxPQUFBLENBQUFDLE9BQUEsR0FBZVQsTUFBTSIsImlnbm9yZUxpc3QiOltdfQ==

@@ -1,0 +1,448 @@
+0c435989a9c007a8d6c1d82c0113ffcc
+"use strict";
+
+/* istanbul ignore next */
+function cov_1fgg36rfgj() {
+  var path = "/home/kim/tito/server/src/utils/validation/employeeSchemas.ts";
+  var hash = "477474125447cd87f801abba3393965bd9552e06";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/home/kim/tito/server/src/utils/validation/employeeSchemas.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 22
+        },
+        end: {
+          line: 4,
+          column: 1
+        }
+      },
+      "1": {
+        start: {
+          line: 3,
+          column: 4
+        },
+        end: {
+          line: 3,
+          column: 62
+        }
+      },
+      "2": {
+        start: {
+          line: 5,
+          column: 0
+        },
+        end: {
+          line: 5,
+          column: 62
+        }
+      },
+      "3": {
+        start: {
+          line: 6,
+          column: 0
+        },
+        end: {
+          line: 6,
+          column: 192
+        }
+      },
+      "4": {
+        start: {
+          line: 7,
+          column: 14
+        },
+        end: {
+          line: 7,
+          column: 45
+        }
+      },
+      "5": {
+        start: {
+          line: 8,
+          column: 0
+        },
+        end: {
+          line: 39,
+          column: 3
+        }
+      },
+      "6": {
+        start: {
+          line: 40,
+          column: 0
+        },
+        end: {
+          line: 63,
+          column: 3
+        }
+      },
+      "7": {
+        start: {
+          line: 64,
+          column: 0
+        },
+        end: {
+          line: 69,
+          column: 3
+        }
+      },
+      "8": {
+        start: {
+          line: 70,
+          column: 0
+        },
+        end: {
+          line: 75,
+          column: 3
+        }
+      },
+      "9": {
+        start: {
+          line: 76,
+          column: 0
+        },
+        end: {
+          line: 81,
+          column: 3
+        }
+      },
+      "10": {
+        start: {
+          line: 82,
+          column: 0
+        },
+        end: {
+          line: 104,
+          column: 3
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 2,
+            column: 56
+          },
+          end: {
+            line: 2,
+            column: 57
+          }
+        },
+        loc: {
+          start: {
+            line: 2,
+            column: 71
+          },
+          end: {
+            line: 4,
+            column: 1
+          }
+        },
+        line: 2
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 2,
+            column: 22
+          },
+          end: {
+            line: 4,
+            column: 1
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 2,
+            column: 23
+          },
+          end: {
+            line: 2,
+            column: 27
+          }
+        }, {
+          start: {
+            line: 2,
+            column: 31
+          },
+          end: {
+            line: 2,
+            column: 51
+          }
+        }, {
+          start: {
+            line: 2,
+            column: 56
+          },
+          end: {
+            line: 4,
+            column: 1
+          }
+        }],
+        line: 2
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 3,
+            column: 11
+          },
+          end: {
+            line: 3,
+            column: 61
+          }
+        },
+        type: "cond-expr",
+        locations: [{
+          start: {
+            line: 3,
+            column: 37
+          },
+          end: {
+            line: 3,
+            column: 40
+          }
+        }, {
+          start: {
+            line: 3,
+            column: 43
+          },
+          end: {
+            line: 3,
+            column: 61
+          }
+        }],
+        line: 3
+      },
+      "2": {
+        loc: {
+          start: {
+            line: 3,
+            column: 12
+          },
+          end: {
+            line: 3,
+            column: 33
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 3,
+            column: 12
+          },
+          end: {
+            line: 3,
+            column: 15
+          }
+        }, {
+          start: {
+            line: 3,
+            column: 19
+          },
+          end: {
+            line: 3,
+            column: 33
+          }
+        }],
+        line: 3
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0
+    },
+    f: {
+      "0": 0
+    },
+    b: {
+      "0": [0, 0, 0],
+      "1": [0, 0],
+      "2": [0, 0]
+    },
+    inputSourceMap: {
+      file: "/home/kim/tito/server/src/utils/validation/employeeSchemas.ts",
+      mappings: "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",
+      names: [],
+      sources: ["/home/kim/tito/server/src/utils/validation/employeeSchemas.ts"],
+      sourcesContent: ["import Joi from 'joi';\n\nexport const createEmployeeSchema = Joi.object({\n  user_id: Joi.string().uuid().required().messages({\n    'string.guid': 'User ID must be a valid UUID',\n    'any.required': 'User ID is required'\n  }),\n  department_id: Joi.string().uuid().allow(null).optional().messages({\n    'string.guid': 'Department ID must be a valid UUID'\n  }),\n  position: Joi.string().min(2).max(100).required().messages({\n    'string.min': 'Position must be at least 2 characters long',\n    'string.max': 'Position must not exceed 100 characters',\n    'any.required': 'Position is required'\n  }),\n  employment_type: Joi.string().valid('regular', 'contractual', 'jo').required().messages({\n    'any.only': 'Employment type must be one of: regular, contractual, jo',\n    'any.required': 'Employment type is required'\n  }),\n  hire_date: Joi.date().max('now').required().messages({\n    'date.max': 'Hire date cannot be in the future',\n    'any.required': 'Hire date is required'\n  }),\n  base_salary: Joi.number().positive().min(10000).max(1000000).required().messages({\n    'number.base': 'Base salary must be a number',\n    'number.positive': 'Base salary must be positive',\n    'number.min': 'Base salary must be at least 10,000',\n    'number.max': 'Base salary cannot exceed 1,000,000',\n    'any.required': 'Base salary is required'\n  }),\n  status: Joi.string().valid('active', 'inactive', 'terminated', 'on_leave').default('active').messages({\n    'any.only': 'Status must be one of: active, inactive, terminated, on_leave'\n  })\n});\n\nexport const updateEmployeeSchema = Joi.object({\n  department_id: Joi.string().uuid().allow(null).optional().messages({\n    'string.guid': 'Department ID must be a valid UUID'\n  }),\n  position: Joi.string().min(2).max(100).optional().messages({\n    'string.min': 'Position must be at least 2 characters long',\n    'string.max': 'Position must not exceed 100 characters'\n  }),\n  employment_type: Joi.string().valid('regular', 'contractual', 'jo').optional().messages({\n    'any.only': 'Employment type must be one of: regular, contractual, jo'\n  }),\n  hire_date: Joi.date().max('now').optional().messages({\n    'date.max': 'Hire date cannot be in the future'\n  }),\n  base_salary: Joi.number().positive().min(10000).max(1000000).optional().messages({\n    'number.base': 'Base salary must be a number',\n    'number.positive': 'Base salary must be positive',\n    'number.min': 'Base salary must be at least 10,000',\n    'number.max': 'Base salary cannot exceed 1,000,000'\n  }),\n  status: Joi.string().valid('active', 'inactive', 'terminated', 'on_leave').optional().messages({\n    'any.only': 'Status must be one of: active, inactive, terminated, on_leave'\n  })\n});\n\nexport const employeeIdSchema = Joi.object({\n  id: Joi.string().uuid().required().messages({\n    'string.guid': 'Employee ID must be a valid UUID',\n    'any.required': 'Employee ID is required'\n  })\n});\n\nexport const employeeUserIdSchema = Joi.object({\n  user_id: Joi.string().uuid().required().messages({\n    'string.guid': 'User ID must be a valid UUID',\n    'any.required': 'User ID is required'\n  })\n});\n\nexport const employeeEmployeeIdSchema = Joi.object({\n  employee_id: Joi.string().pattern(/^EMP\\d{6}$/).required().messages({\n    'string.pattern.base': 'Employee ID must be in format EMP000000',\n    'any.required': 'Employee ID is required'\n  })\n});\n\nexport const listEmployeesSchema = Joi.object({\n  page: Joi.number().integer().min(1).default(1).messages({\n    'number.base': 'Page must be a number',\n    'number.integer': 'Page must be an integer',\n    'number.min': 'Page must be at least 1'\n  }),\n  limit: Joi.number().integer().min(1).max(100).default(20).messages({\n    'number.base': 'Limit must be a number',\n    'number.integer': 'Limit must be an integer',\n    'number.min': 'Limit must be at least 1',\n    'number.max': 'Limit cannot exceed 100'\n  }),\n  department_id: Joi.string().uuid().optional().messages({\n    'string.guid': 'Department ID must be a valid UUID'\n  }),\n  status: Joi.string().valid('active', 'inactive', 'terminated', 'on_leave').optional().messages({\n    'any.only': 'Status must be one of: active, inactive, terminated, on_leave'\n  }),\n  search: Joi.string().min(1).max(100).optional().messages({\n    'string.min': 'Search term must be at least 1 character',\n    'string.max': 'Search term cannot exceed 100 characters'\n  })\n}); "],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "477474125447cd87f801abba3393965bd9552e06"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1fgg36rfgj = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1fgg36rfgj();
+var __importDefault =
+/* istanbul ignore next */
+(cov_1fgg36rfgj().s[0]++,
+/* istanbul ignore next */
+(cov_1fgg36rfgj().b[0][0]++, this) &&
+/* istanbul ignore next */
+(cov_1fgg36rfgj().b[0][1]++, this.__importDefault) ||
+/* istanbul ignore next */
+(cov_1fgg36rfgj().b[0][2]++, function (mod) {
+  /* istanbul ignore next */
+  cov_1fgg36rfgj().f[0]++;
+  cov_1fgg36rfgj().s[1]++;
+  return /* istanbul ignore next */(cov_1fgg36rfgj().b[2][0]++, mod) &&
+  /* istanbul ignore next */
+  (cov_1fgg36rfgj().b[2][1]++, mod.__esModule) ?
+  /* istanbul ignore next */
+  (cov_1fgg36rfgj().b[1][0]++, mod) :
+  /* istanbul ignore next */
+  (cov_1fgg36rfgj().b[1][1]++, {
+    "default": mod
+  });
+}));
+/* istanbul ignore next */
+cov_1fgg36rfgj().s[2]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1fgg36rfgj().s[3]++;
+exports.listEmployeesSchema = exports.employeeEmployeeIdSchema = exports.employeeUserIdSchema = exports.employeeIdSchema = exports.updateEmployeeSchema = exports.createEmployeeSchema = void 0;
+const joi_1 =
+/* istanbul ignore next */
+(cov_1fgg36rfgj().s[4]++, __importDefault(require("joi")));
+/* istanbul ignore next */
+cov_1fgg36rfgj().s[5]++;
+exports.createEmployeeSchema = joi_1.default.object({
+  user_id: joi_1.default.string().uuid().required().messages({
+    'string.guid': 'User ID must be a valid UUID',
+    'any.required': 'User ID is required'
+  }),
+  department_id: joi_1.default.string().uuid().allow(null).optional().messages({
+    'string.guid': 'Department ID must be a valid UUID'
+  }),
+  position: joi_1.default.string().min(2).max(100).required().messages({
+    'string.min': 'Position must be at least 2 characters long',
+    'string.max': 'Position must not exceed 100 characters',
+    'any.required': 'Position is required'
+  }),
+  employment_type: joi_1.default.string().valid('regular', 'contractual', 'jo').required().messages({
+    'any.only': 'Employment type must be one of: regular, contractual, jo',
+    'any.required': 'Employment type is required'
+  }),
+  hire_date: joi_1.default.date().max('now').required().messages({
+    'date.max': 'Hire date cannot be in the future',
+    'any.required': 'Hire date is required'
+  }),
+  base_salary: joi_1.default.number().positive().min(10000).max(1000000).required().messages({
+    'number.base': 'Base salary must be a number',
+    'number.positive': 'Base salary must be positive',
+    'number.min': 'Base salary must be at least 10,000',
+    'number.max': 'Base salary cannot exceed 1,000,000',
+    'any.required': 'Base salary is required'
+  }),
+  status: joi_1.default.string().valid('active', 'inactive', 'terminated', 'on_leave').default('active').messages({
+    'any.only': 'Status must be one of: active, inactive, terminated, on_leave'
+  })
+});
+/* istanbul ignore next */
+cov_1fgg36rfgj().s[6]++;
+exports.updateEmployeeSchema = joi_1.default.object({
+  department_id: joi_1.default.string().uuid().allow(null).optional().messages({
+    'string.guid': 'Department ID must be a valid UUID'
+  }),
+  position: joi_1.default.string().min(2).max(100).optional().messages({
+    'string.min': 'Position must be at least 2 characters long',
+    'string.max': 'Position must not exceed 100 characters'
+  }),
+  employment_type: joi_1.default.string().valid('regular', 'contractual', 'jo').optional().messages({
+    'any.only': 'Employment type must be one of: regular, contractual, jo'
+  }),
+  hire_date: joi_1.default.date().max('now').optional().messages({
+    'date.max': 'Hire date cannot be in the future'
+  }),
+  base_salary: joi_1.default.number().positive().min(10000).max(1000000).optional().messages({
+    'number.base': 'Base salary must be a number',
+    'number.positive': 'Base salary must be positive',
+    'number.min': 'Base salary must be at least 10,000',
+    'number.max': 'Base salary cannot exceed 1,000,000'
+  }),
+  status: joi_1.default.string().valid('active', 'inactive', 'terminated', 'on_leave').optional().messages({
+    'any.only': 'Status must be one of: active, inactive, terminated, on_leave'
+  })
+});
+/* istanbul ignore next */
+cov_1fgg36rfgj().s[7]++;
+exports.employeeIdSchema = joi_1.default.object({
+  id: joi_1.default.string().uuid().required().messages({
+    'string.guid': 'Employee ID must be a valid UUID',
+    'any.required': 'Employee ID is required'
+  })
+});
+/* istanbul ignore next */
+cov_1fgg36rfgj().s[8]++;
+exports.employeeUserIdSchema = joi_1.default.object({
+  user_id: joi_1.default.string().uuid().required().messages({
+    'string.guid': 'User ID must be a valid UUID',
+    'any.required': 'User ID is required'
+  })
+});
+/* istanbul ignore next */
+cov_1fgg36rfgj().s[9]++;
+exports.employeeEmployeeIdSchema = joi_1.default.object({
+  employee_id: joi_1.default.string().pattern(/^EMP\d{6}$/).required().messages({
+    'string.pattern.base': 'Employee ID must be in format EMP000000',
+    'any.required': 'Employee ID is required'
+  })
+});
+/* istanbul ignore next */
+cov_1fgg36rfgj().s[10]++;
+exports.listEmployeesSchema = joi_1.default.object({
+  page: joi_1.default.number().integer().min(1).default(1).messages({
+    'number.base': 'Page must be a number',
+    'number.integer': 'Page must be an integer',
+    'number.min': 'Page must be at least 1'
+  }),
+  limit: joi_1.default.number().integer().min(1).max(100).default(20).messages({
+    'number.base': 'Limit must be a number',
+    'number.integer': 'Limit must be an integer',
+    'number.min': 'Limit must be at least 1',
+    'number.max': 'Limit cannot exceed 100'
+  }),
+  department_id: joi_1.default.string().uuid().optional().messages({
+    'string.guid': 'Department ID must be a valid UUID'
+  }),
+  status: joi_1.default.string().valid('active', 'inactive', 'terminated', 'on_leave').optional().messages({
+    'any.only': 'Status must be one of: active, inactive, terminated, on_leave'
+  }),
+  search: joi_1.default.string().min(1).max(100).optional().messages({
+    'string.min': 'Search term must be at least 1 character',
+    'string.max': 'Search term cannot exceed 100 characters'
+  })
+});
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMWZnZzM2cmZnaiIsImFjdHVhbENvdmVyYWdlIiwiam9pXzEiLCJzIiwiX19pbXBvcnREZWZhdWx0IiwicmVxdWlyZSIsImV4cG9ydHMiLCJjcmVhdGVFbXBsb3llZVNjaGVtYSIsImRlZmF1bHQiLCJvYmplY3QiLCJ1c2VyX2lkIiwic3RyaW5nIiwidXVpZCIsInJlcXVpcmVkIiwibWVzc2FnZXMiLCJkZXBhcnRtZW50X2lkIiwiYWxsb3ciLCJvcHRpb25hbCIsInBvc2l0aW9uIiwibWluIiwibWF4IiwiZW1wbG95bWVudF90eXBlIiwidmFsaWQiLCJoaXJlX2RhdGUiLCJkYXRlIiwiYmFzZV9zYWxhcnkiLCJudW1iZXIiLCJwb3NpdGl2ZSIsInN0YXR1cyIsInVwZGF0ZUVtcGxveWVlU2NoZW1hIiwiZW1wbG95ZWVJZFNjaGVtYSIsImlkIiwiZW1wbG95ZWVVc2VySWRTY2hlbWEiLCJlbXBsb3llZUVtcGxveWVlSWRTY2hlbWEiLCJlbXBsb3llZV9pZCIsInBhdHRlcm4iLCJsaXN0RW1wbG95ZWVzU2NoZW1hIiwicGFnZSIsImludGVnZXIiLCJsaW1pdCIsInNlYXJjaCJdLCJzb3VyY2VzIjpbIi9ob21lL2tpbS90aXRvL3NlcnZlci9zcmMvdXRpbHMvdmFsaWRhdGlvbi9lbXBsb3llZVNjaGVtYXMudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IEpvaSBmcm9tICdqb2knO1xuXG5leHBvcnQgY29uc3QgY3JlYXRlRW1wbG95ZWVTY2hlbWEgPSBKb2kub2JqZWN0KHtcbiAgdXNlcl9pZDogSm9pLnN0cmluZygpLnV1aWQoKS5yZXF1aXJlZCgpLm1lc3NhZ2VzKHtcbiAgICAnc3RyaW5nLmd1aWQnOiAnVXNlciBJRCBtdXN0IGJlIGEgdmFsaWQgVVVJRCcsXG4gICAgJ2FueS5yZXF1aXJlZCc6ICdVc2VyIElEIGlzIHJlcXVpcmVkJ1xuICB9KSxcbiAgZGVwYXJ0bWVudF9pZDogSm9pLnN0cmluZygpLnV1aWQoKS5hbGxvdyhudWxsKS5vcHRpb25hbCgpLm1lc3NhZ2VzKHtcbiAgICAnc3RyaW5nLmd1aWQnOiAnRGVwYXJ0bWVudCBJRCBtdXN0IGJlIGEgdmFsaWQgVVVJRCdcbiAgfSksXG4gIHBvc2l0aW9uOiBKb2kuc3RyaW5nKCkubWluKDIpLm1heCgxMDApLnJlcXVpcmVkKCkubWVzc2FnZXMoe1xuICAgICdzdHJpbmcubWluJzogJ1Bvc2l0aW9uIG11c3QgYmUgYXQgbGVhc3QgMiBjaGFyYWN0ZXJzIGxvbmcnLFxuICAgICdzdHJpbmcubWF4JzogJ1Bvc2l0aW9uIG11c3Qgbm90IGV4Y2VlZCAxMDAgY2hhcmFjdGVycycsXG4gICAgJ2FueS5yZXF1aXJlZCc6ICdQb3NpdGlvbiBpcyByZXF1aXJlZCdcbiAgfSksXG4gIGVtcGxveW1lbnRfdHlwZTogSm9pLnN0cmluZygpLnZhbGlkKCdyZWd1bGFyJywgJ2NvbnRyYWN0dWFsJywgJ2pvJykucmVxdWlyZWQoKS5tZXNzYWdlcyh7XG4gICAgJ2FueS5vbmx5JzogJ0VtcGxveW1lbnQgdHlwZSBtdXN0IGJlIG9uZSBvZjogcmVndWxhciwgY29udHJhY3R1YWwsIGpvJyxcbiAgICAnYW55LnJlcXVpcmVkJzogJ0VtcGxveW1lbnQgdHlwZSBpcyByZXF1aXJlZCdcbiAgfSksXG4gIGhpcmVfZGF0ZTogSm9pLmRhdGUoKS5tYXgoJ25vdycpLnJlcXVpcmVkKCkubWVzc2FnZXMoe1xuICAgICdkYXRlLm1heCc6ICdIaXJlIGRhdGUgY2Fubm90IGJlIGluIHRoZSBmdXR1cmUnLFxuICAgICdhbnkucmVxdWlyZWQnOiAnSGlyZSBkYXRlIGlzIHJlcXVpcmVkJ1xuICB9KSxcbiAgYmFzZV9zYWxhcnk6IEpvaS5udW1iZXIoKS5wb3NpdGl2ZSgpLm1pbigxMDAwMCkubWF4KDEwMDAwMDApLnJlcXVpcmVkKCkubWVzc2FnZXMoe1xuICAgICdudW1iZXIuYmFzZSc6ICdCYXNlIHNhbGFyeSBtdXN0IGJlIGEgbnVtYmVyJyxcbiAgICAnbnVtYmVyLnBvc2l0aXZlJzogJ0Jhc2Ugc2FsYXJ5IG11c3QgYmUgcG9zaXRpdmUnLFxuICAgICdudW1iZXIubWluJzogJ0Jhc2Ugc2FsYXJ5IG11c3QgYmUgYXQgbGVhc3QgMTAsMDAwJyxcbiAgICAnbnVtYmVyLm1heCc6ICdCYXNlIHNhbGFyeSBjYW5ub3QgZXhjZWVkIDEsMDAwLDAwMCcsXG4gICAgJ2FueS5yZXF1aXJlZCc6ICdCYXNlIHNhbGFyeSBpcyByZXF1aXJlZCdcbiAgfSksXG4gIHN0YXR1czogSm9pLnN0cmluZygpLnZhbGlkKCdhY3RpdmUnLCAnaW5hY3RpdmUnLCAndGVybWluYXRlZCcsICdvbl9sZWF2ZScpLmRlZmF1bHQoJ2FjdGl2ZScpLm1lc3NhZ2VzKHtcbiAgICAnYW55Lm9ubHknOiAnU3RhdHVzIG11c3QgYmUgb25lIG9mOiBhY3RpdmUsIGluYWN0aXZlLCB0ZXJtaW5hdGVkLCBvbl9sZWF2ZSdcbiAgfSlcbn0pO1xuXG5leHBvcnQgY29uc3QgdXBkYXRlRW1wbG95ZWVTY2hlbWEgPSBKb2kub2JqZWN0KHtcbiAgZGVwYXJ0bWVudF9pZDogSm9pLnN0cmluZygpLnV1aWQoKS5hbGxvdyhudWxsKS5vcHRpb25hbCgpLm1lc3NhZ2VzKHtcbiAgICAnc3RyaW5nLmd1aWQnOiAnRGVwYXJ0bWVudCBJRCBtdXN0IGJlIGEgdmFsaWQgVVVJRCdcbiAgfSksXG4gIHBvc2l0aW9uOiBKb2kuc3RyaW5nKCkubWluKDIpLm1heCgxMDApLm9wdGlvbmFsKCkubWVzc2FnZXMoe1xuICAgICdzdHJpbmcubWluJzogJ1Bvc2l0aW9uIG11c3QgYmUgYXQgbGVhc3QgMiBjaGFyYWN0ZXJzIGxvbmcnLFxuICAgICdzdHJpbmcubWF4JzogJ1Bvc2l0aW9uIG11c3Qgbm90IGV4Y2VlZCAxMDAgY2hhcmFjdGVycydcbiAgfSksXG4gIGVtcGxveW1lbnRfdHlwZTogSm9pLnN0cmluZygpLnZhbGlkKCdyZWd1bGFyJywgJ2NvbnRyYWN0dWFsJywgJ2pvJykub3B0aW9uYWwoKS5tZXNzYWdlcyh7XG4gICAgJ2FueS5vbmx5JzogJ0VtcGxveW1lbnQgdHlwZSBtdXN0IGJlIG9uZSBvZjogcmVndWxhciwgY29udHJhY3R1YWwsIGpvJ1xuICB9KSxcbiAgaGlyZV9kYXRlOiBKb2kuZGF0ZSgpLm1heCgnbm93Jykub3B0aW9uYWwoKS5tZXNzYWdlcyh7XG4gICAgJ2RhdGUubWF4JzogJ0hpcmUgZGF0ZSBjYW5ub3QgYmUgaW4gdGhlIGZ1dHVyZSdcbiAgfSksXG4gIGJhc2Vfc2FsYXJ5OiBKb2kubnVtYmVyKCkucG9zaXRpdmUoKS5taW4oMTAwMDApLm1heCgxMDAwMDAwKS5vcHRpb25hbCgpLm1lc3NhZ2VzKHtcbiAgICAnbnVtYmVyLmJhc2UnOiAnQmFzZSBzYWxhcnkgbXVzdCBiZSBhIG51bWJlcicsXG4gICAgJ251bWJlci5wb3NpdGl2ZSc6ICdCYXNlIHNhbGFyeSBtdXN0IGJlIHBvc2l0aXZlJyxcbiAgICAnbnVtYmVyLm1pbic6ICdCYXNlIHNhbGFyeSBtdXN0IGJlIGF0IGxlYXN0IDEwLDAwMCcsXG4gICAgJ251bWJlci5tYXgnOiAnQmFzZSBzYWxhcnkgY2Fubm90IGV4Y2VlZCAxLDAwMCwwMDAnXG4gIH0pLFxuICBzdGF0dXM6IEpvaS5zdHJpbmcoKS52YWxpZCgnYWN0aXZlJywgJ2luYWN0aXZlJywgJ3Rlcm1pbmF0ZWQnLCAnb25fbGVhdmUnKS5vcHRpb25hbCgpLm1lc3NhZ2VzKHtcbiAgICAnYW55Lm9ubHknOiAnU3RhdHVzIG11c3QgYmUgb25lIG9mOiBhY3RpdmUsIGluYWN0aXZlLCB0ZXJtaW5hdGVkLCBvbl9sZWF2ZSdcbiAgfSlcbn0pO1xuXG5leHBvcnQgY29uc3QgZW1wbG95ZWVJZFNjaGVtYSA9IEpvaS5vYmplY3Qoe1xuICBpZDogSm9pLnN0cmluZygpLnV1aWQoKS5yZXF1aXJlZCgpLm1lc3NhZ2VzKHtcbiAgICAnc3RyaW5nLmd1aWQnOiAnRW1wbG95ZWUgSUQgbXVzdCBiZSBhIHZhbGlkIFVVSUQnLFxuICAgICdhbnkucmVxdWlyZWQnOiAnRW1wbG95ZWUgSUQgaXMgcmVxdWlyZWQnXG4gIH0pXG59KTtcblxuZXhwb3J0IGNvbnN0IGVtcGxveWVlVXNlcklkU2NoZW1hID0gSm9pLm9iamVjdCh7XG4gIHVzZXJfaWQ6IEpvaS5zdHJpbmcoKS51dWlkKCkucmVxdWlyZWQoKS5tZXNzYWdlcyh7XG4gICAgJ3N0cmluZy5ndWlkJzogJ1VzZXIgSUQgbXVzdCBiZSBhIHZhbGlkIFVVSUQnLFxuICAgICdhbnkucmVxdWlyZWQnOiAnVXNlciBJRCBpcyByZXF1aXJlZCdcbiAgfSlcbn0pO1xuXG5leHBvcnQgY29uc3QgZW1wbG95ZWVFbXBsb3llZUlkU2NoZW1hID0gSm9pLm9iamVjdCh7XG4gIGVtcGxveWVlX2lkOiBKb2kuc3RyaW5nKCkucGF0dGVybigvXkVNUFxcZHs2fSQvKS5yZXF1aXJlZCgpLm1lc3NhZ2VzKHtcbiAgICAnc3RyaW5nLnBhdHRlcm4uYmFzZSc6ICdFbXBsb3llZSBJRCBtdXN0IGJlIGluIGZvcm1hdCBFTVAwMDAwMDAnLFxuICAgICdhbnkucmVxdWlyZWQnOiAnRW1wbG95ZWUgSUQgaXMgcmVxdWlyZWQnXG4gIH0pXG59KTtcblxuZXhwb3J0IGNvbnN0IGxpc3RFbXBsb3llZXNTY2hlbWEgPSBKb2kub2JqZWN0KHtcbiAgcGFnZTogSm9pLm51bWJlcigpLmludGVnZXIoKS5taW4oMSkuZGVmYXVsdCgxKS5tZXNzYWdlcyh7XG4gICAgJ251bWJlci5iYXNlJzogJ1BhZ2UgbXVzdCBiZSBhIG51bWJlcicsXG4gICAgJ251bWJlci5pbnRlZ2VyJzogJ1BhZ2UgbXVzdCBiZSBhbiBpbnRlZ2VyJyxcbiAgICAnbnVtYmVyLm1pbic6ICdQYWdlIG11c3QgYmUgYXQgbGVhc3QgMSdcbiAgfSksXG4gIGxpbWl0OiBKb2kubnVtYmVyKCkuaW50ZWdlcigpLm1pbigxKS5tYXgoMTAwKS5kZWZhdWx0KDIwKS5tZXNzYWdlcyh7XG4gICAgJ251bWJlci5iYXNlJzogJ0xpbWl0IG11c3QgYmUgYSBudW1iZXInLFxuICAgICdudW1iZXIuaW50ZWdlcic6ICdMaW1pdCBtdXN0IGJlIGFuIGludGVnZXInLFxuICAgICdudW1iZXIubWluJzogJ0xpbWl0IG11c3QgYmUgYXQgbGVhc3QgMScsXG4gICAgJ251bWJlci5tYXgnOiAnTGltaXQgY2Fubm90IGV4Y2VlZCAxMDAnXG4gIH0pLFxuICBkZXBhcnRtZW50X2lkOiBKb2kuc3RyaW5nKCkudXVpZCgpLm9wdGlvbmFsKCkubWVzc2FnZXMoe1xuICAgICdzdHJpbmcuZ3VpZCc6ICdEZXBhcnRtZW50IElEIG11c3QgYmUgYSB2YWxpZCBVVUlEJ1xuICB9KSxcbiAgc3RhdHVzOiBKb2kuc3RyaW5nKCkudmFsaWQoJ2FjdGl2ZScsICdpbmFjdGl2ZScsICd0ZXJtaW5hdGVkJywgJ29uX2xlYXZlJykub3B0aW9uYWwoKS5tZXNzYWdlcyh7XG4gICAgJ2FueS5vbmx5JzogJ1N0YXR1cyBtdXN0IGJlIG9uZSBvZjogYWN0aXZlLCBpbmFjdGl2ZSwgdGVybWluYXRlZCwgb25fbGVhdmUnXG4gIH0pLFxuICBzZWFyY2g6IEpvaS5zdHJpbmcoKS5taW4oMSkubWF4KDEwMCkub3B0aW9uYWwoKS5tZXNzYWdlcyh7XG4gICAgJ3N0cmluZy5taW4nOiAnU2VhcmNoIHRlcm0gbXVzdCBiZSBhdCBsZWFzdCAxIGNoYXJhY3RlcicsXG4gICAgJ3N0cmluZy5tYXgnOiAnU2VhcmNoIHRlcm0gY2Fubm90IGV4Y2VlZCAxMDAgY2hhcmFjdGVycydcbiAgfSlcbn0pOyAiXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7O0lB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

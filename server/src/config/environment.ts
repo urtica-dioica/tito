@@ -75,23 +75,62 @@ export const config = {
     file: process.env['LOG_FILE'] || './logs/app.log',
   },
 
-  // CORS Configuration
+  // CORS Configuration - Enhanced Security
   cors: {
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      const allowedOrigins = process.env['CORS_ORIGIN'] 
+      // SECURITY: Define strict allowed origins
+      const allowedOrigins = process.env['CORS_ORIGIN']
         ? process.env['CORS_ORIGIN'].split(',').map(origin => origin.trim())
         : ['http://localhost:3001', 'http://localhost:5173'];
-      
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
+
+      // SECURITY: Only allow HTTPS in production
+      if (process.env['NODE_ENV'] === 'production') {
+        // Validate that all origins use HTTPS
+        const invalidOrigins = allowedOrigins.filter(origin => !origin.startsWith('https://'));
+        if (invalidOrigins.length > 0) {
+          console.warn('SECURITY WARNING: Non-HTTPS origins found in production:', invalidOrigins);
+        }
+      }
+
+      // SECURITY: Validate origin format
+      const validateOrigin = (origin: string): boolean => {
+        try {
+          const url = new URL(origin);
+          // Only allow http/https protocols
+          return ['http:', 'https:'].includes(url.protocol);
+        } catch {
+          return false;
+        }
+      };
+
+      // SECURITY: Reject requests with no origin (prevents some CSRF attacks)
+      // Allow requests without origin in development for testing
+      if (!origin && process.env['NODE_ENV'] !== 'production') {
+        return callback(null, true);
+      }
+
+      if (!origin) {
+        return callback(new Error('Origin header required'));
+      }
+
+      // SECURITY: Validate origin format
+      if (!validateOrigin(origin)) {
+        return callback(new Error('Invalid origin format'));
+      }
+
+      // SECURITY: Check against allowed origins
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        console.warn('CORS blocked request from:', origin);
+        callback(new Error('Not allowed by CORS policy'));
       }
     },
-    credentials: process.env['CORS_CREDENTIALS'] === 'true',
+    credentials: process.env['CORS_CREDENTIALS'] === 'true' || process.env['NODE_ENV'] !== 'production',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    maxAge: 86400, // 24 hours
+    optionsSuccessStatus: 200 // Some legacy browsers choke on 204
   },
 
   // API Configuration

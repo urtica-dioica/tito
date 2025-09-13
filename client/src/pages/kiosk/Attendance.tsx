@@ -78,48 +78,59 @@ const KioskAttendance: React.FC = () => {
 
   // Initialize camera when capture step is reached
   useEffect(() => {
-    if (currentStep === 'capture') {
-      startCamera();
-    } else {
-      stopCamera();
-    }
+    let stream: MediaStream | null = null;
+
+    const initializeCamera = async () => {
+      if (currentStep === 'capture') {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' }
+          });
+          setCameraStream(stream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (error) {
+          setErrorMessage('Camera access denied. Please allow camera access to continue.');
+          setShowError(true);
+          setCurrentStep('scan');
+        }
+      }
+    };
+
+    initializeCamera();
 
     return () => {
-      stopCamera();
+      // Cleanup camera stream
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        setCameraStream(null);
+      }
     };
   }, [currentStep]);
 
   // Handle verified employee data
   useEffect(() => {
     if (verifiedEmployee && currentStep === 'verify') {
-      console.log('Setting current employee:', verifiedEmployee);
       setCurrentEmployee(verifiedEmployee);
     }
   }, [verifiedEmployee, currentStep]);
 
   // Handle next session data
   useEffect(() => {
-    console.log('Next session hook state:', {
-      nextSessionData,
-      isLoadingNextSession,
-      nextSessionError,
-      currentStep,
-      currentEmployeeId: currentEmployee?.id
-    });
-    
     if (nextSessionData && currentStep === 'verify') {
-      console.log('Setting next session data:', nextSessionData);
-      console.log('Session type from API:', nextSessionData.sessionType);
       setNextSessionType(nextSessionData.sessionType);
       setSessionDisplayInfo(nextSessionData.displayInfo);
       setCanPerformAction(nextSessionData.canPerform);
       setValidationReason(nextSessionData.reason || '');
     } else if (currentStep === 'verify' && !isLoadingNextSession) {
-      console.log('No next session data available, using fallback logic');
       // Fallback: determine session type based on current time
       const currentHour = new Date().getHours();
       let fallbackSessionType: SessionType | null = null;
-      
+
       if (currentHour >= 7 && currentHour < 12) {
         fallbackSessionType = 'morning_in';
       } else if (currentHour >= 12 && currentHour < 13) {
@@ -129,8 +140,7 @@ const KioskAttendance: React.FC = () => {
       } else if (currentHour >= 18) {
         fallbackSessionType = 'afternoon_out';
       }
-      
-      console.log('Using fallback session type:', fallbackSessionType);
+
       setNextSessionType(fallbackSessionType);
       setCanPerformAction(true);
     }
@@ -156,29 +166,6 @@ const KioskAttendance: React.FC = () => {
     }
   }, [verificationError, currentStep]);
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' }
-      });
-      setCameraStream(stream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
-      setErrorMessage('Camera access denied. Please allow camera access to continue.');
-      setShowError(true);
-      setCurrentStep('scan');
-    }
-  };
-
-  const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      setCameraStream(null);
-    }
-  };
 
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
@@ -194,14 +181,11 @@ const KioskAttendance: React.FC = () => {
         // Convert to data URL for preview
         const photoDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setCapturedPhoto(photoDataUrl);
-        
-        console.log('Photo captured, processing attendance...');
-        
+
         // Process attendance immediately after photo capture
         processAttendance('face_capture');
       }
     } else {
-      console.error('Video or canvas not available for photo capture');
       setErrorMessage('Camera not ready. Please try again.');
       setShowError(true);
     }
@@ -209,18 +193,13 @@ const KioskAttendance: React.FC = () => {
 
   const processAttendance = async (mode: string, _data?: any) => {
     if (!currentEmployee || !scannedQRCode || !nextSessionType) {
-      console.error('Missing required data for attendance:', {
-        currentEmployee: !!currentEmployee,
-        scannedQRCode: !!scannedQRCode,
-        nextSessionType: !!nextSessionType
-      });
       setErrorMessage('Missing required information. Please try again.');
       setShowError(true);
       return;
     }
-    
+
     setIsProcessing(true);
-    
+
     try {
       // Record time-based attendance using the API
       const attendanceData = {
@@ -230,17 +209,14 @@ const KioskAttendance: React.FC = () => {
         qrCodeData: scannedQRCode,
         selfieUrl: mode === 'face_capture' ? capturedPhoto || undefined : undefined,
       };
-      
-      console.log('Recording attendance with data:', attendanceData);
-      
+
       recordTimeBasedAttendanceMutation.mutate(attendanceData, {
         onSuccess: (attendanceRecord: unknown) => {
-          console.log('Attendance recorded successfully:', attendanceRecord);
           setLastAttendance(attendanceRecord as KioskAttendanceRecord);
           setCurrentStep('complete');
           setShowSuccess(true);
           setIsProcessing(false);
-          
+
           // Auto-hide success message and reset after 5 seconds
           setTimeout(() => {
             setShowSuccess(false);
@@ -248,15 +224,13 @@ const KioskAttendance: React.FC = () => {
           }, 5000);
         },
         onError: (error: any) => {
-          console.error('Error recording attendance:', error);
           setErrorMessage(error?.response?.data?.message || 'Failed to record attendance. Please try again.');
           setShowError(true);
           setIsProcessing(false);
         }
       });
-      
+
     } catch (error) {
-      console.error('Error recording attendance:', error);
       setErrorMessage('Failed to record attendance. Please try again.');
       setShowError(true);
       setIsProcessing(false);
@@ -264,7 +238,6 @@ const KioskAttendance: React.FC = () => {
   };
 
   const handleQRCodeScan = (qrData: string) => {
-    console.log('QR Code scanned:', qrData);
     setScannedQRCode(qrData);
     setCurrentStep('verify');
   };

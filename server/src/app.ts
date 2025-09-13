@@ -3,10 +3,12 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import { config } from './config/environment';
 import { testConnection } from './config/database';
 import { testRedisConnection } from './config/redis';
 import { validateEnvironment } from './config/environment';
+import { errorHandler, handleUnhandledRejections, handleUncaughtExceptions } from './middleware/errorHandler';
 
 // Import Redis middleware
 import { sessionMiddleware, trackSessionActivity } from './middleware/redis/sessionMiddleware';
@@ -36,18 +38,16 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
-// CORS configuration
-console.log('CORS Origin:', config.cors.origin);
-app.use(cors({
-  origin: config.cors.origin,
-  credentials: config.cors.credentials,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-}));
+// CORS configuration with enhanced security
+console.log('CORS configuration loaded with enhanced security');
+app.use(cors(config.cors));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Cookie parsing middleware
+app.use(cookieParser());
 
 // Request logging
 app.use(morgan('combined'));
@@ -70,57 +70,92 @@ app.use('/uploads', (req, res, next) => {
   next();
 }, express.static('uploads'));
 
-// Image API endpoint - returns image as base64 to avoid CORS issues
+// Secure Image API endpoint with path traversal protection
 app.get('/api/image/*', (req, res) => {
   const fs = require('fs');
   const path = require('path');
-  
+
   // Set CORS headers - use the same origin logic as main CORS config
   const origin = req.headers.origin;
   const allowedOrigins = ['http://localhost:3001', 'http://localhost:5173'];
-  
+
   if (origin && allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
   } else {
     res.header('Access-Control-Allow-Origin', '*');
   }
   res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
-  
+
   try {
     // Extract the file path from the request
     let filePath = req.path.replace('/api/image', '');
-    
+
     // Remove leading slash if present
     if (filePath.startsWith('/')) {
       filePath = filePath.substring(1);
     }
-    
-    // Construct the full file path
-    const fullPath = path.join(__dirname, '..', filePath);
-    
-    // Check if file exists
-    if (!fs.existsSync(fullPath)) {
+
+    // SECURITY: Prevent path traversal attacks
+    // 1. Resolve the path to get absolute path
+    const requestedPath = path.resolve(path.join(__dirname, '..', 'uploads', filePath));
+
+    // 2. Ensure the resolved path is within the uploads directory
+    const uploadsDir = path.resolve(path.join(__dirname, '..', 'uploads'));
+    if (!requestedPath.startsWith(uploadsDir)) {
+      console.warn('Path traversal attempt blocked:', { requestedPath, uploadsDir });
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // 3. Additional validation: prevent access to hidden files and directories
+    const basename = path.basename(requestedPath);
+    if (basename.startsWith('.') || basename.includes('..')) {
+      console.warn('Hidden file access attempt blocked:', basename);
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // 4. Check if file exists
+    if (!fs.existsSync(requestedPath)) {
       return res.status(404).json({ error: 'Image not found' });
     }
-    
+
+    // 5. Verify it's actually a file (not a directory)
+    const stat = fs.statSync(requestedPath);
+    if (!stat.isFile()) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // 6. Validate file size (prevent DoS with large files)
+    if (stat.size > 10 * 1024 * 1024) { // 10MB limit
+      return res.status(413).json({ error: 'File too large' });
+    }
+
     // Read file and determine MIME type
-    const fileBuffer = fs.readFileSync(fullPath);
-    const ext = path.extname(fullPath).toLowerCase();
+    const fileBuffer = fs.readFileSync(requestedPath);
+    const ext = path.extname(requestedPath).toLowerCase();
+
+    // SECURITY: Only allow specific image types
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    if (!allowedExtensions.includes(ext)) {
+      console.warn('Invalid file type access attempt:', ext);
+      return res.status(403).json({ error: 'Invalid file type' });
+    }
+
     let mimeType = 'image/jpeg'; // Default
-    
     if (ext === '.png') mimeType = 'image/png';
     else if (ext === '.gif') mimeType = 'image/gif';
     else if (ext === '.webp') mimeType = 'image/webp';
-    
+
     // Set appropriate headers and return image directly
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Length', fileBuffer.length);
     res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-    
+    res.setHeader('X-Content-Type-Options', 'nosniff'); // Prevent MIME sniffing
+
     return res.send(fileBuffer);
   } catch (error) {
+    console.error('Image serving error:', error);
     return res.status(500).json({ error: 'Failed to load image' });
   }
 });
@@ -198,6 +233,15 @@ app.get('/health', async (_req, res) => {
 // Mount API routes
 app.use('/', routes);
 
+// Debug route
+app.get('/direct-debug', (_req, res) => {
+  console.log('=== DIRECT DEBUG ENDPOINT CALLED ===');
+  res.json({
+    message: 'Direct debug endpoint reached',
+    timestamp: new Date().toISOString()
+  });
+});
+
 
 
 // 404 handler
@@ -212,8 +256,12 @@ app.use('*', (req, res) => {
   });
 });
 
-// Error handling middleware (will be implemented)
-// app.use(errorHandler);
+// Global error handling middleware
+app.use(errorHandler);
+
+// Handle unhandled promise rejections and uncaught exceptions
+handleUnhandledRejections();
+handleUncaughtExceptions();
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

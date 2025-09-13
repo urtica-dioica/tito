@@ -3,6 +3,22 @@
 import axios from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
+// API Response Types
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message: string;
+  data?: T;
+  error?: string;
+  timestamp: string;
+  requestId: string;
+}
+
+export interface ApiErrorDetails {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 // API Base URL Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
@@ -13,38 +29,17 @@ export const api: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000,
+  withCredentials: true, // Required to send HttpOnly cookies
 });
 
-// Request interceptor for authentication
+  // Request interceptor for authentication
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Always check for real JWT token first (from actual login)
-    const realToken = localStorage.getItem('accessToken');
-    
-    if (realToken && config.headers) {
-      // Use real JWT token if available (from actual login)
-      config.headers.Authorization = `Bearer ${realToken}`;
-    } else if (import.meta.env.DEV) {
-      // Fallback to development tokens only if no real token is available
-      const currentPath = window.location.pathname;
-      let devToken = 'test-token';
-      
-      // Determine department based on current path
-      if (currentPath.includes('/dept/')) {
-        // For department head routes, use a default department token
-        // This can be customized by setting a localStorage value
-        const departmentType = localStorage.getItem('devDepartmentType') || 'it';
-        devToken = `dept-head-token-${departmentType}`;
-      } else if (currentPath.includes('/hr/')) {
-        devToken = 'test-token'; // HR admin token
-      } else if (currentPath.includes('/employee/')) {
-        devToken = 'employee-token';
-      }
-      
-      if (config.headers) {
-        config.headers.Authorization = devToken;
-      }
-    }
+    // NOTE: JWT tokens are stored in HttpOnly cookies, so they are automatically sent
+    // with requests via the httpOnly cookie mechanism. We don't need to manually add
+    // Authorization headers as the browser handles this automatically for HttpOnly cookies.
+
+    // No development tokens - rely on proper HttpOnly cookie authentication
     return config;
   },
   (error) => {
@@ -58,17 +53,60 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
-    // Handle 401 errors (unauthorized) - redirect to login
+    // Handle 401 errors (unauthorized)
     if (error.response?.status === 401) {
-      // Clear auth data
+      // Prevent multiple simultaneous redirects
+      const redirectKey = 'auth_redirect_pending';
+      if (sessionStorage.getItem(redirectKey)) {
+        return Promise.reject(error);
+      }
+      sessionStorage.setItem(redirectKey, 'true');
+
+      // Check if we have a refresh token available (stored in HttpOnly cookie)
+      const hasUserCookie = document.cookie.split(';').some(c => c.trim().startsWith('user='));
+
+      if (hasUserCookie && !error.config._retry) {
+        // Try to refresh the token
+        try {
+          error.config._retry = true;
+
+          // Create a separate axios instance for refresh to avoid interceptor conflicts
+          const refreshApi = axios.create({
+            baseURL: API_BASE_URL,
+            timeout: 10000,
+            withCredentials: true,
+          });
+
+          // Attempt to refresh the token via the refresh endpoint
+          const refreshResponse = await refreshApi.post('/auth/refresh');
+
+          if (refreshResponse.data.success) {
+            // Token refreshed successfully, retry the original request
+            sessionStorage.removeItem(redirectKey);
+            return api.request(error.config);
+          }
+        } catch (refreshError) {
+          // Token refresh failed, proceed to logout
+          console.error('Token refresh failed:', refreshError);
+        }
+      }
+
+      // Clear client-side auth data (user cookie is HttpOnly so we can't clear it)
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
-      
+
       // Only redirect if we're not already on the login page
       if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+        // Use replace to avoid adding to browser history and prevent refresh loops
+        window.location.replace('/login');
       }
+
+      // Clean up the redirect flag after a short delay
+      setTimeout(() => {
+        sessionStorage.removeItem(redirectKey);
+      }, 1000);
+
       return Promise.reject(error);
     }
 
@@ -91,13 +129,13 @@ api.interceptors.response.use(
 export class ApiError extends Error {
   code: string;
   statusCode: number;
-  details?: any;
+  details?: ApiErrorDetails;
 
   constructor(
     code: string,
     message: string,
     statusCode: number,
-    details?: any
+    details?: ApiErrorDetails
   ) {
     super(message);
     this.name = 'ApiError';
@@ -109,24 +147,28 @@ export class ApiError extends Error {
 
 // Generic API methods
 export const apiMethods = {
-  get: <T>(url: string, config?: any): Promise<T> =>
+  get: <T>(url: string, config?: Record<string, unknown>): Promise<ApiResponse<T>> =>
     api.get(url, config).then(response => response.data),
-  
-  post: <T>(url: string, data?: any, config?: any): Promise<T> =>
+
+  post: <T>(url: string, data?: Record<string, unknown>, config?: Record<string, unknown>): Promise<ApiResponse<T>> =>
     api.post(url, data, config).then(response => response.data),
-  
-  put: <T>(url: string, data?: any, config?: any): Promise<T> =>
+
+  put: <T>(url: string, data?: Record<string, unknown>, config?: Record<string, unknown>): Promise<ApiResponse<T>> =>
     api.put(url, data, config).then(response => response.data),
-  
-  patch: <T>(url: string, data?: any, config?: any): Promise<T> =>
+
+  patch: <T>(url: string, data?: Record<string, unknown>, config?: Record<string, unknown>): Promise<ApiResponse<T>> =>
     api.patch(url, data, config).then(response => response.data),
-  
-  delete: <T>(url: string, config?: any): Promise<T> =>
+
+  delete: <T>(url: string, config?: Record<string, unknown>): Promise<ApiResponse<T>> =>
     api.delete(url, config).then(response => response.data),
 };
 
 // File upload helper
-export const uploadFile = async (url: string, file: File, onProgress?: (progress: number) => void): Promise<any> => {
+export const uploadFile = async <T>(
+  url: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<ApiResponse<T>> => {
   const formData = new FormData();
   formData.append('file', file);
 

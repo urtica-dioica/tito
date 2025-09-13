@@ -48,12 +48,23 @@ DECLARE
     v_user_id UUID;
 BEGIN
     -- Get user ID, handle case when setting doesn't exist
+    -- SECURITY: Use INVOKER security model (removed SECURITY DEFINER)
     BEGIN
         v_user_id := current_setting('app.current_user_id', TRUE)::UUID;
     EXCEPTION WHEN OTHERS THEN
         v_user_id := NULL;
     END;
-    
+
+    -- SECURITY: Validate that the user has permission to perform this operation
+    -- Only log if we can identify the user or if it's a system operation
+    IF v_user_id IS NOT NULL THEN
+        -- Check if user exists and is active
+        IF NOT EXISTS (SELECT 1 FROM users WHERE id = v_user_id AND is_active = true) THEN
+            RAISE EXCEPTION 'Invalid or inactive user attempting audit operation';
+        END IF;
+    END IF;
+
+    -- SECURITY: Sanitize data before logging (prevent injection)
     IF (TG_OP = 'INSERT') THEN
         v_new_data := to_jsonb(NEW);
         INSERT INTO audit_log (table_name, record_id, action, new_data, changed_by_user_id)
@@ -70,7 +81,7 @@ BEGIN
     END IF;
     RETURN NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 /* === Authentication & Users === */
 CREATE TABLE users (
@@ -399,96 +410,6 @@ CREATE TRIGGER payroll_approvals_audit_log AFTER INSERT OR UPDATE OR DELETE ON p
 
 /* === Business Logic Functions === */
 
--- Function to calculate daily total hours using mathematical formulation
-CREATE OR REPLACE FUNCTION calculate_daily_total_hours(p_attendance_record_id UUID)
-RETURNS NUMERIC AS $$
-DECLARE
-    v_morning_hours DECIMAL(4,2) := 0;
-    v_afternoon_hours DECIMAL(4,2) := 0;
-    v_total_hours DECIMAL(4,2) := 0;
-
-    -- Configuration parameters
-    v_morning_start DECIMAL(4,2) := 8.0;      -- 8:00 AM
-    v_morning_end DECIMAL(4,2) := 12.0;       -- 12:00 PM
-    v_afternoon_start DECIMAL(4,2) := 13.0;   -- 1:00 PM
-    v_afternoon_end DECIMAL(4,2) := 17.0;     -- 5:00 PM
-    v_grace_period_minutes INTEGER := 30;     -- 30 minutes
-    v_session_cap_hours DECIMAL(4,2) := 4.0;  -- 4 hours per session
-
-    -- Session times
-    v_morning_in_time DECIMAL(4,2);
-    v_morning_out_time DECIMAL(4,2);
-    v_afternoon_in_time DECIMAL(4,2);
-    v_afternoon_out_time DECIMAL(4,2);
-
-    -- Calculation variables
-    v_effective_start DECIMAL(4,2);
-    v_effective_end DECIMAL(4,2);
-    v_raw_hours DECIMAL(4,2);
-
-BEGIN
-    -- Get all session times for the attendance record
-    SELECT
-        CASE WHEN s1.clock_in IS NOT NULL THEN
-            EXTRACT(HOUR FROM s1.clock_in) + EXTRACT(MINUTE FROM s1.clock_in) / 60.0
-        ELSE NULL END,
-        CASE WHEN s2.clock_out IS NOT NULL THEN
-            EXTRACT(HOUR FROM s2.clock_out) + EXTRACT(MINUTE FROM s2.clock_out) / 60.0
-        ELSE NULL END,
-        CASE WHEN s3.clock_in IS NOT NULL THEN
-            EXTRACT(HOUR FROM s3.clock_in) + EXTRACT(MINUTE FROM s3.clock_in) / 60.0
-        ELSE NULL END,
-        CASE WHEN s4.clock_out IS NOT NULL THEN
-            EXTRACT(HOUR FROM s4.clock_out) + EXTRACT(MINUTE FROM s4.clock_out) / 60.0
-        ELSE NULL END
-    INTO v_morning_in_time, v_morning_out_time, v_afternoon_in_time, v_afternoon_out_time
-    FROM attendance_records ar
-    LEFT JOIN attendance_sessions s1 ON ar.id = s1.attendance_record_id AND s1.session_type = 'morning_in'
-    LEFT JOIN attendance_sessions s2 ON ar.id = s2.attendance_record_id AND s2.session_type = 'morning_out'
-    LEFT JOIN attendance_sessions s3 ON ar.id = s3.attendance_record_id AND s3.session_type = 'afternoon_in'
-    LEFT JOIN attendance_sessions s4 ON ar.id = s4.attendance_record_id AND s4.session_type = 'afternoon_out'
-    WHERE ar.id = p_attendance_record_id;
-
-    -- Calculate morning session hours
-    IF v_morning_in_time IS NOT NULL AND v_morning_out_time IS NOT NULL THEN
-        -- Apply grace period rule for morning start
-        IF v_morning_in_time < v_morning_start THEN
-            v_effective_start := v_morning_start;
-        ELSE
-            v_effective_start := CEIL(v_morning_in_time - (v_grace_period_minutes / 60.0));
-        END IF;
-
-        -- Ensure effective start is not after morning end
-        IF v_effective_start <= v_morning_end THEN
-            v_effective_end := LEAST(v_morning_out_time, v_morning_end);
-            v_raw_hours := GREATEST(0, v_effective_end - v_effective_start);
-            v_morning_hours := LEAST(v_session_cap_hours, v_raw_hours);
-        END IF;
-    END IF;
-
-    -- Calculate afternoon session hours
-    IF v_afternoon_in_time IS NOT NULL AND v_afternoon_out_time IS NOT NULL THEN
-        -- Apply grace period rule for afternoon start
-        IF v_afternoon_in_time < v_afternoon_start THEN
-            v_effective_start := v_afternoon_start;
-        ELSE
-            v_effective_start := CEIL(v_afternoon_in_time - (v_grace_period_minutes / 60.0));
-        END IF;
-
-        -- Ensure effective start is not after afternoon end
-        IF v_effective_start <= v_afternoon_end THEN
-            v_effective_end := LEAST(v_afternoon_out_time, v_afternoon_end);
-            v_raw_hours := GREATEST(0, v_effective_end - v_effective_start);
-            v_afternoon_hours := LEAST(v_session_cap_hours, v_raw_hours);
-        END IF;
-    END IF;
-
-    -- Calculate total hours
-    v_total_hours := v_morning_hours + v_afternoon_hours;
-
-    RETURN ROUND(v_total_hours, 2);
-END;
-$$ LANGUAGE plpgsql;
 
 /* === Views === */
 CREATE VIEW attendance_records_with_total_hours AS
@@ -845,7 +766,7 @@ BEGIN
     
     RETURN v_qr_data;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION create_employee_id_card(p_employee_id UUID, p_issued_by UUID)
 RETURNS UUID AS $$
@@ -855,21 +776,40 @@ DECLARE
     v_expiry_years INTEGER;
     v_expiry_date DATE;
     v_id_card_id UUID;
+    v_issuer_role user_role;
 BEGIN
+    -- SECURITY: Validate that the issuer has permission (HR admin only)
+    SELECT role INTO v_issuer_role
+    FROM users
+    WHERE id = p_issued_by AND is_active = true;
+
+    IF v_issuer_role IS NULL THEN
+        RAISE EXCEPTION 'Invalid or inactive issuer';
+    END IF;
+
+    IF v_issuer_role != 'hr' THEN
+        RAISE EXCEPTION 'Only HR administrators can create ID cards';
+    END IF;
+
+    -- SECURITY: Validate that employee exists and is active
+    IF NOT EXISTS (SELECT 1 FROM employees e JOIN users u ON e.user_id = u.id WHERE e.id = p_employee_id AND u.is_active = true) THEN
+        RAISE EXCEPTION 'Invalid or inactive employee';
+    END IF;
+
     SELECT CAST(setting_value AS INTEGER)
     INTO v_expiry_years
-    FROM system_settings 
+    FROM system_settings
     WHERE setting_key = 'qr_code_expiry_years';
-    
+
     v_expiry_date := CURRENT_DATE + (v_expiry_years || ' years')::INTERVAL;
     v_qr_code_data := generate_employee_qr_code(p_employee_id);
     v_qr_code_hash := encode(sha256(v_qr_code_data::bytea), 'hex');
-    
+
     INSERT INTO id_cards (
-        employee_id, 
-        qr_code_hash, 
-        qr_code_data, 
-        expiry_date, 
+        employee_id,
+        qr_code_hash,
+        qr_code_data,
+        expiry_date,
         issued_by
     ) VALUES (
         p_employee_id,
@@ -878,36 +818,11 @@ BEGIN
         v_expiry_date,
         p_issued_by
     ) RETURNING id INTO v_id_card_id;
-    
+
     RETURN v_id_card_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-/* === Selfie Cleanup Function === */
-CREATE OR REPLACE FUNCTION cleanup_expired_selfies()
-RETURNS INTEGER AS $$
-DECLARE
-    v_retention_days INTEGER;
-    v_deleted_count INTEGER := 0;
-BEGIN
-    SELECT CAST(setting_value AS INTEGER)
-    INTO v_retention_days
-    FROM system_settings 
-    WHERE setting_key = 'selfie_retention_days';
-    
-    UPDATE attendance_sessions 
-    SET 
-        selfie_image_path = NULL,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE 
-        selfie_taken_at < CURRENT_DATE - (v_retention_days || ' days')::INTERVAL
-        AND selfie_image_path IS NOT NULL;
-    
-    GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
-    
-    RETURN v_deleted_count;
-END;
 $$ LANGUAGE plpgsql;
+
 
 /* === Time-Based Attendance Validation Functions === */
 
@@ -1154,68 +1069,4 @@ CREATE TRIGGER process_overtime_request_approval_trigger
     FOR EACH ROW EXECUTE FUNCTION process_overtime_request_approval();
 
 /* === Department Management Functions === */
-CREATE OR REPLACE FUNCTION get_department_employees(p_department_head_user_id UUID)
-RETURNS TABLE (
-    employee_id UUID,
-    user_id UUID,
-    employee_code VARCHAR(20),
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    "position" VARCHAR(100),
-    employment_type employment_type_enum,
-    hire_date DATE,
-    base_salary DECIMAL(10,2),
-    status employee_status_enum
-) AS $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM users 
-        WHERE id = p_department_head_user_id AND role = 'department_head'
-    ) THEN
-        RAISE EXCEPTION 'User is not a department head';
-    END IF;
-    
-    RETURN QUERY
-    SELECT 
-        e.id as employee_id,
-        e.user_id,
-        e.employee_id as employee_code,
-        u.first_name,
-        u.last_name,
-        e."position",
-        e.employment_type,
-        e.hire_date,
-        e.base_salary,
-        e.status
-    FROM employees e
-    JOIN users u ON e.user_id = u.id
-    JOIN departments d ON e.department_id = d.id
-    WHERE d.department_head_user_id = p_department_head_user_id
-    AND e.status = 'active'
-    ORDER BY u.last_name, u.first_name;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION get_department_head_department(p_department_head_user_id UUID)
-RETURNS TABLE (
-    department_id UUID,
-    department_name VARCHAR(100),
-    department_description TEXT
-) AS $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM users 
-        WHERE id = p_department_head_user_id AND role = 'department_head'
-    ) THEN
-        RAISE EXCEPTION 'User is not a department head';
-    END IF;
-    
-    RETURN QUERY
-    SELECT 
-        d.id as department_id,
-        d.name as department_name,
-        d.description as department_description
-    FROM departments d
-    WHERE d.department_head_user_id = p_department_head_user_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;

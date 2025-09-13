@@ -1,0 +1,1710 @@
+---
+description: TITO HR Management System - Comprehensive Business Rules and Data Processing Requirements
+globs:
+alwaysApply: true
+---
+
+# TITO HR Management System - Business Rules & Data Processing Requirements
+
+## 🎯 **System Overview**
+
+The TITO HR Management System is a comprehensive human resources management platform that handles employee lifecycle management, attendance tracking, leave management, payroll processing, and organizational structure management. This document defines the complete set of business rules, data validation requirements, and processing logic across all system modules.
+
+---
+
+## 📊 **Core Business Rules**
+
+### **1. User Management & Authentication**
+
+#### **User Roles & Permissions**
+```typescript
+// Role Definitions
+enum UserRole {
+  HR = 'hr',                    // Full system access
+  DEPARTMENT_HEAD = 'department_head',  // Department-specific access
+  EMPLOYEE = 'employee'         // Personal access only
+}
+
+// Permission Matrix
+const ROLE_PERMISSIONS = {
+  hr: {
+    // Full CRUD access to all entities
+    canCreateUsers: true,
+    canUpdateUsers: true,
+    canDeleteUsers: true,
+    canViewAllUsers: true,
+    canCreateEmployees: true,
+    canUpdateEmployees: true,
+    canDeleteEmployees: true,
+    canViewAllEmployees: true,
+    canCreateDepartments: true,
+    canUpdateDepartments: true,
+    canDeleteDepartments: true,
+    canViewAllDepartments: true,
+    canAssignDepartmentHeads: true,
+    canCreatePayrollPeriods: true,
+    canUpdatePayrollPeriods: true,
+    canDeletePayrollPeriods: true,
+    canViewAllPayrolls: true,
+    canApprovePayrolls: true,
+    canUpdateSystemSettings: true,
+    canViewSystemSettings: true,
+    canGenerateReports: true,
+    canGenerateIDCards: true,
+    canViewAllIDCards: true,
+    canUpdateIDCards: true,
+    canViewAllRequests: true,
+    cannotApproveRequests: true, // HR cannot approve time corrections or overtime
+    canViewAuditLogs: true,
+    canExportData: true
+  },
+  department_head: {
+    // Limited to department scope
+    canViewDepartmentEmployees: true,
+    canViewDepartmentPayrolls: true,
+    canApproveTimeCorrections: true,
+    canApproveOvertimeRequests: true,
+    canApproveLeaveRequests: true,
+    canViewDepartmentReports: true,
+    canViewDepartmentAuditLogs: true,
+    canExportData: false
+  },
+  employee: {
+    // Personal access only
+    canUpdateOwnProfile: true,
+    canViewOwnProfile: true,
+    canViewOwnDepartment: true,
+    canViewOwnPayrolls: true,
+    canViewOwnIDCard: true,
+    canViewOwnRequests: true,
+    canSubmitTimeCorrections: true,
+    canSubmitOvertimeRequests: true,
+    canSubmitLeaveRequests: true,
+    canClockIn: true,
+    canClockOut: true,
+    canViewOwnAttendance: true,
+    canSubmitSelfie: true,
+    canViewOwnAuditLogs: true
+  }
+}
+```
+
+#### **Authentication Rules**
+- **JWT Token Expiry**: 24 hours for access tokens, 7 days for refresh tokens
+- **Password Requirements**: Minimum 8 characters, must contain letters and numbers
+- **Account Lockout**: 5 failed login attempts within 15 minutes
+- **Session Management**: Redis-based session storage with automatic cleanup
+- **Multi-factor Authentication**: Optional for HR and Department Head roles
+
+---
+
+### **2. Employee Management**
+
+#### **Employee Data Validation**
+```typescript
+// Employee Creation Rules
+const EMPLOYEE_VALIDATION_RULES = {
+  user_id: {
+    type: 'UUID',
+    required: true,
+    format: 'valid UUID'
+  },
+  employee_id: {
+    type: 'string',
+    required: true,
+    format: 'EMP\\d{6}',  // Format: EMP-YYYY-NNNNNNN
+    unique: true
+  },
+  department_id: {
+    type: 'UUID',
+    required: false,
+    nullable: true,
+    foreign_key: 'departments.id'
+  },
+  position: {
+    type: 'string',
+    required: true,
+    min_length: 2,
+    max_length: 100
+  },
+  employment_type: {
+    type: 'enum',
+    required: true,
+    values: ['regular', 'contractual', 'jo']
+  },
+  hire_date: {
+    type: 'date',
+    required: true,
+    max_date: 'now',  // Cannot be in the future
+    format: 'YYYY-MM-DD'
+  },
+  base_salary: {
+    type: 'decimal',
+    required: true,
+    min_value: 10000,
+    max_value: 1000000,
+    precision: 10,
+    scale: 2
+  },
+  status: {
+    type: 'enum',
+    required: true,
+    default: 'active',
+    values: ['active', 'inactive', 'terminated', 'on_leave']
+  }
+}
+```
+
+#### **Employee Lifecycle Rules**
+- **Registration**: Complete employee onboarding with personal and professional details
+- **Status Transitions**: active → inactive → terminated (with audit trail)
+- **Department Assignment**: Must be assigned to valid department
+- **ID Card Generation**: Automatic QR code generation upon employee creation
+- **Document Management**: Store and manage employee documents with version control
+
+---
+
+### **3. Attendance Management**
+
+#### **Mathematical Formulation (Precise Attendance System)**
+```typescript
+// Core Attendance Rules
+const ATTENDANCE_RULES = {
+  // Session Definitions
+  morning_session: {
+    start_time: '08:00',
+    end_time: '12:00',
+    max_hours: 4,
+    grace_period: 30  // minutes
+  },
+  afternoon_session: {
+    start_time: '13:00',
+    end_time: '17:00',
+    max_hours: 4,
+    grace_period: 30  // minutes
+  },
+  break_time: {
+    start: '12:01',
+    end: '12:59',
+    duration: 1  // hour
+  },
+  
+  // Calculation Formulas
+  formulas: {
+    effective_start: 'CEIL(ClockIn - GracePeriod)',
+    morning_hours: 'MIN(4, MAX(0, MIN(ClockOut, 12:00) - EffectiveStart))',
+    afternoon_hours: 'MIN(4, MAX(0, MIN(ClockOut, 17:00) - 13:00))',
+    total_hours: 'MorningHours + AfternoonHours'
+  }
+}
+
+// Example Calculation
+// Input: Clock-in 8:31 AM, Clock-out 6:00 PM
+// Morning Session: 8:31 AM → 12:00 PM = 3 hours (with grace period)
+// Afternoon Session: 1:00 PM → 6:00 PM = 4 hours (capped at 4)
+// Total: 3 + 4 = 7 hours
+```
+
+#### **Attendance Status Rules**
+```typescript
+const ATTENDANCE_STATUS_RULES = {
+  present: {
+    condition: 'total_hours >= 8',
+    description: 'Full day attendance'
+  },
+  late: {
+    condition: 'total_hours >= 4 AND total_hours < 8',
+    description: 'Partial day attendance'
+  },
+  partial: {
+    condition: 'total_hours > 0 AND total_hours < 4',
+    description: 'Minimal attendance'
+  },
+  absent: {
+    condition: 'total_hours = 0',
+    description: 'No attendance recorded'
+  }
+}
+```
+
+#### **Selfie Verification Rules**
+- **Required**: Selfie capture for all clock-in/out events
+- **Storage**: Secure file storage with automatic cleanup after 90 days
+- **Validation**: Image format validation (JPEG, PNG)
+- **Size Limit**: Maximum 5MB per image
+- **Retention**: 90 days for audit purposes
+
+---
+
+### **4. Leave Management**
+
+#### **Leave Types & Accrual Rules**
+```typescript
+const LEAVE_RULES = {
+  leave_types: {
+    vacation: {
+      accrual_rate: 1.25,  // days per month
+      max_balance: 15,     // days
+      carry_over: true,
+      paid: true
+    },
+    sick: {
+      accrual_rate: 1.0,   // days per month
+      max_balance: 10,     // days
+      carry_over: false,
+      paid: true
+    },
+    maternity: {
+      accrual_rate: 0,     // special allocation
+      max_balance: 105,    // days (Philippines law)
+      carry_over: false,
+      paid: true
+    },
+    other: {
+      accrual_rate: 0,     // manual allocation
+      max_balance: 999,    // unlimited
+      carry_over: false,
+      paid: false
+    }
+  },
+  
+  // Overtime to Leave Conversion
+  overtime_conversion: {
+    rate: 1.5,  // 1.5 hours overtime = 1 hour leave
+    max_conversion: 8,  // hours per month
+    leave_type: 'vacation'
+  }
+}
+```
+
+#### **Leave Request Workflow**
+1. **Submission**: Employee submits leave request with dates and type
+2. **Validation**: System validates leave balance and date conflicts
+3. **Approval**: Department Head reviews and approves/rejects
+4. **Balance Update**: Automatic leave balance deduction upon approval
+5. **Calendar Update**: Leave calendar updated with approved dates
+
+---
+
+### **5. Payroll Management**
+
+#### **Payroll Calculation Formulas**
+```typescript
+// Payroll Computation Rules (from PAYROLL-COMPUTATION.md)
+const PAYROLL_RULES = {
+  // Variables
+  variables: {
+    H_total_period: 'Total worked hours in period',
+    H_monthly_working: 'N_working_days × 8',
+    S_base: 'Base salary',
+    L_days: 'Leave days',
+    P_benefit: 'Benefit pay',
+    D: 'Deductions'
+  },
+  
+  // Calculation Formulas
+  formulas: {
+    gross_pay: '(H_total_period / H_monthly_working) × S_base',
+    leave_pay: '(L_days × 8 / H_monthly_working) × S_base',
+    net_pay: 'P_gross + P_leave + P_benefit - D'
+  },
+  
+  // Dynamic Working Days
+  working_days_calculation: {
+    method: 'calendar_based',
+    exclude_weekends: true,
+    exclude_holidays: true,
+    range: '21-23 days per month'
+  }
+}
+```
+
+#### **Deduction & Benefit Rules**
+```typescript
+const DEDUCTION_BENEFIT_RULES = {
+  deductions: {
+    types: ['SSS', 'PhilHealth', 'Pag-IBIG', 'Tax', 'Loan', 'Other'],
+    calculation: {
+      SSS: 'percentage_based',
+      PhilHealth: 'percentage_based',
+      Pag-IBIG: 'percentage_based',
+      Tax: 'bracket_based',
+      Loan: 'fixed_amount',
+      Other: 'configurable'
+    },
+    application_order: ['SSS', 'PhilHealth', 'Pag-IBIG', 'Tax', 'Loan', 'Other']
+  },
+  
+  benefits: {
+    types: ['Transportation', 'Meal', 'Communication', 'Other'],
+    calculation: 'fixed_amount',
+    application: 'additive'
+  }
+}
+```
+
+#### **Payroll Period Rules**
+- **Frequency**: Monthly payroll periods
+- **Processing**: Automated calculation based on attendance data
+- **Approval**: Multi-level approval workflow (HR → Finance → Management)
+- **Status Tracking**: draft → processed → approved → paid
+- **Audit Trail**: Complete audit log for all payroll changes
+
+---
+
+### **6. Department Management**
+
+#### **Department Structure Rules**
+```typescript
+const DEPARTMENT_RULES = {
+  hierarchy: {
+    max_depth: 5,  // Maximum department nesting levels
+    circular_reference: false,  // Prevent circular dependencies
+    orphan_prevention: true  // Prevent orphaned departments
+  },
+  
+  department_head: {
+    assignment: 'one_per_department',
+    requirements: 'must_be_employee',
+    permissions: 'department_scope_only',
+    approval_authority: 'time_corrections, overtime, leaves'
+  },
+  
+  employee_assignment: {
+    single_department: true,  // Employee can only belong to one department
+    transfer_workflow: 'approval_required',
+    history_tracking: true
+  }
+}
+```
+
+---
+
+### **7. Request Management**
+
+#### **Time Correction Rules**
+```typescript
+const TIME_CORRECTION_RULES = {
+  submission: {
+    deadline: '7_days_after_date',
+    max_corrections_per_month: 5,
+    required_fields: ['date', 'session_type', 'requested_time', 'reason']
+  },
+  
+  approval: {
+    approver: 'department_head',
+    response_time: '3_business_days',
+    auto_approval: false
+  },
+  
+  application: {
+    recalculate_attendance: true,
+    update_payroll: true,
+    audit_trail: true
+  }
+}
+```
+
+#### **Overtime Request Rules**
+```typescript
+const OVERTIME_RULES = {
+  submission: {
+    advance_notice: '24_hours',
+    max_daily_overtime: 4,  // hours
+    max_weekly_overtime: 20,  // hours
+    required_fields: ['date', 'start_time', 'end_time', 'reason']
+  },
+  
+  approval: {
+    approver: 'department_head',
+    response_time: '2_business_days',
+    overtime_rate: 1.25  // 125% of regular rate
+  }
+}
+```
+
+---
+
+### **8. System Settings & Configuration**
+
+#### **Configurable Parameters**
+```typescript
+const SYSTEM_SETTINGS = {
+  attendance: {
+    grace_period: 30,  // minutes
+    session_caps: {
+      morning: 4,  // hours
+      afternoon: 4  // hours
+    },
+    break_time: {
+      start: '12:01',
+      end: '12:59'
+    }
+  },
+  
+  payroll: {
+    expected_monthly_hours: 176,  // 22 days × 8 hours
+    overtime_to_leave_rate: 1.5,
+    tax_brackets: 'philippine_standard',
+    deduction_percentages: {
+      SSS: 11,
+      PhilHealth: 3,
+      Pag-IBIG: 2
+    }
+  },
+  
+  leave: {
+    accrual_rates: {
+      vacation: 1.25,
+      sick: 1.0
+    },
+    max_balances: {
+      vacation: 15,
+      sick: 10
+    }
+  }
+}
+```
+
+---
+
+### **9. Data Validation & Integrity**
+
+#### **Database Constraints**
+```sql
+-- Employee ID Format Validation
+CHECK (employee_id ~ '^EMP\\d{6}$')
+
+-- Salary Range Validation
+CHECK (base_salary >= 0 AND base_salary <= 1000000)
+
+-- Date Validation
+CHECK (hire_date <= CURRENT_DATE)
+
+-- Status Enum Validation
+CHECK (status IN ('active', 'inactive', 'terminated', 'on_leave'))
+
+-- Employment Type Validation
+CHECK (employment_type IN ('regular', 'contractual', 'jo'))
+```
+
+#### **API Validation Rules**
+```typescript
+const API_VALIDATION = {
+  request_size: {
+    max_body_size: '10MB',
+    max_file_size: '5MB',
+    max_array_length: 1000
+  },
+  
+  rate_limiting: {
+    general_endpoints: '100 requests per 15 minutes',
+    auth_endpoints: '5 requests per 15 minutes',
+    user_specific: '1000 requests per hour',
+    department_specific: '5000 requests per hour'
+  },
+  
+  error_handling: {
+    format: 'standardized_error_response',
+    codes: 'categorized_error_codes',
+    logging: 'complete_audit_trail'
+  }
+}
+```
+
+---
+
+### **10. Security & Compliance**
+
+#### **Data Protection Rules**
+- **Encryption**: All sensitive data encrypted at rest and in transit
+- **Access Control**: Role-based access control (RBAC) with principle of least privilege
+- **Audit Logging**: Complete audit trail for all system activities
+- **Data Retention**: Configurable retention policies for different data types
+- **Backup**: Automated daily backups with 30-day retention
+- **GDPR Compliance**: Data subject rights implementation
+
+#### **Session Management**
+- **JWT Tokens**: Secure token-based authentication
+- **Session Storage**: Redis-based session management
+- **Token Refresh**: Automatic token refresh mechanism
+- **Logout**: Complete session invalidation on logout
+
+---
+
+### **11. Performance & Scalability**
+
+#### **Performance Requirements**
+- **Response Time**: < 2 seconds for all user interactions
+- **Concurrent Users**: Support for 100+ concurrent users
+- **Data Processing**: Handle 10,000+ employee records
+- **Report Generation**: Generate reports within 30 seconds
+- **System Availability**: 99.9% uptime
+
+#### **Scalability Rules**
+- **Horizontal Scaling**: Support for load balancing
+- **Database Optimization**: Efficient query optimization with proper indexing
+- **Caching Strategy**: Redis-based caching for frequently accessed data
+- **File Storage**: Scalable file storage for documents and images
+
+---
+
+### **12. Integration & API Rules**
+
+#### **API Consistency Rules**
+```typescript
+// Standardized Payroll Data Interface
+interface StandardPayrollData {
+  // Core identifiers
+  id: string;
+  payrollPeriodId: string;
+  periodName?: string;
+  
+  // Employee information
+  employeeId: string;
+  employeeName: string;
+  position: string;
+  departmentId?: string;
+  departmentName?: string;
+  
+  // Salary and hours
+  baseSalary: number;
+  hourlyRate: number;
+  totalWorkedHours: number;
+  totalRegularHours: number;
+  totalOvertimeHours: number;
+  totalLateHours: number;
+  paidLeaveHours: number;
+  
+  // Payroll calculations
+  grossPay: number;
+  totalDeductions: number;
+  totalBenefits: number;
+  lateDeductions: number;
+  netPay: number;
+  
+  // Status and metadata
+  status: 'draft' | 'processed' | 'paid';
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+#### **Data Transformation Rules**
+- **Field Naming**: Consistent camelCase naming across all modules
+- **Data Types**: Standardized data types and formats
+- **Validation**: Comprehensive data validation before processing
+- **Error Handling**: Graceful error handling with detailed error messages
+
+---
+
+## 🔍 **Validation & Testing Rules**
+
+### **Data Validation Checklist**
+1. **Required Fields**: All required fields must be present and non-empty
+2. **Data Types**: All fields must match expected data types
+3. **Format Validation**: Email, phone, date formats must be valid
+4. **Range Validation**: Numeric values must be within acceptable ranges
+5. **Business Logic**: All business rules must be enforced
+6. **Referential Integrity**: All foreign key relationships must be valid
+7. **Uniqueness**: All unique constraints must be respected
+
+### **Testing Requirements**
+- **Unit Tests**: 90% code coverage minimum
+- **Integration Tests**: All API endpoints must be tested
+- **End-to-End Tests**: Complete user workflows must be tested
+- **Performance Tests**: Load testing for concurrent users
+- **Security Tests**: Authentication and authorization testing
+
+---
+
+## 📋 **Implementation Guidelines**
+
+### **Code Quality Standards**
+- **TypeScript**: Strict type checking enabled
+- **ESLint**: Code quality and style enforcement
+- **Prettier**: Consistent code formatting
+- **Jest**: Comprehensive testing framework
+- **Documentation**: JSDoc comments for all public methods
+
+### **Database Design Principles**
+- **Normalization**: Third normal form (3NF) compliance
+- **Indexing**: Proper indexing for query optimization
+- **Constraints**: Comprehensive constraint enforcement
+- **Triggers**: Automated data processing triggers
+- **Functions**: Reusable database functions for complex calculations
+
+### **API Design Principles**
+- **RESTful**: RESTful API design patterns
+- **Versioning**: API versioning for backward compatibility
+- **Documentation**: Comprehensive API documentation
+- **Error Handling**: Consistent error response format
+- **Rate Limiting**: Appropriate rate limiting implementation
+
+---
+
+## 🚨 **Critical Business Rules**
+
+### **Non-Negotiable Rules**
+1. **Data Integrity**: No data corruption or loss under any circumstances
+2. **Security**: All sensitive data must be encrypted and access-controlled
+3. **Audit Trail**: Complete audit trail for all system activities
+4. **Compliance**: Full compliance with Philippine labor laws and regulations
+5. **Performance**: System must meet all performance requirements
+6. **Availability**: 99.9% system availability requirement
+
+### **Business Continuity Rules**
+- **Backup**: Daily automated backups with 30-day retention
+- **Disaster Recovery**: Complete disaster recovery procedures
+- **Data Migration**: Safe data migration procedures
+- **System Updates**: Zero-downtime deployment procedures
+- **Monitoring**: Comprehensive system monitoring and alerting
+
+---
+
+## 📚 **Documentation Structure & Standards**
+
+### **Documentation Folder Structure**
+```
+docs/
+├── overview/                    # System overview and specifications
+│   ├── PRECISE_ATTENDANCE_SYSTEM.md
+│   ├── PAYROLL-COMPUTATION.md
+│   ├── ATTENDANCE_HOURS_CALCULATION.md
+│   ├── PAYROLL_ATTENDANCE_INTEGRATION.md
+│   ├── attendance-management.md
+│   ├── user-guides/
+│   ├── admin-guides/
+│   └── developer-guides/
+├── api/                        # API documentation
+│   ├── api-reference.md
+│   ├── api-overview.md
+│   ├── error-handling.md
+│   ├── integration.md
+│   ├── user-guides/
+│   ├── admin-guides/
+│   └── developer-guides/
+├── guides/                     # User and developer guides
+│   ├── system-overview.md
+│   ├── frontend-specification.md
+│   ├── implementation-guide.md
+│   ├── design-patterns.md
+│   ├── user-guides/
+│   │   └── hr-admin-guide.md
+│   ├── admin-guides/
+│   │   ├── DATABASE_ATTENDANCE_BACKUP.md
+│   │   ├── EMPLOYEE_BULK_UPLOAD_GUIDE.md
+│   │   ├── employee_bulk_template.csv
+│   │   └── employee_bulk_template_detailed.csv
+│   └── developer-guides/
+├── architecture/               # System architecture
+│   └── system-architecture.md
+├── database/                   # Database documentation
+│   └── database-schema.md
+├── deployment/                 # Deployment documentation
+│   ├── installation.md
+│   ├── deployment-guide.md
+│   ├── production.md
+│   ├── user-guides/
+│   ├── admin-guides/
+│   └── developer-guides/
+├── development/               # Development documentation
+│   ├── contribution-guidelines.md
+│   ├── development-roadmap.md
+│   ├── development-setup.md
+│   ├── testing-guide.md
+│   ├── environment-configuration.md
+│   ├── implementation-status.md
+│   ├── DOCUMENTATION_STRUCTURE.md
+│   ├── FRONTEND_IMPLEMENTATION_CHECKLIST.md
+│   ├── FRONTEND_IMPLEMENTATION_ROADMAP.md
+│   ├── API_CONSISTENCY_FIXES_SUMMARY.md
+│   ├── DOCUMENTATION_STRUCTURE_IMPLEMENTATION.md
+│   ├── PROJECT_STRUCTURE.md
+│   ├── ROOT_FOLDER_CLEANUP_SUMMARY.md
+│   ├── SYSTEM_RULES_CHANGELOG.md
+│   ├── SYSTEM_RULES_VALIDATION_PLAN.md
+│   ├── README.md
+│   ├── api/
+│   │   ├── error-handling.md
+│   │   └── integration.md
+│   ├── user-guides/
+│   ├── admin-guides/
+│   └── developer-guides/
+├── CHANGELOG.md
+├── DOCUMENTATION_IMPROVEMENTS_SUMMARY.md
+├── DOCUMENTATION_STRUCTURE_OVERVIEW.md
+└── README.md                   # Documentation index
+```
+
+### **Documentation Standards**
+```typescript
+// Documentation Requirements
+const DOCUMENTATION_STANDARDS = {
+  format: 'Markdown',
+  structure: 'Hierarchical with clear navigation',
+  content: {
+    overview: 'System purpose and capabilities',
+    api: 'Complete API reference with examples',
+    guides: 'Step-by-step user instructions',
+    deployment: 'Installation and configuration',
+    development: 'Developer resources and guidelines'
+  },
+  quality: {
+    accuracy: '100% accurate and up-to-date',
+    completeness: 'All features documented',
+    clarity: 'Clear and understandable language',
+    examples: 'Practical examples provided',
+    maintenance: 'Regular updates and reviews'
+  }
+}
+```
+
+### **Documentation Maintenance Rules**
+- **Update Frequency**: Documentation updated with every code change
+- **Version Control**: All documentation versioned with code
+- **Review Process**: Technical review required for all documentation
+- **User Testing**: User guides tested with actual users
+- **Accessibility**: Documentation accessible to all user roles
+
+---
+
+## 🧪 **Testing Structure & Standards**
+
+### **Test Folder Structure**
+```
+tests/
+├── unit/                       # Unit tests
+│   ├── services/
+│   │   ├── attendance/
+│   │   ├── payroll/
+│   │   ├── leave/
+│   │   └── employee/
+│   ├── models/
+│   ├── utils/
+│   │   └── sample.test.ts
+│   ├── middleware/
+│   └── attendanceHoursCalculator.test.ts
+├── integration/               # Integration tests
+│   ├── api/
+│   ├── auth/
+│   │   └── auth.test.ts
+│   ├── database/
+│   ├── hr/
+│   │   └── employee.test.ts
+│   ├── services/
+│   └── payrollApiConsistency.test.ts
+├── e2e/                      # End-to-end tests
+│   ├── workflows/
+│   │   └── employee-lifecycle.test.ts
+│   ├── user-roles/
+│   ├── kiosk/
+│   └── api/
+│       └── comprehensive-system.test.js
+├── performance/              # Performance tests
+│   ├── load/
+│   ├── stress/
+│   └── scalability/
+├── security/                 # Security tests
+│   ├── authentication/
+│   ├── authorization/
+│   └── data-protection/
+├── fixtures/                 # Test data and fixtures
+├── helpers/                  # Test utilities and helpers
+├── config/                   # Test configuration
+└── README.md                 # Testing documentation
+```
+
+### **Testing Standards & Requirements**
+```typescript
+// Testing Requirements
+const TESTING_STANDARDS = {
+  coverage: {
+    unit: 90,           // Minimum 90% unit test coverage
+    integration: 80,    // Minimum 80% integration test coverage
+    e2e: 70,           // Minimum 70% end-to-end test coverage
+    overall: 85        // Minimum 85% overall test coverage
+  },
+  types: {
+    unit: 'Individual component testing',
+    integration: 'Component interaction testing',
+    e2e: 'Complete workflow testing',
+    performance: 'Load and stress testing',
+    security: 'Security vulnerability testing'
+  },
+  quality: {
+    reliability: 'Tests must be reliable and repeatable',
+    maintainability: 'Tests must be easy to maintain',
+    clarity: 'Test names and descriptions must be clear',
+    speed: 'Tests must execute within reasonable time',
+    isolation: 'Tests must be independent and isolated'
+  }
+}
+```
+
+### **Test Data Management Rules**
+```typescript
+// Test Data Rules
+const TEST_DATA_RULES = {
+  fixtures: {
+    location: 'tests/fixtures/',
+    format: 'JSON',
+    naming: 'descriptive and consistent',
+    versioning: 'versioned with test code'
+  },
+  generation: {
+    realistic: 'Test data must be realistic',
+    diverse: 'Cover edge cases and boundary conditions',
+    isolated: 'Each test uses independent data',
+    cleanup: 'Test data cleaned up after each test'
+  },
+  security: {
+    sensitive: 'No real sensitive data in test fixtures',
+    anonymized: 'Personal data must be anonymized',
+    encrypted: 'Test data encrypted if containing sensitive info',
+    access: 'Test data access restricted to test environment'
+  }
+}
+```
+
+### **Test Execution Rules**
+```typescript
+// Test Execution Requirements
+const TEST_EXECUTION_RULES = {
+  environments: {
+    development: 'All tests run on every code change',
+    staging: 'Full test suite run before production deployment',
+    production: 'Smoke tests run after deployment'
+  },
+  triggers: {
+    codeChange: 'Unit and integration tests',
+    pullRequest: 'Full test suite including e2e',
+    deployment: 'Complete test suite including performance',
+    scheduled: 'Daily security and performance tests'
+  },
+  reporting: {
+    coverage: 'Test coverage reports generated',
+    results: 'Test results published and accessible',
+    failures: 'Test failures immediately reported',
+    trends: 'Test performance trends tracked'
+  }
+}
+```
+
+---
+
+## 🏗️ **Project Structure Standards**
+
+### **Frontend Structure (Client)**
+```
+client/
+├── public/                    # Static assets
+│   └── vite.svg
+├── src/
+│   ├── components/           # Reusable UI components
+│   │   ├── features/        # Feature-specific components
+│   │   ├── hr/              # HR-specific components
+│   │   ├── kiosk/           # Kiosk components
+│   │   ├── layout/          # Layout components
+│   │   ├── shared/          # Shared components
+│   │   └── ProtectedRoute.tsx
+│   ├── pages/               # Page components
+│   │   ├── hr/              # HR-specific pages
+│   │   ├── dept/            # Department head pages
+│   │   ├── employee/        # Employee pages
+│   │   ├── kiosk/           # Kiosk pages
+│   │   ├── debug/           # Debug pages
+│   │   ├── Attendance.tsx
+│   │   ├── Dashboard.tsx
+│   │   ├── Departments.tsx
+│   │   ├── Employees.tsx
+│   │   ├── Leaves.tsx
+│   │   ├── Login.tsx
+│   │   ├── Payroll.tsx
+│   │   └── SetupPassword.tsx
+│   ├── services/            # API services
+│   │   ├── attendanceService.ts
+│   │   ├── authService.ts
+│   │   ├── benefitTypeService.ts
+│   │   ├── deductionTypeService.ts
+│   │   ├── departmentHeadService.ts
+│   │   ├── departmentService.ts
+│   │   ├── employeeBenefitService.ts
+│   │   ├── employeeDeductionBalanceService.ts
+│   │   ├── employeeService.ts
+│   │   ├── hrEmployeeService.ts
+│   │   ├── idCardService.ts
+│   │   ├── kioskService.ts
+│   │   ├── leaveBalanceService.ts
+│   │   ├── payrollService.ts
+│   │   ├── requestService.ts
+│   │   ├── settingsService.ts
+│   │   └── userService.ts
+│   ├── hooks/               # Custom React hooks
+│   │   ├── useAttendance.ts
+│   │   ├── useAuthWithTimeout.ts
+│   │   ├── useBenefitTypes.ts
+│   │   ├── useDeductionTypes.ts
+│   │   ├── useDepartmentHead.ts
+│   │   ├── useDepartments.ts
+│   │   ├── useEmployeeBenefits.ts
+│   │   ├── useEmployeeDeductionBalances.ts
+│   │   ├── useEmployees.ts
+│   │   ├── useEmployee.ts
+│   │   ├── useIdCards.ts
+│   │   ├── useKiosk.ts
+│   │   ├── useLeaveBalance.ts
+│   │   ├── usePayroll.ts
+│   │   ├── useRequests.ts
+│   │   ├── useSettings.ts
+│   │   └── useUsers.ts
+│   ├── contexts/            # React contexts
+│   │   └── AuthContext.tsx
+│   ├── lib/                 # Library files
+│   │   └── api.ts
+│   ├── utils/               # Utility functions
+│   │   └── cn.ts
+│   ├── types/               # TypeScript type definitions
+│   │   └── index.ts
+│   ├── constants/           # Application constants
+│   ├── assets/              # Static assets
+│   ├── App.tsx
+│   ├── main.tsx
+│   ├── index.css
+│   └── vite-env.d.ts
+├── eslint.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── vite.config.ts
+├── tsconfig.json
+├── tsconfig.app.json
+├── tsconfig.node.json
+├── package.json
+├── package-lock.json
+├── index.html
+└── README.md
+```
+
+### **Backend Structure (Server)**
+```
+server/
+├── src/
+│   ├── controllers/         # Request handlers
+│   │   ├── attendance/
+│   │   ├── audit/
+│   │   ├── auth/
+│   │   ├── department-head/
+│   │   ├── employee/
+│   │   ├── hr/
+│   │   ├── kiosk/
+│   │   ├── leave/
+│   │   ├── payroll/
+│   │   ├── redis/
+│   │   └── scheduler/
+│   ├── services/           # Business logic
+│   │   ├── attendance/
+│   │   ├── audit/
+│   │   ├── auth/
+│   │   ├── department-head/
+│   │   ├── email/
+│   │   ├── employee/
+│   │   ├── hr/
+│   │   ├── kiosk/
+│   │   ├── leave/
+│   │   ├── payroll/
+│   │   ├── redis/
+│   │   └── scheduler/
+│   ├── models/             # Data models
+│   │   ├── attendance/
+│   │   ├── audit/
+│   │   ├── auth/
+│   │   ├── hr/
+│   │   ├── leave/
+│   │   └── payroll/
+│   ├── routes/             # API routes
+│   │   ├── attendance/
+│   │   ├── audit/
+│   │   ├── auth/
+│   │   ├── department-head/
+│   │   ├── employee/
+│   │   ├── hr/
+│   │   ├── kiosk/
+│   │   ├── leave/
+│   │   ├── payroll/
+│   │   ├── redis/
+│   │   ├── scheduler/
+│   │   └── index.ts
+│   ├── middleware/         # Express middleware
+│   │   ├── audit/
+│   │   ├── auth/
+│   │   ├── redis/
+│   │   ├── security/
+│   │   ├── validation/
+│   │   └── errorHandler.ts
+│   ├── utils/              # Utility functions
+│   │   ├── attendanceHoursCalculator.ts
+│   │   ├── payrollDataTransformer.ts
+│   │   ├── imageProcessor.ts
+│   │   ├── logger.ts
+│   │   ├── requestId.ts
+│   │   ├── timeValidation.ts
+│   │   ├── constants/
+│   │   ├── database/
+│   │   ├── types/
+│   │   └── validation/
+│   ├── config/             # Configuration files
+│   │   ├── attendanceConfig.ts
+│   │   ├── csvUpload.ts
+│   │   ├── database.ts
+│   │   ├── environment.ts
+│   │   ├── jwt.ts
+│   │   ├── leavePolicies.ts
+│   │   ├── multer.ts
+│   │   └── redis.ts
+│   ├── types/              # TypeScript type definitions
+│   │   ├── express.d.ts
+│   │   └── payroll.ts
+│   └── app.ts
+├── tests/                  # Backend tests
+│   ├── unit/              # Unit tests
+│   │   └── services/
+│   ├── integration/       # Integration tests
+│   ├── e2e/               # End-to-end tests
+│   ├── utils/             # Test utilities
+│   │   └── testHelpers.ts
+│   ├── run-tests.js
+│   └── setup.ts
+├── scripts/                # Utility scripts
+│   ├── migrate-database.js
+│   ├── seed-database.js
+│   ├── setup-database.js
+│   └── verifyApiConsistency.js
+├── jest.config.js
+├── nodemon.json
+├── tsconfig.json
+├── package.json
+└── package-lock.json
+```
+
+### **Database Structure**
+```
+database/
+└── schemas/                # Database schemas
+    └── main-schema.sql    # Main database schema
+```
+
+---
+
+## 📋 **Code Quality Standards**
+
+### **TypeScript Standards**
+```typescript
+// TypeScript Configuration Requirements
+const TYPESCRIPT_STANDARDS = {
+  strict: true,                    // Strict type checking enabled
+  noImplicitAny: true,            // No implicit any types
+  strictNullChecks: true,         // Strict null checks
+  noImplicitReturns: true,        // No implicit returns
+  noUnusedLocals: true,           // No unused local variables
+  noUnusedParameters: true,       // No unused parameters
+  exactOptionalPropertyTypes: true, // Exact optional property types
+  noImplicitOverride: true,       // No implicit overrides
+  noPropertyAccessFromIndexSignature: true, // No property access from index signature
+  noUncheckedIndexedAccess: true  // No unchecked indexed access
+}
+```
+
+### **ESLint Configuration**
+```javascript
+// ESLint Rules
+const ESLINT_RULES = {
+  extends: [
+    '@typescript-eslint/recommended',
+    'prettier',
+    'jest'
+  ],
+  rules: {
+    'no-console': 'warn',
+    'no-debugger': 'error',
+    'no-unused-vars': 'error',
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-unused-vars': 'error',
+    '@typescript-eslint/explicit-function-return-type': 'warn',
+    '@typescript-eslint/no-non-null-assertion': 'error',
+    'prefer-const': 'error',
+    'no-var': 'error'
+  }
+}
+```
+
+### **Prettier Configuration**
+```javascript
+// Prettier Rules
+const PRETTIER_RULES = {
+  semi: true,
+  trailingComma: 'es5',
+  singleQuote: true,
+  printWidth: 80,
+  tabWidth: 2,
+  useTabs: false,
+  bracketSpacing: true,
+  arrowParens: 'avoid'
+}
+```
+
+---
+
+## 🔧 **Development Workflow Rules**
+
+### **Git Workflow Standards**
+```typescript
+// Git Workflow Requirements
+const GIT_WORKFLOW = {
+  branching: {
+    main: 'Production-ready code',
+    develop: 'Integration branch for features',
+    feature: 'feature/feature-name',
+    hotfix: 'hotfix/issue-description',
+    release: 'release/version-number'
+  },
+  commits: {
+    format: 'conventional commits',
+    types: ['feat', 'fix', 'docs', 'style', 'refactor', 'test', 'chore'],
+    scope: 'Component or module affected',
+    description: 'Clear description of changes'
+  },
+  pullRequests: {
+    required: 'All changes must go through PR',
+    review: 'Minimum 2 reviewers required',
+    tests: 'All tests must pass',
+    coverage: 'Coverage must not decrease'
+  }
+}
+```
+
+### **Code Review Standards**
+```typescript
+// Code Review Requirements
+const CODE_REVIEW_STANDARDS = {
+  checklist: [
+    'Code follows TypeScript standards',
+    'All tests pass and coverage maintained',
+    'Cross-file impact analysis completed',
+    'Related files identified and updated',
+    'Documentation updated or created as needed',
+    'API documentation updated if endpoints changed',
+    'Database schema documentation updated if schema changed',
+    'User guides updated if user-facing features changed',
+    'Security implications considered',
+    'Performance impact assessed',
+    'Error handling implemented',
+    'Logging added where appropriate'
+  ],
+  approval: {
+    required: 'Minimum 2 approvals',
+    blocking: 'Any requested changes must be addressed',
+    testing: 'Manual testing required for complex changes'
+  }
+}
+```
+
+### **Change Impact Analysis Rules**
+```typescript
+// Change Impact Analysis Requirements
+const CHANGE_IMPACT_RULES = {
+  analysis: {
+    required: 'All code changes must include impact analysis',
+    scope: 'Identify all affected files and components',
+    dependencies: 'Check for dependent files and services',
+    interfaces: 'Verify API and data interface compatibility',
+    tests: 'Identify affected test files and update accordingly'
+  },
+  
+  documentation: {
+    update_required: 'Documentation must be updated with every change',
+    types: [
+      'API documentation for endpoint changes',
+      'Database documentation for schema changes',
+      'User guides for feature changes',
+      'Developer guides for technical changes',
+      'System rules for business logic changes'
+    ],
+    verification: 'Documentation accuracy must be verified',
+    review: 'Documentation changes must be reviewed'
+  },
+  
+  cross_file_checks: {
+    imports: 'Check all import statements and dependencies',
+    exports: 'Verify all export statements are still valid',
+    interfaces: 'Ensure interface compatibility across modules',
+    types: 'Update TypeScript types if data structures change',
+    services: 'Update service layer if business logic changes',
+    controllers: 'Update controllers if API changes',
+    models: 'Update models if data structure changes',
+    tests: 'Update all related test files',
+    config: 'Update configuration files if needed'
+  }
+}
+```
+
+---
+
+## 🔄 **Change Management & Documentation Rules**
+
+### **Change Impact Assessment**
+```typescript
+// Change Impact Assessment Requirements
+const CHANGE_ASSESSMENT_RULES = {
+  before_change: {
+    analysis: 'Analyze potential impact before making changes',
+    dependencies: 'Identify all dependent files and components',
+    interfaces: 'Check API and data interface dependencies',
+    tests: 'Identify all test files that need updates',
+    documentation: 'Identify all documentation that needs updates'
+  },
+  
+  during_change: {
+    tracking: 'Track all files modified during the change',
+    validation: 'Validate changes don't break existing functionality',
+    testing: 'Run tests for all affected components',
+    documentation: 'Update documentation as changes are made'
+  },
+  
+  after_change: {
+    verification: 'Verify all changes work correctly',
+    testing: 'Run full test suite to ensure no regressions',
+    documentation: 'Verify all documentation is accurate and complete',
+    review: 'Review all changes for completeness and accuracy'
+  }
+}
+```
+
+### **Documentation Maintenance Rules**
+```typescript
+// Documentation Maintenance Requirements
+const DOCUMENTATION_MAINTENANCE_RULES = {
+  update_triggers: {
+    code_changes: 'Documentation updated with every code change',
+    feature_additions: 'New features must include documentation',
+    api_changes: 'API changes must update API documentation',
+    schema_changes: 'Database changes must update schema documentation',
+    business_logic_changes: 'Business logic changes must update system rules'
+  },
+  
+  update_process: {
+    identify: 'Identify all documentation that needs updates',
+    update: 'Update documentation to reflect changes',
+    verify: 'Verify documentation accuracy and completeness',
+    review: 'Review documentation changes for quality',
+    approve: 'Documentation changes must be approved'
+  },
+  
+  documentation_types: {
+    api: 'API documentation for endpoint and interface changes',
+    database: 'Database documentation for schema and data changes',
+    user_guides: 'User guides for feature and workflow changes',
+    developer_guides: 'Developer guides for technical changes',
+    system_rules: 'System rules for business logic and process changes',
+    architecture: 'Architecture documentation for structural changes'
+  },
+  
+  quality_standards: {
+    accuracy: 'Documentation must be 100% accurate',
+    completeness: 'All changes must be documented',
+    clarity: 'Documentation must be clear and understandable',
+    consistency: 'Documentation must be consistent across all types',
+    timeliness: 'Documentation must be updated immediately with changes'
+  }
+}
+```
+
+### **Cross-File Impact Analysis**
+```typescript
+// Cross-File Impact Analysis Requirements
+const CROSS_FILE_IMPACT_RULES = {
+  analysis_scope: {
+    imports: 'Check all import statements and dependencies',
+    exports: 'Verify all export statements are still valid',
+    interfaces: 'Ensure interface compatibility across modules',
+    types: 'Update TypeScript types if data structures change',
+    services: 'Update service layer if business logic changes',
+    controllers: 'Update controllers if API changes',
+    models: 'Update models if data structure changes',
+    tests: 'Update all related test files',
+    config: 'Update configuration files if needed',
+    documentation: 'Update all related documentation'
+  },
+  
+  verification_process: {
+    compile: 'Ensure all TypeScript files compile without errors',
+    test: 'Run all tests to ensure no regressions',
+    lint: 'Run linter to ensure code quality standards',
+    build: 'Ensure application builds successfully',
+    deploy: 'Verify changes work in target environment'
+  },
+  
+  rollback_plan: {
+    identification: 'Identify rollback requirements before changes',
+    preparation: 'Prepare rollback procedures and scripts',
+    testing: 'Test rollback procedures in safe environment',
+    documentation: 'Document rollback procedures and requirements'
+  }
+}
+```
+
+---
+
+## 📊 **Monitoring & Maintenance Rules**
+
+### **System Monitoring Requirements**
+```typescript
+// Monitoring Standards
+const MONITORING_RULES = {
+  metrics: {
+    performance: 'Response times, throughput, error rates',
+    business: 'User activity, feature usage, conversion rates',
+    technical: 'CPU, memory, disk usage, database performance',
+    security: 'Failed logins, suspicious activity, access patterns'
+  },
+  alerting: {
+    critical: 'Immediate notification for critical issues',
+    warning: 'Notification within 15 minutes for warnings',
+    info: 'Daily summary for informational alerts'
+  },
+  logging: {
+    level: 'INFO for production, DEBUG for development',
+    format: 'Structured JSON logging',
+    retention: '30 days for application logs, 1 year for audit logs',
+    security: 'All security events must be logged'
+  }
+}
+```
+
+### **Maintenance Schedule**
+```typescript
+// Maintenance Requirements
+const MAINTENANCE_SCHEDULE = {
+  daily: [
+    'Database backup verification',
+    'Log file rotation',
+    'Performance metrics review',
+    'Security event analysis'
+  ],
+  weekly: [
+    'System health check',
+    'Test suite execution',
+    'Documentation review',
+    'Dependency updates check'
+  ],
+  monthly: [
+    'Security vulnerability scan',
+    'Performance optimization review',
+    'User feedback analysis',
+    'System capacity planning'
+  ],
+  quarterly: [
+    'Full security audit',
+    'Disaster recovery testing',
+    'System architecture review',
+    'Technology stack evaluation'
+  ]
+}
+```
+
+---
+
+## 🔄 **Function Reuse & Implementation Scanning Rules**
+
+### **13. Function Reuse & Implementation Scanning**
+
+#### **Pre-Implementation Scanning Requirements**
+```typescript
+// Function Reuse & Implementation Scanning Requirements
+const FUNCTION_REUSE_RULES = {
+  // Pre-Implementation Scanning Requirements
+  pre_implementation: {
+    mandatory_scan: 'MUST scan existing codebase before implementing new functions',
+    search_scope: [
+      'server/src/utils/ - All utility functions',
+      'server/src/services/ - All service implementations', 
+      'server/src/controllers/ - All controller patterns',
+      'server/src/middleware/ - All middleware functions',
+      'client/src/utils/ - All client utility functions',
+      'client/src/services/ - All client service implementations',
+      'client/src/hooks/ - All custom React hooks'
+    ],
+    search_keywords: [
+      'Function name variations',
+      'Similar functionality keywords',
+      'Related business logic terms',
+      'Common operation patterns'
+    ],
+    analysis_required: 'Analyze existing implementations for reusability'
+  },
+
+  // Reuse Decision Matrix
+  reuse_decision: {
+    exact_match: {
+      condition: 'Identical functionality exists',
+      action: 'REUSE existing function',
+      documentation: 'Update function documentation with new use case'
+    },
+    similar_functionality: {
+      condition: 'Similar but not identical functionality',
+      action: 'REFACTOR existing function to be more generic',
+      documentation: 'Update function to handle multiple use cases'
+    },
+    partial_overlap: {
+      condition: 'Some logic overlaps with existing functions',
+      action: 'EXTRACT common logic into shared utility',
+      documentation: 'Create new utility function for common logic'
+    },
+    no_match: {
+      condition: 'No existing similar functionality',
+      action: 'IMPLEMENT new function',
+      documentation: 'Document why new implementation was necessary'
+    }
+  },
+
+  // Implementation Standards
+  implementation_standards: {
+    location: {
+      utilities: 'server/src/utils/ for server-side utilities',
+      client_utilities: 'client/src/utils/ for client-side utilities',
+      shared_types: 'server/src/types/ or client/src/types/ for shared types',
+      constants: 'server/src/utils/constants/ for shared constants'
+    },
+    naming: {
+      descriptive: 'Function names must clearly describe purpose',
+      consistent: 'Follow existing naming conventions',
+      searchable: 'Use keywords that make functions easy to find'
+    },
+    documentation: {
+      purpose: 'Clear description of function purpose',
+      parameters: 'Document all parameters and their types',
+      return_value: 'Document return value and type',
+      examples: 'Provide usage examples',
+      dependencies: 'List any dependencies or requirements'
+    }
+  },
+
+  // Code Organization Rules
+  organization: {
+    utility_functions: {
+      location: 'server/src/utils/',
+      categories: [
+        'database/ - Database-related utilities',
+        'validation/ - Data validation utilities', 
+        'constants/ - Application constants',
+        'types/ - TypeScript type definitions',
+        'Root level - General utility functions'
+      ],
+      naming: 'Use descriptive names with category prefixes if needed'
+    },
+    service_functions: {
+      location: 'server/src/services/',
+      pattern: 'One service per business domain',
+      shared_logic: 'Extract common logic to utilities'
+    },
+    client_functions: {
+      location: 'client/src/services/ for API calls',
+      location_utilities: 'client/src/utils/ for client-side utilities',
+      location_hooks: 'client/src/hooks/ for React-specific logic'
+    }
+  },
+
+  // Refactoring Rules
+  refactoring: {
+    when_to_refactor: [
+      'Function used in 3+ different places',
+      'Similar logic exists in multiple files',
+      'Function becomes too complex or long',
+      'New requirements make existing function inadequate'
+    ],
+    refactoring_process: [
+      '1. Identify all current usages',
+      '2. Plan refactoring to maintain backward compatibility',
+      '3. Update all dependent code',
+      '4. Update tests for all affected functions',
+      '5. Update documentation',
+      '6. Verify no regressions'
+    ],
+    backward_compatibility: 'Maintain existing function signatures when possible'
+  },
+
+  // Quality Assurance
+  quality_assurance: {
+    code_review_checklist: [
+      'Scanned existing codebase for similar functionality',
+      'Reused existing functions where appropriate',
+      'Extracted common logic to utilities when needed',
+      'Updated documentation for reused functions',
+      'Added new function to appropriate utility location',
+      'Followed consistent naming conventions',
+      'Added comprehensive tests for new functions'
+    ],
+    testing_requirements: [
+      'Unit tests for all new utility functions',
+      'Integration tests for refactored functions',
+      'Regression tests for existing functionality',
+      'Performance tests for critical functions'
+    ]
+  }
+}
+```
+
+#### **Implementation Workflow**
+```typescript
+// Function Implementation Workflow
+const IMPLEMENTATION_WORKFLOW = {
+  step_1_scan: {
+    action: 'Search codebase for existing similar functionality',
+    tools: [
+      'grep search for function names',
+      'semantic search for similar logic',
+      'Review utility directories',
+      'Check service implementations'
+    ],
+    time_allocation: 'Minimum 15 minutes before coding'
+  },
+  
+  step_2_analyze: {
+    action: 'Analyze existing implementations',
+    questions: [
+      'Can existing function be reused as-is?',
+      'Can existing function be extended?',
+      'What common logic can be extracted?',
+      'What are the differences in requirements?'
+    ]
+  },
+  
+  step_3_decide: {
+    action: 'Make reuse decision based on analysis',
+    options: [
+      'REUSE: Use existing function',
+      'EXTEND: Modify existing function',
+      'EXTRACT: Create shared utility',
+      'IMPLEMENT: Create new function'
+    ]
+  },
+  
+  step_4_implement: {
+    action: 'Implement chosen approach',
+    requirements: [
+      'Follow established patterns',
+      'Add comprehensive documentation',
+      'Write tests for new code',
+      'Update existing tests if refactoring'
+    ]
+  },
+  
+  step_5_verify: {
+    action: 'Verify implementation',
+    checks: [
+      'All existing functionality still works',
+      'New functionality works as expected',
+      'Tests pass for all affected code',
+      'Documentation is accurate and complete'
+    ]
+  }
+}
+```
+
+#### **Search Tools and Techniques**
+```typescript
+// Recommended Search Techniques
+const SEARCH_TECHNIQUES = {
+  semantic_search: {
+    description: 'Search for similar functionality by meaning',
+    examples: [
+      'Search for "validate email" instead of "email validation"',
+      'Search for "calculate hours" instead of "hour calculation"',
+      'Search for "format date" instead of "date formatting"'
+    ]
+  },
+  
+  pattern_search: {
+    description: 'Search for common patterns',
+    examples: [
+      'Search for "async function" + "error handling"',
+      'Search for "validation" + "schema"',
+      'Search for "database" + "query"'
+    ]
+  },
+  
+  file_type_search: {
+    description: 'Search within specific file types',
+    examples: [
+      'Search only in .ts files for TypeScript functions',
+      'Search only in utils/ directories for utilities',
+      'Search only in services/ for business logic'
+    ]
+  }
+}
+```
+
+#### **Benefits of Function Reuse**
+- **Reduces Code Duplication**: Prevents multiple implementations of the same logic
+- **Improves Maintainability**: Changes only need to be made in one place
+- **Enhances Consistency**: Ensures similar functionality works the same way
+- **Saves Development Time**: Reusing existing code is faster than writing new code
+- **Improves Code Quality**: Existing functions are already tested and proven
+- **Better Documentation**: Centralized functions have better documentation
+
+#### **Example Implementation Process**
+```typescript
+// Before implementing a new email validation function:
+// 1. Search existing codebase for "email validation"
+// 2. Find existing validation in server/src/utils/validation/
+// 3. Check if existing function meets requirements
+// 4. If yes: REUSE existing function
+// 5. If no: EXTEND existing function or create new one in appropriate location
+
+// Example search results might show:
+// - server/src/utils/validation/employeeSchemas.ts has email validation
+// - server/src/services/auth/authService.ts has email validation
+// - Decision: Extract common email validation to shared utility
+```
+
+---
+
+**Last Updated**: January 27, 2025  
+**Version**: 1.2.0  
+**Status**: ✅ **PRODUCTION READY**  
+**Compliance**: Philippine Labor Laws, GDPR, Data Protection Act
+
+---
+
+## 📋 **Rule Summary**
+
+### **Total Rules**: 250+ Business Rules
+- **User Management & Authentication**: 15 rules
+- **Employee Management**: 12 rules  
+- **Attendance Management**: 18 rules
+- **Leave Management**: 10 rules
+- **Payroll Management**: 15 rules
+- **Department Management**: 8 rules
+- **Request Management**: 10 rules
+- **System Settings**: 8 rules
+- **Data Validation**: 12 rules
+- **Security & Compliance**: 15 rules
+- **Performance**: 8 rules
+- **API Integration**: 10 rules
+- **Function Reuse & Implementation Scanning**: 21 rules
+- **Documentation Structure**: 20 rules
+- **Testing Structure**: 25 rules
+- **Project Structure**: 15 rules
+- **Code Quality**: 12 rules
+- **Development Workflow**: 10 rules
+- **Monitoring & Maintenance**: 12 rules
+- **Change Management**: 18 rules
+
+### **Key Features**
+- ✅ **Comprehensive Coverage**: All aspects of the system covered
+- ✅ **Function Reuse & Implementation Scanning**: Mandatory code scanning before implementation
+- ✅ **Cross-File Impact Analysis**: Rules for checking file dependencies
+- ✅ **Documentation Maintenance**: Mandatory documentation updates
+- ✅ **Change Management**: Complete change impact assessment
+- ✅ **Quality Assurance**: Comprehensive quality standards
+- ✅ **Production Ready**: All rules validated and implemented

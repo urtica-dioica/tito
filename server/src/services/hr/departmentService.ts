@@ -193,9 +193,13 @@ export class DepartmentService {
       limit = 20,
       search,
       isActive,
-      sortBy = 'created_at',
-      sortOrder = 'desc'
+      sortBy: initialSortBy = 'created_at',
+      sortOrder: initialSortOrder = 'desc'
     } = params;
+
+    // Validate and sanitize sort parameters to prevent SQL injection
+    let sortBy = initialSortBy;
+    let sortOrder = initialSortOrder;
 
     const offset = (page - 1) * limit;
 
@@ -218,6 +222,26 @@ export class DepartmentService {
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
+    // Validate sort parameters to prevent SQL injection
+    const allowedSortFields = ['name', 'created_at', 'employee_count'];
+    const allowedSortOrders = ['ASC', 'DESC'];
+
+    if (!allowedSortFields.includes(sortBy)) {
+      sortBy = 'created_at'; // default safe field
+    }
+    if (!allowedSortOrders.includes(sortOrder)) {
+      sortOrder = 'desc'; // default safe order
+    }
+
+    // Map sortBy to actual column names
+    const sortFieldMap: { [key: string]: string } = {
+      'name': 'd.name',
+      'created_at': 'd.created_at',
+      'employee_count': 'employee_count'
+    };
+
+    const orderByClause = sortFieldMap[sortBy] || 'd.created_at';
+
     // Count query
     const countQuery = `
       SELECT COUNT(*) as total
@@ -230,7 +254,7 @@ export class DepartmentService {
 
     // Data query
     const dataQuery = `
-      SELECT 
+      SELECT
         d.id,
         d.name,
         d.description,
@@ -248,7 +272,7 @@ export class DepartmentService {
       LEFT JOIN employees e ON d.id = e.department_id AND e.status = 'active'
       ${whereClause}
       GROUP BY d.id, u.id, u.email, u.first_name, u.last_name
-      ORDER BY d.${sortBy} ${sortOrder.toUpperCase()}
+      ORDER BY ${orderByClause} ${sortOrder.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 

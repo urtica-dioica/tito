@@ -512,13 +512,13 @@ const EmployeeRequests: React.FC = () => {
                       
                       <div className="text-sm text-text-secondary mb-3">
                         {request.type === 'leave' && (
-                          <p>{getLeaveTypeLabel(request.details.leaveType)} • {request.details.days} day(s)</p>
+                          <p>{getLeaveTypeLabel((request.details as any).leaveType)} • {(request.details as any).days} day(s)</p>
                         )}
                         {request.type === 'overtime' && (
-                          <p>Overtime • {request.details.requestedHours} hours</p>
+                          <p>Overtime • {(request.details as any).requestedHours} hours</p>
                         )}
                         {request.type === 'time_correction' && (
-                          <p>Time Correction • {request.details.sessionType} session</p>
+                          <p>Time Correction • {(request.details as any).sessionType} session</p>
                         )}
                       </div>
                       
