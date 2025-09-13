@@ -75,18 +75,25 @@ export class HREmployeeService {
     limit: number;
     totalPages: number;
   }> {
-    const response = await apiMethods.get<{
+    type PaginatedEmployees = {
       data: HREmployee[];
       pagination: { total: number; page: number; limit: number; totalPages: number };
-    }>('/hr/employees', { params: params as any });
+    };
 
-    // Server returns employees directly in data, not data.data
+    const response = await apiMethods.get<PaginatedEmployees>(
+      '/hr/employees',
+      { params: params as any }
+    );
+
+    // Extract the payload from the generic ApiResponse wrapper
+    const payload = response.data ?? { data: [], pagination: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+
     return {
-      employees: response.data || [],
-      total: response.pagination?.total || 0,
-      page: response.pagination?.page || 1,
-      limit: response.pagination?.limit || 10,
-      totalPages: response.pagination?.totalPages || 0
+      employees: payload.data,
+      total: payload.pagination.total,
+      page: payload.pagination.page,
+      limit: payload.pagination.limit,
+      totalPages: payload.pagination.totalPages,
     };
   }
 
