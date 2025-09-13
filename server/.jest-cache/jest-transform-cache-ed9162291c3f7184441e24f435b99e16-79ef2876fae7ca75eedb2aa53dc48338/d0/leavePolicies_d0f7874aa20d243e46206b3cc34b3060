@@ -1,0 +1,88 @@
+0a739b18ad797d5048c82ee7f1b1264b
+"use strict";
+/**
+ * Leave Payment Policies Configuration
+ *
+ * This file defines which leave types are paid and their payment policies.
+ * This can be extended to support more complex policies in the future.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LEAVE_PAYMENT_POLICIES = void 0;
+exports.getLeavePaymentPolicy = getLeavePaymentPolicy;
+exports.isLeaveTypePaid = isLeaveTypePaid;
+exports.getLeavePaymentPercentage = getLeavePaymentPercentage;
+exports.getMaxPaidDaysPerYear = getMaxPaidDaysPerYear;
+exports.LEAVE_PAYMENT_POLICIES = [
+    {
+        leaveType: 'vacation',
+        isPaid: true,
+        paymentPercentage: 100,
+        description: 'Vacation leave is fully paid'
+    },
+    {
+        leaveType: 'sick',
+        isPaid: true,
+        paymentPercentage: 100,
+        maxPaidDaysPerYear: 10, // Example: 10 paid sick days per year
+        description: 'Sick leave is fully paid up to 10 days per year'
+    },
+    {
+        leaveType: 'maternity',
+        isPaid: true,
+        paymentPercentage: 100,
+        description: 'Maternity leave is fully paid'
+    },
+    {
+        leaveType: 'paternity',
+        isPaid: true,
+        paymentPercentage: 100,
+        description: 'Paternity leave is fully paid'
+    },
+    {
+        leaveType: 'bereavement',
+        isPaid: true,
+        paymentPercentage: 100,
+        maxPaidDaysPerYear: 3, // Example: 3 paid bereavement days per year
+        description: 'Bereavement leave is fully paid up to 3 days per year'
+    },
+    {
+        leaveType: 'personal',
+        isPaid: false,
+        paymentPercentage: 0,
+        description: 'Personal leave is unpaid'
+    },
+    {
+        leaveType: 'other',
+        isPaid: false,
+        paymentPercentage: 0,
+        description: 'Other leave types are unpaid by default'
+    }
+];
+/**
+ * Get payment policy for a specific leave type
+ */
+function getLeavePaymentPolicy(leaveType) {
+    return exports.LEAVE_PAYMENT_POLICIES.find(policy => policy.leaveType === leaveType);
+}
+/**
+ * Check if a leave type is paid
+ */
+function isLeaveTypePaid(leaveType) {
+    const policy = getLeavePaymentPolicy(leaveType);
+    return policy?.isPaid || false;
+}
+/**
+ * Get payment percentage for a leave type
+ */
+function getLeavePaymentPercentage(leaveType) {
+    const policy = getLeavePaymentPolicy(leaveType);
+    return policy?.paymentPercentage || 0;
+}
+/**
+ * Get maximum paid days per year for a leave type
+ */
+function getMaxPaidDaysPerYear(leaveType) {
+    const policy = getLeavePaymentPolicy(leaveType);
+    return policy?.maxPaidDaysPerYear;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiL2hvbWUva2ltL3RpdG8vc2VydmVyL3NyYy9jb25maWcvbGVhdmVQb2xpY2llcy50cyIsIm1hcHBpbmdzIjoiO0FBQUE7Ozs7O0dBS0c7OztBQTRESCxzREFFQztBQUtELDBDQUdDO0FBS0QsOERBR0M7QUFLRCxzREFHQztBQTVFWSxRQUFBLHNCQUFzQixHQUF5QjtJQUMxRDtRQUNFLFNBQVMsRUFBRSxVQUFVO1FBQ3JCLE1BQU0sRUFBRSxJQUFJO1FBQ1osaUJBQWlCLEVBQUUsR0FBRztRQUN0QixXQUFXLEVBQUUsOEJBQThCO0tBQzVDO0lBQ0Q7UUFDRSxTQUFTLEVBQUUsTUFBTTtRQUNqQixNQUFNLEVBQUUsSUFBSTtRQUNaLGlCQUFpQixFQUFFLEdBQUc7UUFDdEIsa0JBQWtCLEVBQUUsRUFBRSxFQUFFLHNDQUFzQztRQUM5RCxXQUFXLEVBQUUsaURBQWlEO0tBQy9EO0lBQ0Q7UUFDRSxTQUFTLEVBQUUsV0FBVztRQUN0QixNQUFNLEVBQUUsSUFBSTtRQUNaLGlCQUFpQixFQUFFLEdBQUc7UUFDdEIsV0FBVyxFQUFFLCtCQUErQjtLQUM3QztJQUNEO1FBQ0UsU0FBUyxFQUFFLFdBQVc7UUFDdEIsTUFBTSxFQUFFLElBQUk7UUFDWixpQkFBaUIsRUFBRSxHQUFHO1FBQ3RCLFdBQVcsRUFBRSwrQkFBK0I7S0FDN0M7SUFDRDtRQUNFLFNBQVMsRUFBRSxhQUFhO1FBQ3hCLE1BQU0sRUFBRSxJQUFJO1FBQ1osaUJBQWlCLEVBQUUsR0FBRztRQUN0QixrQkFBa0IsRUFBRSxDQUFDLEVBQUUsNENBQTRDO1FBQ25FLFdBQVcsRUFBRSx1REFBdUQ7S0FDckU7SUFDRDtRQUNFLFNBQVMsRUFBRSxVQUFVO1FBQ3JCLE1BQU0sRUFBRSxLQUFLO1FBQ2IsaUJBQWlCLEVBQUUsQ0FBQztRQUNwQixXQUFXLEVBQUUsMEJBQTBCO0tBQ3hDO0lBQ0Q7UUFDRSxTQUFTLEVBQUUsT0FBTztRQUNsQixNQUFNLEVBQUUsS0FBSztRQUNiLGlCQUFpQixFQUFFLENBQUM7UUFDcEIsV0FBVyxFQUFFLHlDQUF5QztLQUN2RDtDQUNGLENBQUM7QUFFRjs7R0FFRztBQUNILFNBQWdCLHFCQUFxQixDQUFDLFNBQWlCO0lBQ3JELE9BQU8sOEJBQXNCLENBQUMsSUFBSSxDQUFDLE1BQU0sQ0FBQyxFQUFFLENBQUMsTUFBTSxDQUFDLFNBQVMsS0FBSyxTQUFTLENBQUMsQ0FBQztBQUMvRSxDQUFDO0FBRUQ7O0dBRUc7QUFDSCxTQUFnQixlQUFlLENBQUMsU0FBaUI7SUFDL0MsTUFBTSxNQUFNLEdBQUcscUJBQXFCLENBQUMsU0FBUyxDQUFDLENBQUM7SUFDaEQsT0FBTyxNQUFNLEVBQUUsTUFBTSxJQUFJLEtBQUssQ0FBQztBQUNqQyxDQUFDO0FBRUQ7O0dBRUc7QUFDSCxTQUFnQix5QkFBeUIsQ0FBQyxTQUFpQjtJQUN6RCxNQUFNLE1BQU0sR0FBRyxxQkFBcUIsQ0FBQyxTQUFTLENBQUMsQ0FBQztJQUNoRCxPQUFPLE1BQU0sRUFBRSxpQkFBaUIsSUFBSSxDQUFDLENBQUM7QUFDeEMsQ0FBQztBQUVEOztHQUVHO0FBQ0gsU0FBZ0IscUJBQXFCLENBQUMsU0FBaUI7SUFDckQsTUFBTSxNQUFNLEdBQUcscUJBQXFCLENBQUMsU0FBUyxDQUFDLENBQUM7SUFDaEQsT0FBTyxNQUFNLEVBQUUsa0JBQWtCLENBQUM7QUFDcEMsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyIvaG9tZS9raW0vdGl0by9zZXJ2ZXIvc3JjL2NvbmZpZy9sZWF2ZVBvbGljaWVzLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogTGVhdmUgUGF5bWVudCBQb2xpY2llcyBDb25maWd1cmF0aW9uXG4gKiBcbiAqIFRoaXMgZmlsZSBkZWZpbmVzIHdoaWNoIGxlYXZlIHR5cGVzIGFyZSBwYWlkIGFuZCB0aGVpciBwYXltZW50IHBvbGljaWVzLlxuICogVGhpcyBjYW4gYmUgZXh0ZW5kZWQgdG8gc3VwcG9ydCBtb3JlIGNvbXBsZXggcG9saWNpZXMgaW4gdGhlIGZ1dHVyZS5cbiAqL1xuXG5leHBvcnQgaW50ZXJmYWNlIExlYXZlUGF5bWVudFBvbGljeSB7XG4gIGxlYXZlVHlwZTogc3RyaW5nO1xuICBpc1BhaWQ6IGJvb2xlYW47XG4gIHBheW1lbnRQZXJjZW50YWdlPzogbnVtYmVyOyAvLyBGb3IgcGFydGlhbCBwYXltZW50IChlLmcuLCA1MCUgZm9yIHNvbWUgc2ljayBsZWF2ZSlcbiAgbWF4UGFpZERheXNQZXJZZWFyPzogbnVtYmVyOyAvLyBNYXhpbXVtIHBhaWQgZGF5cyBwZXIgeWVhciBmb3IgdGhpcyBsZWF2ZSB0eXBlXG4gIGRlc2NyaXB0aW9uOiBzdHJpbmc7XG59XG5cbmV4cG9ydCBjb25zdCBMRUFWRV9QQVlNRU5UX1BPTElDSUVTOiBMZWF2ZVBheW1lbnRQb2xpY3lbXSA9IFtcbiAge1xuICAgIGxlYXZlVHlwZTogJ3ZhY2F0aW9uJyxcbiAgICBpc1BhaWQ6IHRydWUsXG4gICAgcGF5bWVudFBlcmNlbnRhZ2U6IDEwMCxcbiAgICBkZXNjcmlwdGlvbjogJ1ZhY2F0aW9uIGxlYXZlIGlzIGZ1bGx5IHBhaWQnXG4gIH0sXG4gIHtcbiAgICBsZWF2ZVR5cGU6ICdzaWNrJyxcbiAgICBpc1BhaWQ6IHRydWUsXG4gICAgcGF5bWVudFBlcmNlbnRhZ2U6IDEwMCxcbiAgICBtYXhQYWlkRGF5c1BlclllYXI6IDEwLCAvLyBFeGFtcGxlOiAxMCBwYWlkIHNpY2sgZGF5cyBwZXIgeWVhclxuICAgIGRlc2NyaXB0aW9uOiAnU2ljayBsZWF2ZSBpcyBmdWxseSBwYWlkIHVwIHRvIDEwIGRheXMgcGVyIHllYXInXG4gIH0sXG4gIHtcbiAgICBsZWF2ZVR5cGU6ICdtYXRlcm5pdHknLFxuICAgIGlzUGFpZDogdHJ1ZSxcbiAgICBwYXltZW50UGVyY2VudGFnZTogMTAwLFxuICAgIGRlc2NyaXB0aW9uOiAnTWF0ZXJuaXR5IGxlYXZlIGlzIGZ1bGx5IHBhaWQnXG4gIH0sXG4gIHtcbiAgICBsZWF2ZVR5cGU6ICdwYXRlcm5pdHknLFxuICAgIGlzUGFpZDogdHJ1ZSxcbiAgICBwYXltZW50UGVyY2VudGFnZTogMTAwLFxuICAgIGRlc2NyaXB0aW9uOiAnUGF0ZXJuaXR5IGxlYXZlIGlzIGZ1bGx5IHBhaWQnXG4gIH0sXG4gIHtcbiAgICBsZWF2ZVR5cGU6ICdiZXJlYXZlbWVudCcsXG4gICAgaXNQYWlkOiB0cnVlLFxuICAgIHBheW1lbnRQZXJjZW50YWdlOiAxMDAsXG4gICAgbWF4UGFpZERheXNQZXJZZWFyOiAzLCAvLyBFeGFtcGxlOiAzIHBhaWQgYmVyZWF2ZW1lbnQgZGF5cyBwZXIgeWVhclxuICAgIGRlc2NyaXB0aW9uOiAnQmVyZWF2ZW1lbnQgbGVhdmUgaXMgZnVsbHkgcGFpZCB1cCB0byAzIGRheXMgcGVyIHllYXInXG4gIH0sXG4gIHtcbiAgICBsZWF2ZVR5cGU6ICdwZXJzb25hbCcsXG4gICAgaXNQYWlkOiBmYWxzZSxcbiAgICBwYXltZW50UGVyY2VudGFnZTogMCxcbiAgICBkZXNjcmlwdGlvbjogJ1BlcnNvbmFsIGxlYXZlIGlzIHVucGFpZCdcbiAgfSxcbiAge1xuICAgIGxlYXZlVHlwZTogJ290aGVyJyxcbiAgICBpc1BhaWQ6IGZhbHNlLFxuICAgIHBheW1lbnRQZXJjZW50YWdlOiAwLFxuICAgIGRlc2NyaXB0aW9uOiAnT3RoZXIgbGVhdmUgdHlwZXMgYXJlIHVucGFpZCBieSBkZWZhdWx0J1xuICB9XG5dO1xuXG4vKipcbiAqIEdldCBwYXltZW50IHBvbGljeSBmb3IgYSBzcGVjaWZpYyBsZWF2ZSB0eXBlXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBnZXRMZWF2ZVBheW1lbnRQb2xpY3kobGVhdmVUeXBlOiBzdHJpbmcpOiBMZWF2ZVBheW1lbnRQb2xpY3kgfCB1bmRlZmluZWQge1xuICByZXR1cm4gTEVBVkVfUEFZTUVOVF9QT0xJQ0lFUy5maW5kKHBvbGljeSA9PiBwb2xpY3kubGVhdmVUeXBlID09PSBsZWF2ZVR5cGUpO1xufVxuXG4vKipcbiAqIENoZWNrIGlmIGEgbGVhdmUgdHlwZSBpcyBwYWlkXG4gKi9cbmV4cG9ydCBmdW5jdGlvbiBpc0xlYXZlVHlwZVBhaWQobGVhdmVUeXBlOiBzdHJpbmcpOiBib29sZWFuIHtcbiAgY29uc3QgcG9saWN5ID0gZ2V0TGVhdmVQYXltZW50UG9saWN5KGxlYXZlVHlwZSk7XG4gIHJldHVybiBwb2xpY3k/LmlzUGFpZCB8fCBmYWxzZTtcbn1cblxuLyoqXG4gKiBHZXQgcGF5bWVudCBwZXJjZW50YWdlIGZvciBhIGxlYXZlIHR5cGVcbiAqL1xuZXhwb3J0IGZ1bmN0aW9uIGdldExlYXZlUGF5bWVudFBlcmNlbnRhZ2UobGVhdmVUeXBlOiBzdHJpbmcpOiBudW1iZXIge1xuICBjb25zdCBwb2xpY3kgPSBnZXRMZWF2ZVBheW1lbnRQb2xpY3kobGVhdmVUeXBlKTtcbiAgcmV0dXJuIHBvbGljeT8ucGF5bWVudFBlcmNlbnRhZ2UgfHwgMDtcbn1cblxuLyoqXG4gKiBHZXQgbWF4aW11bSBwYWlkIGRheXMgcGVyIHllYXIgZm9yIGEgbGVhdmUgdHlwZVxuICovXG5leHBvcnQgZnVuY3Rpb24gZ2V0TWF4UGFpZERheXNQZXJZZWFyKGxlYXZlVHlwZTogc3RyaW5nKTogbnVtYmVyIHwgdW5kZWZpbmVkIHtcbiAgY29uc3QgcG9saWN5ID0gZ2V0TGVhdmVQYXltZW50UG9saWN5KGxlYXZlVHlwZSk7XG4gIHJldHVybiBwb2xpY3k/Lm1heFBhaWREYXlzUGVyWWVhcjtcbn1cbiJdLCJ2ZXJzaW9uIjozfQ==

@@ -1,0 +1,30 @@
+ab2d960d0fc496c32522018794502c27
+"use strict";
+/**
+ * Global Test Teardown
+ *
+ * This file runs once after all tests complete.
+ * It cleans up the global test environment and any resources.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = globalTeardown;
+const setup_1 = require("./setup");
+async function globalTeardown() {
+    console.log('🧹 Cleaning up global test environment...');
+    try {
+        // Cleanup test Redis
+        console.log('🔴 Cleaning up test Redis...');
+        await (0, setup_1.cleanupTestRedis)();
+        console.log('✅ Test Redis cleanup complete');
+        // Cleanup test database
+        console.log('📊 Cleaning up test database...');
+        await (0, setup_1.cleanupTestDatabase)();
+        console.log('✅ Test database cleanup complete');
+        console.log('🎉 Global test teardown complete!');
+    }
+    catch (error) {
+        console.error('❌ Global test teardown failed:', error);
+        // Don't throw error in teardown to avoid masking test failures
+    }
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiL2hvbWUva2ltL3RpdG8vc2VydmVyL3Rlc3RzL2dsb2JhbFRlYXJkb3duLnRzIiwibWFwcGluZ3MiOiI7QUFBQTs7Ozs7R0FLRzs7QUFJSCxpQ0FtQkM7QUFyQkQsbUNBQWdFO0FBRWpELEtBQUssVUFBVSxjQUFjO0lBQzFDLE9BQU8sQ0FBQyxHQUFHLENBQUMsMkNBQTJDLENBQUMsQ0FBQztJQUV6RCxJQUFJLENBQUM7UUFDSCxxQkFBcUI7UUFDckIsT0FBTyxDQUFDLEdBQUcsQ0FBQyw4QkFBOEIsQ0FBQyxDQUFDO1FBQzVDLE1BQU0sSUFBQSx3QkFBZ0IsR0FBRSxDQUFDO1FBQ3pCLE9BQU8sQ0FBQyxHQUFHLENBQUMsK0JBQStCLENBQUMsQ0FBQztRQUU3Qyx3QkFBd0I7UUFDeEIsT0FBTyxDQUFDLEdBQUcsQ0FBQyxpQ0FBaUMsQ0FBQyxDQUFDO1FBQy9DLE1BQU0sSUFBQSwyQkFBbUIsR0FBRSxDQUFDO1FBQzVCLE9BQU8sQ0FBQyxHQUFHLENBQUMsa0NBQWtDLENBQUMsQ0FBQztRQUVoRCxPQUFPLENBQUMsR0FBRyxDQUFDLG1DQUFtQyxDQUFDLENBQUM7SUFDbkQsQ0FBQztJQUFDLE9BQU8sS0FBSyxFQUFFLENBQUM7UUFDZixPQUFPLENBQUMsS0FBSyxDQUFDLGdDQUFnQyxFQUFFLEtBQUssQ0FBQyxDQUFDO1FBQ3ZELCtEQUErRDtJQUNqRSxDQUFDO0FBQ0gsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyIvaG9tZS9raW0vdGl0by9zZXJ2ZXIvdGVzdHMvZ2xvYmFsVGVhcmRvd24udHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBHbG9iYWwgVGVzdCBUZWFyZG93blxuICogXG4gKiBUaGlzIGZpbGUgcnVucyBvbmNlIGFmdGVyIGFsbCB0ZXN0cyBjb21wbGV0ZS5cbiAqIEl0IGNsZWFucyB1cCB0aGUgZ2xvYmFsIHRlc3QgZW52aXJvbm1lbnQgYW5kIGFueSByZXNvdXJjZXMuXG4gKi9cblxuaW1wb3J0IHsgY2xlYW51cFRlc3REYXRhYmFzZSwgY2xlYW51cFRlc3RSZWRpcyB9IGZyb20gJy4vc2V0dXAnO1xuXG5leHBvcnQgZGVmYXVsdCBhc3luYyBmdW5jdGlvbiBnbG9iYWxUZWFyZG93bigpIHtcbiAgY29uc29sZS5sb2coJ/Cfp7kgQ2xlYW5pbmcgdXAgZ2xvYmFsIHRlc3QgZW52aXJvbm1lbnQuLi4nKTtcbiAgXG4gIHRyeSB7XG4gICAgLy8gQ2xlYW51cCB0ZXN0IFJlZGlzXG4gICAgY29uc29sZS5sb2coJ/CflLQgQ2xlYW5pbmcgdXAgdGVzdCBSZWRpcy4uLicpO1xuICAgIGF3YWl0IGNsZWFudXBUZXN0UmVkaXMoKTtcbiAgICBjb25zb2xlLmxvZygn4pyFIFRlc3QgUmVkaXMgY2xlYW51cCBjb21wbGV0ZScpO1xuICAgIFxuICAgIC8vIENsZWFudXAgdGVzdCBkYXRhYmFzZVxuICAgIGNvbnNvbGUubG9nKCfwn5OKIENsZWFuaW5nIHVwIHRlc3QgZGF0YWJhc2UuLi4nKTtcbiAgICBhd2FpdCBjbGVhbnVwVGVzdERhdGFiYXNlKCk7XG4gICAgY29uc29sZS5sb2coJ+KchSBUZXN0IGRhdGFiYXNlIGNsZWFudXAgY29tcGxldGUnKTtcbiAgICBcbiAgICBjb25zb2xlLmxvZygn8J+OiSBHbG9iYWwgdGVzdCB0ZWFyZG93biBjb21wbGV0ZSEnKTtcbiAgfSBjYXRjaCAoZXJyb3IpIHtcbiAgICBjb25zb2xlLmVycm9yKCfinYwgR2xvYmFsIHRlc3QgdGVhcmRvd24gZmFpbGVkOicsIGVycm9yKTtcbiAgICAvLyBEb24ndCB0aHJvdyBlcnJvciBpbiB0ZWFyZG93biB0byBhdm9pZCBtYXNraW5nIHRlc3QgZmFpbHVyZXNcbiAgfVxufVxuXG4iXSwidmVyc2lvbiI6M30=

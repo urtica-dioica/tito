@@ -29,9 +29,13 @@ export class BenefitTypeService {
     if (params?.isActive !== undefined) queryParams.append('is_active', params.isActive.toString());
     if (params?.search) queryParams.append('search', params.search);
 
-    const response = await apiMethods.get<{ data: { records: any[]; total: number } }>(
-      `/payroll/benefit-types?${queryParams.toString()}`
-    );
+    const response = await apiMethods.get<{
+      records: any[];
+      total: number;
+      page?: number;
+      limit?: number;
+      totalPages?: number;
+    }>(`/payroll/benefit-types?${queryParams.toString()}`);
 
     // Transform snake_case to camelCase
     const transformedData = {
@@ -43,9 +47,9 @@ export class BenefitTypeService {
         updatedAt: record.updated_at
       })),
       total: response.data?.total || 0,
-      page: parseInt(queryParams.get('page') || '1'),
-      limit: parseInt(queryParams.get('limit') || '10'),
-      totalPages: Math.ceil((response.data?.total || 0) / parseInt(queryParams.get('limit') || '10'))
+      page: response.data?.page || parseInt(queryParams.get('page') || '1'),
+      limit: response.data?.limit || parseInt(queryParams.get('limit') || '10'),
+      totalPages: response.data?.totalPages || Math.ceil((response.data?.total || 0) / parseInt(queryParams.get('limit') || '10'))
     };
 
     return transformedData;
@@ -55,8 +59,12 @@ export class BenefitTypeService {
    * Get benefit type by ID
    */
   static async getBenefitType(id: string): Promise<BenefitType> {
-    const response = await apiMethods.get<{ data: any }>(`/payroll/benefit-types/${id}`);
-    
+    const response = await apiMethods.get<any>(`/payroll/benefit-types/${id}`);
+
+    if (!response.data) {
+      throw new Error('Failed to fetch benefit type');
+    }
+
     // Transform snake_case to camelCase
     const transformedRecord = {
       ...response.data,
@@ -65,8 +73,8 @@ export class BenefitTypeService {
       createdAt: response.data.created_at,
       updatedAt: response.data.updated_at
     };
-    
-    return transformedRecord;
+
+    return transformedRecord as BenefitType;
   }
 
   /**
@@ -80,9 +88,13 @@ export class BenefitTypeService {
       amount: data.amount,
       is_active: data.isActive
     };
-    
-    const response = await apiMethods.post<{ data: any }>('/payroll/benefit-types', apiData);
-    
+
+    const response = await apiMethods.post<any>('/payroll/benefit-types', apiData);
+
+    if (!response.data) {
+      throw new Error('Failed to create benefit type');
+    }
+
     // Transform snake_case to camelCase
     const transformedRecord = {
       ...response.data,
@@ -91,8 +103,8 @@ export class BenefitTypeService {
       createdAt: response.data.created_at,
       updatedAt: response.data.updated_at
     };
-    
-    return transformedRecord;
+
+    return transformedRecord as BenefitType;
   }
 
   /**
@@ -106,9 +118,13 @@ export class BenefitTypeService {
       amount: data.amount,
       is_active: data.isActive
     };
-    
-    const response = await apiMethods.put<{ data: any }>(`/payroll/benefit-types/${id}`, apiData);
-    
+
+    const response = await apiMethods.put<any>(`/payroll/benefit-types/${id}`, apiData);
+
+    if (!response.data) {
+      throw new Error('Failed to update benefit type');
+    }
+
     // Transform snake_case to camelCase
     const transformedRecord = {
       ...response.data,
@@ -117,8 +133,8 @@ export class BenefitTypeService {
       createdAt: response.data.created_at,
       updatedAt: response.data.updated_at
     };
-    
-    return transformedRecord;
+
+    return transformedRecord as BenefitType;
   }
 
   /**
@@ -132,17 +148,17 @@ export class BenefitTypeService {
    * Get active benefit types
    */
   static async getActiveBenefitTypes(): Promise<BenefitType[]> {
-    const response = await apiMethods.get<{ data: any[] }>('/payroll/benefit-types/active');
-    
+    const response = await apiMethods.get<any[]>('/payroll/benefit-types/active');
+
     // Transform snake_case to camelCase
-    const transformedRecords = response.data.map((record: any) => ({
+    const transformedRecords = (response.data || []).map((record: any) => ({
       ...record,
       amount: record.amount,
       isActive: record.is_active,
       createdAt: record.created_at,
       updatedAt: record.updated_at
     }));
-    
-    return transformedRecords;
+
+    return transformedRecords as BenefitType[];
   }
 }

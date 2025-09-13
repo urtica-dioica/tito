@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import { config } from './config/environment';
 import { testConnection } from './config/database';
 import { testRedisConnection } from './config/redis';
@@ -44,6 +45,9 @@ app.use(cors(config.cors));
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Cookie parsing middleware
+app.use(cookieParser());
 
 // Request logging
 app.use(morgan('combined'));
@@ -228,6 +232,15 @@ app.get('/health', async (_req, res) => {
 
 // Mount API routes
 app.use('/', routes);
+
+// Debug route
+app.get('/direct-debug', (_req, res) => {
+  console.log('=== DIRECT DEBUG ENDPOINT CALLED ===');
+  res.json({
+    message: 'Direct debug endpoint reached',
+    timestamp: new Date().toISOString()
+  });
+});
 
 
 

@@ -126,7 +126,7 @@ export const config = {
         callback(new Error('Not allowed by CORS policy'));
       }
     },
-    credentials: process.env['CORS_CREDENTIALS'] === 'true',
+    credentials: process.env['CORS_CREDENTIALS'] === 'true' || process.env['NODE_ENV'] !== 'production',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     maxAge: 86400, // 24 hours

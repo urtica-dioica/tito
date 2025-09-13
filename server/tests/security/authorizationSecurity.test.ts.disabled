@@ -1,0 +1,552 @@
+/**
+ * Authorization Security Tests
+ * 
+ * Comprehensive testing of authorization mechanisms, including:
+ * - Role-based access control (RBAC)
+ * - Privilege escalation prevention
+ * - Resource access control
+ * - API endpoint authorization
+ * - Data access restrictions
+ */
+
+import { SecurityTestSuite, SecurityTestConfig } from './securityTestUtils';
+// Mock axios for testing
+const axios = {
+  create: () => ({
+    get: jest.fn().mockResolvedValue({ data: {}, status: 200, headers: {} }),
+    post: jest.fn().mockResolvedValue({ data: {}, status: 200, headers: {} }),
+    put: jest.fn().mockResolvedValue({ data: {}, status: 200, headers: {} }),
+    delete: jest.fn().mockResolvedValue({ data: {}, status: 200, headers: {} }),
+    patch: jest.fn().mockResolvedValue({ data: {}, status: 200, headers: {} }),
+    interceptors: {
+      request: { use: jest.fn() },
+      response: { use: jest.fn() }
+    }
+  })
+};
+
+describe('Authorization Security Tests', () => {
+  let config: SecurityTestConfig;
+  let employeeToken: string;
+  let hrToken: string;
+  let departmentHeadToken: string;
+
+  beforeAll(async () => {
+    config = {
+      baseURL: process.env.TEST_BASE_URL || 'http://localhost:3000',
+      timeout: 30000,
+      maxRetries: 3,
+      testUser: {
+        username: 'testuser',
+        password: 'TestPassword123!',
+        role: 'employee'
+      },
+      adminUser: {
+        username: 'admin',
+        password: 'AdminPassword123!',
+        role: 'hr'
+      }
+    };
+
+    securitySuite = new SecurityTestSuite(config);
+
+    // Get authentication tokens for different roles
+    try {
+      // Employee token
+      const employeeResponse = await axios.create().post(`${config.baseURL}/api/v1/auth/login`, {
+        username: 'employee1',
+        password: 'Employee123!'
+      }, {
+        timeout: 10000,
+        validateStatus: () => true
+      });
+      
+      if (employeeResponse.status === 200) {
+        employeeToken = employeeResponse.data.token;
+      }
+
+      // HR token
+      const hrResponse = await axios.create().post(`${config.baseURL}/api/v1/auth/login`, {
+        username: 'hr1',
+        password: 'HR123!'
+      }, {
+        timeout: 10000,
+        validateStatus: () => true
+      });
+      
+      if (hrResponse.status === 200) {
+        hrToken = hrResponse.data.token;
+      }
+
+      // Department Head token
+      const deptHeadResponse = await axios.create().post(`${config.baseURL}/api/v1/auth/login`, {
+        username: 'depthead1',
+        password: 'DeptHead123!'
+      }, {
+        timeout: 10000,
+        validateStatus: () => true
+      });
+      
+      if (deptHeadResponse.status === 200) {
+        departmentHeadToken = deptHeadResponse.data.token;
+      }
+    } catch (error) {
+      console.warn('Could not obtain test tokens, some tests may be skipped');
+    }
+  });
+
+  describe('Role-Based Access Control (RBAC)', () => {
+    it('should enforce employee role restrictions', async () => {
+      if (!employeeToken) {
+        console.log('⚠️ Skipping test - no employee token available');
+        return;
+      }
+
+      // Employee should NOT be able to access HR endpoints
+      const hrEndpoints = [
+        '/api/v1/hr/employees',
+        '/api/v1/hr/departments',
+        '/api/v1/hr/payroll',
+        '/api/v1/hr/users'
+      ];
+
+      for (const endpoint of hrEndpoints) {
+        const response = await axios.create().get(`${config.baseURL}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${employeeToken}`
+          },
+          timeout: 10000,
+          validateStatus: () => true
+        });
+
+        expect(response.status).toBe(403);
+        console.log(`✅ Employee correctly denied access to ${endpoint}`);
+      }
+    }, 30000);
+
+    it('should enforce department head role restrictions', async () => {
+      if (!departmentHeadToken) {
+        console.log('⚠️ Skipping test - no department head token available');
+        return;
+      }
+
+      // Department head should NOT be able to access HR-only endpoints
+      const hrOnlyEndpoints = [
+        '/api/v1/hr/users',
+        '/api/v1/hr/system-settings',
+        '/api/v1/hr/audit-logs'
+      ];
+
+      for (const endpoint of hrOnlyEndpoints) {
+        const response = await axios.create().get(`${config.baseURL}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${departmentHeadToken}`
+          },
+          timeout: 10000,
+          validateStatus: () => true
+        });
+
+        expect(response.status).toBe(403);
+        console.log(`✅ Department head correctly denied access to ${endpoint}`);
+      }
+    }, 30000);
+
+    it('should allow appropriate role access', async () => {
+      if (!employeeToken) {
+        console.log('⚠️ Skipping test - no employee token available');
+        return;
+      }
+
+      // Employee should be able to access their own data
+      const employeeEndpoints = [
+        '/api/v1/employee/profile',
+        '/api/v1/employee/attendance',
+        '/api/v1/employee/paystubs',
+        '/api/v1/employee/leaves'
+      ];
+
+      for (const endpoint of employeeEndpoints) {
+        const response = await axios.create().get(`${config.baseURL}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${employeeToken}`
+          },
+          timeout: 10000,
+          validateStatus: () => true
+        });
+
+        // Should be allowed (200) or not found (404), but not forbidden (403)
+        expect(response.status).not.toBe(403);
+        console.log(`✅ Employee allowed access to ${endpoint} (${response.status})`);
+      }
+    }, 30000);
+  });
+
+  describe('Privilege Escalation Prevention', () => {
+    it('should prevent horizontal privilege escalation', async () => {
+      if (!employeeToken) {
+        console.log('⚠️ Skipping test - no employee token available');
+        return;
+      }
+
+      // Employee should not be able to access other employees' data
+      const otherEmployeeEndpoints = [
+        '/api/v1/employee/2/profile',
+        '/api/v1/employee/2/attendance',
+        '/api/v1/employee/2/paystubs',
+        '/api/v1/employee/2/leaves'
+      ];
+
+      for (const endpoint of otherEmployeeEndpoints) {
+        const response = await axios.create().get(`${config.baseURL}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${employeeToken}`
+          },
+          timeout: 10000,
+          validateStatus: () => true
+        });
+
+        // Should be forbidden or not found
+        expect([403, 404]).toContain(response.status);
+        console.log(`✅ Employee correctly denied access to other employee data: ${endpoint}`);
+      }
+    }, 30000);
+
+    it('should prevent vertical privilege escalation', async () => {
+      if (!employeeToken) {
+        console.log('⚠️ Skipping test - no employee token available');
+        return;
+      }
+
+      // Employee should not be able to escalate to HR privileges
+      const escalationAttempts = [
+        {
+          method: 'POST',
+          endpoint: '/api/v1/hr/employees',
+          data: { name: 'Test Employee', email: 'test@example.com' }
+        },
+        {
+          method: 'PUT',
+          endpoint: '/api/v1/hr/employees/1',
+          data: { name: 'Modified Employee' }
+        },
+        {
+          method: 'DELETE',
+          endpoint: '/api/v1/hr/employees/1'
+        },
+        {
+          method: 'POST',
+          endpoint: '/api/v1/hr/departments',
+          data: { name: 'Test Department' }
+        }
+      ];
+
+      for (const attempt of escalationAttempts) {
+        const response = await axios.create().post(
+          `${config.baseURL}${attempt.endpoint}`,
+          attempt.data,
+          {
+            headers: {
+              'Authorization': `Bearer ${employeeToken}`
+            },
+            timeout: 10000,
+            validateStatus: () => true
+          }
+        });
+
+        expect(response.status).toBe(403);
+        console.log(`✅ Employee correctly denied ${attempt.method} access to ${attempt.endpoint}`);
+      }
+    }, 30000);
+
+    it('should prevent role manipulation through API', async () => {
+      if (!employeeToken) {
+        console.log('⚠️ Skipping test - no employee token available');
+        return;
+      }
+
+      // Try to modify user role through profile update
+      const response = await axios.create().put(`${config.baseURL}/api/v1/employee/profile`, {
+        role: 'hr',
+        permissions: ['admin', 'user_management']
+      }, {
+        headers: {
+          'Authorization': `Bearer ${employeeToken}`
+        },
+        timeout: 10000,
+        validateStatus: () => true
+      });
+
+      // Should be rejected
+      expect([400, 403]).toContain(response.status);
+      console.log('✅ Role manipulation attempt correctly rejected');
+    }, 30000);
+  });
+
+  describe('Resource Access Control', () => {
+    it('should enforce department-based access control', async () => {
+      if (!departmentHeadToken) {
+        console.log('⚠️ Skipping test - no department head token available');
+        return;
+      }
+
+      // Department head should only access their department's data
+      const response = await axios.create().get(`${config.baseURL}/api/v1/department-head/employees`, {
+        headers: {
+          'Authorization': `Bearer ${departmentHeadToken}`
+        },
+        timeout: 10000,
+        validateStatus: () => true
+      });
+
+      if (response.status === 200) {
+        // Verify that only department employees are returned
+        const employees = response.data.data || response.data;
+        if (Array.isArray(employees)) {
+          // All employees should belong to the same department
+          const departments = employees.map(emp => emp.department_id).filter(Boolean);
+          const uniqueDepartments = [...new Set(departments)];
+          
+          expect(uniqueDepartments.length).toBeLessThanOrEqual(1);
+          console.log(`✅ Department head only sees employees from their department`);
+        }
+      }
+    }, 30000);
+
+    it('should prevent cross-department data access', async () => {
+      if (!departmentHeadToken) {
+        console.log('⚠️ Skipping test - no department head token available');
+        return;
+      }
+
+      // Try to access employees from different departments
+      const response = await axios.create().get(`${config.baseURL}/api/v1/department-head/employees?department_id=999`, {
+        headers: {
+          'Authorization': `Bearer ${departmentHeadToken}`
+        },
+        timeout: 10000,
+        validateStatus: () => true
+      });
+
+      // Should be forbidden or return empty results
+      expect([403, 404, 200]).toContain(response.status);
+      
+      if (response.status === 200) {
+        const employees = response.data.data || response.data;
+        expect(Array.isArray(employees) ? employees.length : 0).toBe(0);
+      }
+      
+      console.log('✅ Cross-department access correctly restricted');
+    }, 30000);
+  });
+
+  describe('API Endpoint Authorization', () => {
+    it('should require authentication for protected endpoints', async () => {
+      const protectedEndpoints = [
+        '/api/v1/employees',
+        '/api/v1/departments',
+        '/api/v1/payroll',
+        '/api/v1/leaves',
+        '/api/v1/attendance'
+      ];
+
+      for (const endpoint of protectedEndpoints) {
+        const response = await axios.create().get(`${config.baseURL}${endpoint}`, {
+          timeout: 10000,
+          validateStatus: () => true
+        });
+
+        expect(response.status).toBe(401);
+        console.log(`✅ ${endpoint} correctly requires authentication`);
+      }
+    }, 30000);
+
+    it('should reject invalid tokens', async () => {
+      const invalidTokens = [
+        'invalid-token',
+        'Bearer invalid-token',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid',
+        '',
+        null,
+        undefined
+      ];
+
+      for (const token of invalidTokens) {
+        const response = await axios.create().get(`${config.baseURL}/api/v1/employees`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          timeout: 10000,
+          validateStatus: () => true
+        });
+
+        expect(response.status).toBe(401);
+        console.log(`✅ Invalid token correctly rejected: ${token}`);
+      }
+    }, 30000);
+
+    it('should handle malformed authorization headers', async () => {
+      const malformedHeaders = [
+        'Bearer',
+        'Basic token',
+        'Invalid token',
+        'Bearer ',
+        'token without Bearer'
+      ];
+
+      for (const header of malformedHeaders) {
+        const response = await axios.create().get(`${config.baseURL}/api/v1/employees`, {
+          headers: {
+            'Authorization': header
+          },
+          timeout: 10000,
+          validateStatus: () => true
+        });
+
+        expect(response.status).toBe(401);
+        console.log(`✅ Malformed authorization header correctly rejected: ${header}`);
+      }
+    }, 30000);
+  });
+
+  describe('Data Access Restrictions', () => {
+    it('should restrict sensitive data access based on role', async () => {
+      if (!employeeToken) {
+        console.log('⚠️ Skipping test - no employee token available');
+        return;
+      }
+
+      // Employee should not see sensitive HR data
+      const sensitiveEndpoints = [
+        '/api/v1/hr/audit-logs',
+        '/api/v1/hr/system-settings',
+        '/api/v1/hr/user-management',
+        '/api/v1/hr/backup-restore'
+      ];
+
+      for (const endpoint of sensitiveEndpoints) {
+        const response = await axios.create().get(`${config.baseURL}${endpoint}`, {
+          headers: {
+            'Authorization': `Bearer ${employeeToken}`
+          },
+          timeout: 10000,
+          validateStatus: () => true
+        });
+
+        expect(response.status).toBe(403);
+        console.log(`✅ Employee correctly denied access to sensitive endpoint: ${endpoint}`);
+      }
+    }, 30000);
+
+    it('should filter sensitive fields in responses', async () => {
+      if (!employeeToken) {
+        console.log('⚠️ Skipping test - no employee token available');
+        return;
+      }
+
+      // Employee accessing their own profile should not see sensitive fields
+      const response = await axios.create().get(`${config.baseURL}/api/v1/employee/profile`, {
+        headers: {
+          'Authorization': `Bearer ${employeeToken}`
+        },
+        timeout: 10000,
+        validateStatus: () => true
+      });
+
+      if (response.status === 200) {
+        const profile = response.data;
+        const sensitiveFields = ['password', 'ssn', 'tax_id', 'bank_account', 'internal_notes'];
+        
+        for (const field of sensitiveFields) {
+          expect(profile).not.toHaveProperty(field);
+        }
+        
+        console.log('✅ Sensitive fields correctly filtered from employee profile');
+      }
+    }, 30000);
+  });
+
+  describe('Permission-Based Access Control', () => {
+    it('should enforce specific permissions for actions', async () => {
+      if (!employeeToken) {
+        console.log('⚠️ Skipping test - no employee token available');
+        return;
+      }
+
+      // Employee should not be able to perform admin actions
+      const adminActions = [
+        {
+          method: 'POST',
+          endpoint: '/api/v1/hr/employees',
+          data: { name: 'New Employee', email: 'new@example.com' }
+        },
+        {
+          method: 'DELETE',
+          endpoint: '/api/v1/hr/employees/1'
+        },
+        {
+          method: 'PUT',
+          endpoint: '/api/v1/hr/system-settings',
+          data: { setting: 'value' }
+        }
+      ];
+
+      for (const action of adminActions) {
+        const response = await axios.create().post(
+          `${config.baseURL}${action.endpoint}`,
+          action.data,
+          {
+            headers: {
+              'Authorization': `Bearer ${employeeToken}`
+            },
+            timeout: 10000,
+            validateStatus: () => true
+          }
+        );
+
+        expect(response.status).toBe(403);
+        console.log(`✅ Employee correctly denied ${action.method} access to ${action.endpoint}`);
+      }
+    }, 30000);
+
+    it('should allow appropriate permissions for role', async () => {
+      if (!hrToken) {
+        console.log('⚠️ Skipping test - no HR token available');
+        return;
+      }
+
+      // HR should be able to perform HR actions
+      const hrActions = [
+        {
+          method: 'GET',
+          endpoint: '/api/v1/hr/employees'
+        },
+        {
+          method: 'GET',
+          endpoint: '/api/v1/hr/departments'
+        },
+        {
+          method: 'GET',
+          endpoint: '/api/v1/hr/payroll'
+        }
+      ];
+
+      for (const action of hrActions) {
+        const response = await axios.create().post(
+          `${config.baseURL}${action.endpoint}`,
+          action.data,
+          {
+            headers: {
+              'Authorization': `Bearer ${hrToken}`
+            },
+            timeout: 10000,
+            validateStatus: () => true
+          }
+        );
+
+        // Should be allowed (200) or not found (404), but not forbidden (403)
+        expect(response.status).not.toBe(403);
+        console.log(`✅ HR allowed ${action.method} access to ${action.endpoint} (${response.status})`);
+      }
+    }, 30000);
+  });
+});

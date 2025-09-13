@@ -23,7 +23,7 @@ const EmployeeManagement: React.FC = () => {
   const [selectedEmployeeForIdCard, setSelectedEmployeeForIdCard] = useState<HREmployee | null>(null);
   const [idCardSearchTerm, setIdCardSearchTerm] = useState('');
   const [idCardDepartmentFilter, setIdCardDepartmentFilter] = useState('');
-  const [generatedIdCard, setGeneratedIdCard] = useState<any>(null);
+  const [generatedIdCard, setGeneratedIdCard] = useState<{ id: string; expiryDate: string } | null>(null);
   const [idCardError, setIdCardError] = useState<string | null>(null);
   const [currentIdCardId, setCurrentIdCardId] = useState<string | null>(null);
   
@@ -90,12 +90,6 @@ const EmployeeManagement: React.FC = () => {
   const { data: qrCodeData, isLoading: qrCodeLoading, error: qrCodeError } = useQrCodeData(currentIdCardId || '');
   const { data: existingIdCards } = useIdCards({ isActive: true });
   
-  // Debug logging
-  console.log('Current ID Card ID:', currentIdCardId);
-  console.log('QR Code Data:', qrCodeData);
-  console.log('QR Code Loading:', qrCodeLoading);
-  console.log('QR Code Error:', qrCodeError);
-  console.log('Existing ID Cards:', existingIdCards);
   
   // Helper function to check if employee has active ID card
   const employeeHasActiveIdCard = (employeeId: string) => {
@@ -103,17 +97,12 @@ const EmployeeManagement: React.FC = () => {
     const idCardsArray = Array.isArray(existingIdCards) ? existingIdCards : existingIdCards?.idCards;
     
     if (!idCardsArray) {
-      console.log('No existing ID cards data available');
       return false;
     }
-    
-    console.log('Checking employee ID:', employeeId);
-    console.log('Available ID cards:', idCardsArray.map(card => ({ id: card.id, employeeId: card.employeeId, isActive: card.isActive })));
-    
-    const hasCard = idCardsArray.some(card => 
+
+    const hasCard = idCardsArray.some(card =>
       card.employeeId === employeeId && card.isActive
     );
-    console.log(`Employee ${employeeId} has active ID card:`, hasCard);
     return hasCard;
   };
   
@@ -132,12 +121,11 @@ const EmployeeManagement: React.FC = () => {
   // Effect to handle existing ID cards loading after employee selection
   useEffect(() => {
     const idCardsArray = Array.isArray(existingIdCards) ? existingIdCards : existingIdCards?.idCards;
-    
+
     if (selectedEmployeeForIdCard && idCardsArray) {
       if (employeeHasActiveIdCard(selectedEmployeeForIdCard.id)) {
         const existingCard = getExistingIdCard(selectedEmployeeForIdCard.id);
         if (existingCard && existingCard.id !== currentIdCardId) {
-          console.log('Setting current ID card ID from useEffect:', existingCard.id);
           setCurrentIdCardId(existingCard.id);
         }
       }
@@ -186,7 +174,10 @@ const EmployeeManagement: React.FC = () => {
         await deleteEmployeeMutation.mutateAsync(employee.id);
         await refetch();
       } catch (error: any) {
-        console.error('Error deleting employee:', error);
+        // Log error in development only
+        if (import.meta.env.DEV) {
+          console.error('Error deleting employee:', error);
+        }
         alert(error.response?.data?.message || 'Failed to delete employee. Please try again.');
       }
     }
@@ -207,7 +198,10 @@ const EmployeeManagement: React.FC = () => {
       setSelectedEmployee(null);
       alert('Employee permanently deleted successfully!');
     } catch (error: any) {
-      console.error('Error hard deleting employee:', error);
+      // Log error in development only
+      if (import.meta.env.DEV) {
+        console.error('Error hard deleting employee:', error);
+      }
       alert(error.response?.data?.message || 'Failed to permanently delete employee. Please try again.');
     }
   };
@@ -245,7 +239,10 @@ const EmployeeManagement: React.FC = () => {
       // Show success message
       alert('Employee created successfully! An email invitation has been sent for password setup.');
     } catch (error: any) {
-      console.error('Error creating employee:', error);
+      // Log error in development only
+      if (import.meta.env.DEV) {
+        console.error('Error creating employee:', error);
+      }
       setFormError(error.response?.data?.message || 'Failed to create employee. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -305,8 +302,11 @@ const EmployeeManagement: React.FC = () => {
         setBulkFormError(`Failed to create all ${result.data.errorCount} employees. Please check the CSV format and try again.`);
       }
     } catch (error: any) {
-      console.error('Error in bulk employee creation:', error);
-      
+      // Log error in development only
+      if (import.meta.env.DEV) {
+        console.error('Error in bulk employee creation:', error);
+      }
+
       // Handle timeout errors specifically
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
         setBulkFormError('The operation timed out. This can happen with large CSV files. Please try with a smaller batch or contact support if the issue persists.');
@@ -341,7 +341,10 @@ const EmployeeManagement: React.FC = () => {
       await refetch();
       setIsEditModalOpen(false);
     } catch (error: any) {
-      console.error('Error updating employee:', error);
+      // Log error in development only
+      if (import.meta.env.DEV) {
+        console.error('Error updating employee:', error);
+      }
       setEditFormError(error.response?.data?.message || 'Failed to update employee. Please try again.');
     } finally {
       setIsEditSubmitting(false);
@@ -363,21 +366,18 @@ const EmployeeManagement: React.FC = () => {
     
     // Wait for existing ID cards to load, then check
     const idCardsArray = Array.isArray(existingIdCards) ? existingIdCards : existingIdCards?.idCards;
-    
+
     if (idCardsArray) {
       // If employee has an existing ID card, set the ID card ID to fetch QR code
       if (employeeHasActiveIdCard(employee.id)) {
         const existingCard = getExistingIdCard(employee.id);
-        console.log('Employee has existing ID card:', existingCard);
         setCurrentIdCardId(existingCard?.id || null);
         setGeneratedIdCard(null); // Clear any newly generated card
       } else {
-        console.log('Employee does not have existing ID card');
         setCurrentIdCardId(null);
         setGeneratedIdCard(null);
       }
     } else {
-      console.log('Existing ID cards not loaded yet');
       setCurrentIdCardId(null);
       setGeneratedIdCard(null);
     }
@@ -579,10 +579,13 @@ const EmployeeManagement: React.FC = () => {
       // Show success message
       alert(`ID card generated successfully for ${employee.firstName} ${employee.lastName}!`);
     } catch (error: any) {
-      console.error('Error generating ID card:', error);
+      // Log error in development only
+      if (import.meta.env.DEV) {
+        console.error('Error generating ID card:', error);
+      }
       const errorMessage = error.response?.data?.message || 'Failed to generate ID card. Please try again.';
       setIdCardError(errorMessage);
-      
+
       // Show specific message for existing ID card
       if (errorMessage.includes('already has an active ID card')) {
         alert(`${employee.firstName} ${employee.lastName} already has an active ID card. Please deactivate the existing card first or select a different employee.`);
@@ -1217,7 +1220,7 @@ const EmployeeManagement: React.FC = () => {
               </label>
               <select
                 value={addFormData.employmentType}
-                onChange={(e) => setAddFormData(prev => ({ ...prev, employmentType: e.target.value as any }))}
+                onChange={(e) => setAddFormData(prev => ({ ...prev, employmentType: e.target.value as 'regular' | 'contractual' | 'jo' }))}
                 className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-button-primary focus:border-transparent text-sm w-full"
                 required
               >
@@ -1474,7 +1477,7 @@ david.brown@company.com,David,Brown,dept-456,Accountant,regular,2024-03-15,48000
               </label>
               <select
                 value={editFormData.employmentType}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, employmentType: e.target.value as any }))}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, employmentType: e.target.value as 'regular' | 'contractual' | 'jo' }))}
                 className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-button-primary focus:border-transparent text-sm w-full"
                 required
               >
@@ -1512,7 +1515,7 @@ david.brown@company.com,David,Brown,dept-456,Accountant,regular,2024-03-15,48000
               </label>
               <select
                 value={editFormData.status}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, status: e.target.value as any }))}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' | 'terminated' | 'on_leave' }))}
                 className="h-10 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-button-primary focus:border-transparent text-sm w-full"
                 required
               >

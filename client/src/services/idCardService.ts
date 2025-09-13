@@ -13,7 +13,7 @@ export class IdCardService {
     totalPages: number;
   }> {
     const queryParams = new URLSearchParams();
-    
+
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
@@ -23,24 +23,39 @@ export class IdCardService {
     if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
-    const response = await apiMethods.get(`/hr/id-cards?${queryParams.toString()}`);
-    return (response as any).data;
+    const response = await apiMethods.get<{
+      idCards: IdCard[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>(`/hr/id-cards?${queryParams.toString()}`);
+    if (!response.data) {
+      throw new Error('Failed to fetch ID cards');
+    }
+    return response.data;
   }
 
   /**
    * Get ID card by ID
    */
   static async getIdCard(id: string): Promise<IdCard> {
-    const response = await apiMethods.get(`/hr/id-cards/${id}`);
-    return (response as any).data;
+    const response = await apiMethods.get<IdCard>(`/hr/id-cards/${id}`);
+    if (!response.data) {
+      throw new Error('Failed to fetch ID card');
+    }
+    return response.data;
   }
 
   /**
    * Create new ID card for employee
    */
   static async createIdCard(data: CreateIdCardRequest): Promise<IdCard> {
-    const response = await apiMethods.post('/hr/id-cards', data);
-    return (response as any).data;
+    const response = await apiMethods.post<IdCard>('/hr/id-cards', data as any);
+    if (!response.data) {
+      throw new Error('Failed to create ID card');
+    }
+    return response.data;
   }
 
   /**
@@ -58,10 +73,15 @@ export class IdCardService {
     failed: number;
     errors: Array<{ employeeId: string; error: string }>;
   }> {
-    const response = await apiMethods.post(`/hr/id-cards/generate-department`, {
-      departmentId
-    });
-    return (response as any).data;
+    const response = await apiMethods.post<{
+      success: number;
+      failed: number;
+      errors: Array<{ employeeId: string; error: string }>;
+    }>(`/hr/id-cards/generate-department`, { departmentId });
+    if (!response.data) {
+      throw new Error('Failed to generate department ID cards');
+    }
+    return response.data;
   }
 
   /**
@@ -73,8 +93,16 @@ export class IdCardService {
     expiredIdCards: number;
     expiringSoon: number;
   }> {
-    const response = await apiMethods.get('/hr/id-cards/stats');
-    return (response as any).data;
+    const response = await apiMethods.get<{
+      totalIdCards: number;
+      activeIdCards: number;
+      expiredIdCards: number;
+      expiringSoon: number;
+    }>('/hr/id-cards/stats');
+    if (!response.data) {
+      throw new Error('Failed to fetch ID card stats');
+    }
+    return response.data;
   }
 
   /**
@@ -84,8 +112,14 @@ export class IdCardService {
     qrCodeData: string;
     qrCodeImage: string;
   }> {
-    const response = await apiMethods.get(`/hr/id-cards/${idCardId}/qr-code`);
-    return (response as any).data;
+    const response = await apiMethods.get<{
+      qrCodeData: string;
+      qrCodeImage: string;
+    }>(`/hr/id-cards/${idCardId}/qr-code`);
+    if (!response.data) {
+      throw new Error('Failed to fetch QR code data');
+    }
+    return response.data;
   }
 }
 

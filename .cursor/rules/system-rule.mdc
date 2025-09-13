@@ -1414,8 +1414,263 @@ const MAINTENANCE_SCHEDULE = {
 
 ---
 
+## 🔄 **Function Reuse & Implementation Scanning Rules**
+
+### **13. Function Reuse & Implementation Scanning**
+
+#### **Pre-Implementation Scanning Requirements**
+```typescript
+// Function Reuse & Implementation Scanning Requirements
+const FUNCTION_REUSE_RULES = {
+  // Pre-Implementation Scanning Requirements
+  pre_implementation: {
+    mandatory_scan: 'MUST scan existing codebase before implementing new functions',
+    search_scope: [
+      'server/src/utils/ - All utility functions',
+      'server/src/services/ - All service implementations', 
+      'server/src/controllers/ - All controller patterns',
+      'server/src/middleware/ - All middleware functions',
+      'client/src/utils/ - All client utility functions',
+      'client/src/services/ - All client service implementations',
+      'client/src/hooks/ - All custom React hooks'
+    ],
+    search_keywords: [
+      'Function name variations',
+      'Similar functionality keywords',
+      'Related business logic terms',
+      'Common operation patterns'
+    ],
+    analysis_required: 'Analyze existing implementations for reusability'
+  },
+
+  // Reuse Decision Matrix
+  reuse_decision: {
+    exact_match: {
+      condition: 'Identical functionality exists',
+      action: 'REUSE existing function',
+      documentation: 'Update function documentation with new use case'
+    },
+    similar_functionality: {
+      condition: 'Similar but not identical functionality',
+      action: 'REFACTOR existing function to be more generic',
+      documentation: 'Update function to handle multiple use cases'
+    },
+    partial_overlap: {
+      condition: 'Some logic overlaps with existing functions',
+      action: 'EXTRACT common logic into shared utility',
+      documentation: 'Create new utility function for common logic'
+    },
+    no_match: {
+      condition: 'No existing similar functionality',
+      action: 'IMPLEMENT new function',
+      documentation: 'Document why new implementation was necessary'
+    }
+  },
+
+  // Implementation Standards
+  implementation_standards: {
+    location: {
+      utilities: 'server/src/utils/ for server-side utilities',
+      client_utilities: 'client/src/utils/ for client-side utilities',
+      shared_types: 'server/src/types/ or client/src/types/ for shared types',
+      constants: 'server/src/utils/constants/ for shared constants'
+    },
+    naming: {
+      descriptive: 'Function names must clearly describe purpose',
+      consistent: 'Follow existing naming conventions',
+      searchable: 'Use keywords that make functions easy to find'
+    },
+    documentation: {
+      purpose: 'Clear description of function purpose',
+      parameters: 'Document all parameters and their types',
+      return_value: 'Document return value and type',
+      examples: 'Provide usage examples',
+      dependencies: 'List any dependencies or requirements'
+    }
+  },
+
+  // Code Organization Rules
+  organization: {
+    utility_functions: {
+      location: 'server/src/utils/',
+      categories: [
+        'database/ - Database-related utilities',
+        'validation/ - Data validation utilities', 
+        'constants/ - Application constants',
+        'types/ - TypeScript type definitions',
+        'Root level - General utility functions'
+      ],
+      naming: 'Use descriptive names with category prefixes if needed'
+    },
+    service_functions: {
+      location: 'server/src/services/',
+      pattern: 'One service per business domain',
+      shared_logic: 'Extract common logic to utilities'
+    },
+    client_functions: {
+      location: 'client/src/services/ for API calls',
+      location_utilities: 'client/src/utils/ for client-side utilities',
+      location_hooks: 'client/src/hooks/ for React-specific logic'
+    }
+  },
+
+  // Refactoring Rules
+  refactoring: {
+    when_to_refactor: [
+      'Function used in 3+ different places',
+      'Similar logic exists in multiple files',
+      'Function becomes too complex or long',
+      'New requirements make existing function inadequate'
+    ],
+    refactoring_process: [
+      '1. Identify all current usages',
+      '2. Plan refactoring to maintain backward compatibility',
+      '3. Update all dependent code',
+      '4. Update tests for all affected functions',
+      '5. Update documentation',
+      '6. Verify no regressions'
+    ],
+    backward_compatibility: 'Maintain existing function signatures when possible'
+  },
+
+  // Quality Assurance
+  quality_assurance: {
+    code_review_checklist: [
+      'Scanned existing codebase for similar functionality',
+      'Reused existing functions where appropriate',
+      'Extracted common logic to utilities when needed',
+      'Updated documentation for reused functions',
+      'Added new function to appropriate utility location',
+      'Followed consistent naming conventions',
+      'Added comprehensive tests for new functions'
+    ],
+    testing_requirements: [
+      'Unit tests for all new utility functions',
+      'Integration tests for refactored functions',
+      'Regression tests for existing functionality',
+      'Performance tests for critical functions'
+    ]
+  }
+}
+```
+
+#### **Implementation Workflow**
+```typescript
+// Function Implementation Workflow
+const IMPLEMENTATION_WORKFLOW = {
+  step_1_scan: {
+    action: 'Search codebase for existing similar functionality',
+    tools: [
+      'grep search for function names',
+      'semantic search for similar logic',
+      'Review utility directories',
+      'Check service implementations'
+    ],
+    time_allocation: 'Minimum 15 minutes before coding'
+  },
+  
+  step_2_analyze: {
+    action: 'Analyze existing implementations',
+    questions: [
+      'Can existing function be reused as-is?',
+      'Can existing function be extended?',
+      'What common logic can be extracted?',
+      'What are the differences in requirements?'
+    ]
+  },
+  
+  step_3_decide: {
+    action: 'Make reuse decision based on analysis',
+    options: [
+      'REUSE: Use existing function',
+      'EXTEND: Modify existing function',
+      'EXTRACT: Create shared utility',
+      'IMPLEMENT: Create new function'
+    ]
+  },
+  
+  step_4_implement: {
+    action: 'Implement chosen approach',
+    requirements: [
+      'Follow established patterns',
+      'Add comprehensive documentation',
+      'Write tests for new code',
+      'Update existing tests if refactoring'
+    ]
+  },
+  
+  step_5_verify: {
+    action: 'Verify implementation',
+    checks: [
+      'All existing functionality still works',
+      'New functionality works as expected',
+      'Tests pass for all affected code',
+      'Documentation is accurate and complete'
+    ]
+  }
+}
+```
+
+#### **Search Tools and Techniques**
+```typescript
+// Recommended Search Techniques
+const SEARCH_TECHNIQUES = {
+  semantic_search: {
+    description: 'Search for similar functionality by meaning',
+    examples: [
+      'Search for "validate email" instead of "email validation"',
+      'Search for "calculate hours" instead of "hour calculation"',
+      'Search for "format date" instead of "date formatting"'
+    ]
+  },
+  
+  pattern_search: {
+    description: 'Search for common patterns',
+    examples: [
+      'Search for "async function" + "error handling"',
+      'Search for "validation" + "schema"',
+      'Search for "database" + "query"'
+    ]
+  },
+  
+  file_type_search: {
+    description: 'Search within specific file types',
+    examples: [
+      'Search only in .ts files for TypeScript functions',
+      'Search only in utils/ directories for utilities',
+      'Search only in services/ for business logic'
+    ]
+  }
+}
+```
+
+#### **Benefits of Function Reuse**
+- **Reduces Code Duplication**: Prevents multiple implementations of the same logic
+- **Improves Maintainability**: Changes only need to be made in one place
+- **Enhances Consistency**: Ensures similar functionality works the same way
+- **Saves Development Time**: Reusing existing code is faster than writing new code
+- **Improves Code Quality**: Existing functions are already tested and proven
+- **Better Documentation**: Centralized functions have better documentation
+
+#### **Example Implementation Process**
+```typescript
+// Before implementing a new email validation function:
+// 1. Search existing codebase for "email validation"
+// 2. Find existing validation in server/src/utils/validation/
+// 3. Check if existing function meets requirements
+// 4. If yes: REUSE existing function
+// 5. If no: EXTEND existing function or create new one in appropriate location
+
+// Example search results might show:
+// - server/src/utils/validation/employeeSchemas.ts has email validation
+// - server/src/services/auth/authService.ts has email validation
+// - Decision: Extract common email validation to shared utility
+```
+
+---
+
 **Last Updated**: January 27, 2025  
-**Version**: 1.1.0  
+**Version**: 1.2.0  
 **Status**: ✅ **PRODUCTION READY**  
 **Compliance**: Philippine Labor Laws, GDPR, Data Protection Act
 
@@ -1423,7 +1678,7 @@ const MAINTENANCE_SCHEDULE = {
 
 ## 📋 **Rule Summary**
 
-### **Total Rules**: 229+ Business Rules
+### **Total Rules**: 250+ Business Rules
 - **User Management & Authentication**: 15 rules
 - **Employee Management**: 12 rules  
 - **Attendance Management**: 18 rules
@@ -1436,6 +1691,7 @@ const MAINTENANCE_SCHEDULE = {
 - **Security & Compliance**: 15 rules
 - **Performance**: 8 rules
 - **API Integration**: 10 rules
+- **Function Reuse & Implementation Scanning**: 21 rules
 - **Documentation Structure**: 20 rules
 - **Testing Structure**: 25 rules
 - **Project Structure**: 15 rules
@@ -1446,6 +1702,7 @@ const MAINTENANCE_SCHEDULE = {
 
 ### **Key Features**
 - ✅ **Comprehensive Coverage**: All aspects of the system covered
+- ✅ **Function Reuse & Implementation Scanning**: Mandatory code scanning before implementation
 - ✅ **Cross-File Impact Analysis**: Rules for checking file dependencies
 - ✅ **Documentation Maintenance**: Mandatory documentation updates
 - ✅ **Change Management**: Complete change impact assessment

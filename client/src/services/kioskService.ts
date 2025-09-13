@@ -56,8 +56,11 @@ export class KioskService {
    * Verify employee by QR code data
    */
   static async verifyEmployeeByQR(qrCodeData: string): Promise<KioskEmployee> {
-    const response = await apiMethods.get(`/kiosk/verify-qr?qrCode=${encodeURIComponent(qrCodeData)}`);
-    return (response as any).data;
+    const response = await apiMethods.get<KioskEmployee>(`/kiosk/verify-qr?qrCode=${encodeURIComponent(qrCodeData)}`);
+    if (!response.data) {
+      throw new Error('Failed to verify employee');
+    }
+    return response.data;
   }
 
   /**
@@ -70,24 +73,27 @@ export class KioskService {
     qrCodeData: string;
     selfieUrl?: string;
   }): Promise<KioskAttendanceRecord> {
-    const response = await apiMethods.post('/kiosk/attendance', data);
-    return (response as any).data;
+    const response = await apiMethods.post<KioskAttendanceRecord>('/kiosk/attendance', data);
+    if (!response.data) {
+      throw new Error('Failed to record attendance');
+    }
+    return response.data;
   }
 
   /**
    * Get employee's last attendance record
    */
   static async getLastAttendance(employeeId: string): Promise<KioskAttendanceRecord | null> {
-    const response = await apiMethods.get(`/kiosk/attendance/last/${employeeId}`);
-    return (response as any).data;
+    const response = await apiMethods.get<KioskAttendanceRecord | null>(`/kiosk/attendance/last/${employeeId}`);
+    return response.data || null;
   }
 
   /**
    * Get employee's attendance history
    */
   static async getAttendanceHistory(employeeId: string, limit: number = 10): Promise<KioskAttendanceRecord[]> {
-    const response = await apiMethods.get(`/kiosk/attendance/history/${employeeId}?limit=${limit}`);
-    return (response as any).data;
+    const response = await apiMethods.get<KioskAttendanceRecord[]>(`/kiosk/attendance/history/${employeeId}?limit=${limit}`);
+    return response.data || [];
   }
 
   /**
@@ -103,13 +109,13 @@ export class KioskService {
     // If we have a selfie image (base64), convert it to a file and send as FormData
     if (data.selfieUrl && data.selfieUrl.startsWith('data:image/')) {
       const formData = new FormData();
-      
+
       // Add text fields
       formData.append('employeeId', data.employeeId);
       formData.append('sessionType', data.sessionType);
       formData.append('location', data.location);
       formData.append('qrCodeData', data.qrCodeData);
-      
+
       // Convert base64 to blob and add as file
       const base64Data = data.selfieUrl.split(',')[1];
       const byteCharacters = atob(base64Data);
@@ -119,21 +125,27 @@ export class KioskService {
       }
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'image/jpeg' });
-      
+
       // Create a file from the blob
       const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
       formData.append('selfie', file);
-      
-      const response = await apiMethods.post('/kiosk/attendance/time-based', formData, {
+
+      const response = await apiMethods.post<KioskAttendanceRecord>('/kiosk/attendance/time-based', formData as any, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      return (response as any).data;
+      if (!response.data) {
+        throw new Error('Failed to record time-based attendance');
+      }
+      return response.data;
     } else {
       // No image, send as regular JSON
-      const response = await apiMethods.post('/kiosk/attendance/time-based', data);
-      return (response as any).data;
+      const response = await apiMethods.post<KioskAttendanceRecord>('/kiosk/attendance/time-based', data);
+      if (!response.data) {
+        throw new Error('Failed to record time-based attendance');
+      }
+      return response.data;
     }
   }
 
@@ -141,8 +153,11 @@ export class KioskService {
    * Get next expected session for employee
    */
   static async getNextExpectedSession(employeeId: string): Promise<NextSessionInfo> {
-    const response = await apiMethods.get(`/kiosk/attendance/next-session/${employeeId}`);
-    return (response as any).data;
+    const response = await apiMethods.get<NextSessionInfo>(`/kiosk/attendance/next-session/${employeeId}`);
+    if (!response.data) {
+      throw new Error('Failed to get next expected session');
+    }
+    return response.data;
   }
 
   /**
@@ -154,19 +169,27 @@ export class KioskService {
     nextExpectedSession?: SessionType;
     sessionDisplayInfo?: SessionDisplayInfo;
   }> {
-    const response = await apiMethods.post('/kiosk/attendance/validate', {
-      employeeId,
-      sessionType
-    });
-    return (response as any).data;
+    const response = await apiMethods.post<{
+      canPerform: boolean;
+      reason?: string;
+      nextExpectedSession?: SessionType;
+      sessionDisplayInfo?: SessionDisplayInfo;
+    }>('/kiosk/attendance/validate', { employeeId, sessionType });
+    if (!response.data) {
+      throw new Error('Failed to validate attendance action');
+    }
+    return response.data;
   }
 
   /**
    * Get today's attendance summary for employee
    */
   static async getTodayAttendanceSummary(employeeId: string): Promise<TodayAttendanceSummary> {
-    const response = await apiMethods.get(`/kiosk/attendance/today-summary/${employeeId}`);
-    return (response as any).data;
+    const response = await apiMethods.get<TodayAttendanceSummary>(`/kiosk/attendance/today-summary/${employeeId}`);
+    if (!response.data) {
+      throw new Error('Failed to get today attendance summary');
+    }
+    return response.data;
   }
 }
 

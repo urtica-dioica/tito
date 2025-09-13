@@ -1,0 +1,30 @@
+e0501fb1dd984b1ee9fbc951c381f429
+"use strict";
+/**
+ * Global Test Setup
+ *
+ * This file runs once before all tests start.
+ * It sets up the global test environment and initializes any required services.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = globalSetup;
+const setup_1 = require("./setup");
+async function globalSetup() {
+    console.log('🚀 Setting up global test environment...');
+    try {
+        // Setup test database
+        console.log('📊 Setting up test database...');
+        await (0, setup_1.setupTestDatabase)();
+        console.log('✅ Test database setup complete');
+        // Setup test Redis (mock)
+        console.log('🔴 Setting up test Redis (mock)...');
+        await (0, setup_1.setupTestRedis)();
+        console.log('✅ Test Redis setup complete');
+        console.log('🎉 Global test setup complete!');
+    }
+    catch (error) {
+        console.error('❌ Global test setup failed:', error);
+        throw error;
+    }
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJmaWxlIjoiL2hvbWUva2ltL3RpdG8vc2VydmVyL3Rlc3RzL2dsb2JhbFNldHVwLnRzIiwibWFwcGluZ3MiOiI7QUFBQTs7Ozs7R0FLRzs7QUFJSCw4QkFtQkM7QUFyQkQsbUNBQTREO0FBRTdDLEtBQUssVUFBVSxXQUFXO0lBQ3ZDLE9BQU8sQ0FBQyxHQUFHLENBQUMsMENBQTBDLENBQUMsQ0FBQztJQUV4RCxJQUFJLENBQUM7UUFDSCxzQkFBc0I7UUFDdEIsT0FBTyxDQUFDLEdBQUcsQ0FBQyxnQ0FBZ0MsQ0FBQyxDQUFDO1FBQzlDLE1BQU0sSUFBQSx5QkFBaUIsR0FBRSxDQUFDO1FBQzFCLE9BQU8sQ0FBQyxHQUFHLENBQUMsZ0NBQWdDLENBQUMsQ0FBQztRQUU5QywwQkFBMEI7UUFDMUIsT0FBTyxDQUFDLEdBQUcsQ0FBQyxvQ0FBb0MsQ0FBQyxDQUFDO1FBQ2xELE1BQU0sSUFBQSxzQkFBYyxHQUFFLENBQUM7UUFDdkIsT0FBTyxDQUFDLEdBQUcsQ0FBQyw2QkFBNkIsQ0FBQyxDQUFDO1FBRTNDLE9BQU8sQ0FBQyxHQUFHLENBQUMsZ0NBQWdDLENBQUMsQ0FBQztJQUNoRCxDQUFDO0lBQUMsT0FBTyxLQUFLLEVBQUUsQ0FBQztRQUNmLE9BQU8sQ0FBQyxLQUFLLENBQUMsNkJBQTZCLEVBQUUsS0FBSyxDQUFDLENBQUM7UUFDcEQsTUFBTSxLQUFLLENBQUM7SUFDZCxDQUFDO0FBQ0gsQ0FBQyIsIm5hbWVzIjpbXSwic291cmNlcyI6WyIvaG9tZS9raW0vdGl0by9zZXJ2ZXIvdGVzdHMvZ2xvYmFsU2V0dXAudHMiXSwic291cmNlc0NvbnRlbnQiOlsiLyoqXG4gKiBHbG9iYWwgVGVzdCBTZXR1cFxuICogXG4gKiBUaGlzIGZpbGUgcnVucyBvbmNlIGJlZm9yZSBhbGwgdGVzdHMgc3RhcnQuXG4gKiBJdCBzZXRzIHVwIHRoZSBnbG9iYWwgdGVzdCBlbnZpcm9ubWVudCBhbmQgaW5pdGlhbGl6ZXMgYW55IHJlcXVpcmVkIHNlcnZpY2VzLlxuICovXG5cbmltcG9ydCB7IHNldHVwVGVzdERhdGFiYXNlLCBzZXR1cFRlc3RSZWRpcyB9IGZyb20gJy4vc2V0dXAnO1xuXG5leHBvcnQgZGVmYXVsdCBhc3luYyBmdW5jdGlvbiBnbG9iYWxTZXR1cCgpIHtcbiAgY29uc29sZS5sb2coJ/CfmoAgU2V0dGluZyB1cCBnbG9iYWwgdGVzdCBlbnZpcm9ubWVudC4uLicpO1xuICBcbiAgdHJ5IHtcbiAgICAvLyBTZXR1cCB0ZXN0IGRhdGFiYXNlXG4gICAgY29uc29sZS5sb2coJ/Cfk4ogU2V0dGluZyB1cCB0ZXN0IGRhdGFiYXNlLi4uJyk7XG4gICAgYXdhaXQgc2V0dXBUZXN0RGF0YWJhc2UoKTtcbiAgICBjb25zb2xlLmxvZygn4pyFIFRlc3QgZGF0YWJhc2Ugc2V0dXAgY29tcGxldGUnKTtcbiAgICBcbiAgICAvLyBTZXR1cCB0ZXN0IFJlZGlzIChtb2NrKVxuICAgIGNvbnNvbGUubG9nKCfwn5S0IFNldHRpbmcgdXAgdGVzdCBSZWRpcyAobW9jaykuLi4nKTtcbiAgICBhd2FpdCBzZXR1cFRlc3RSZWRpcygpO1xuICAgIGNvbnNvbGUubG9nKCfinIUgVGVzdCBSZWRpcyBzZXR1cCBjb21wbGV0ZScpO1xuICAgIFxuICAgIGNvbnNvbGUubG9nKCfwn46JIEdsb2JhbCB0ZXN0IHNldHVwIGNvbXBsZXRlIScpO1xuICB9IGNhdGNoIChlcnJvcikge1xuICAgIGNvbnNvbGUuZXJyb3IoJ+KdjCBHbG9iYWwgdGVzdCBzZXR1cCBmYWlsZWQ6JywgZXJyb3IpO1xuICAgIHRocm93IGVycm9yO1xuICB9XG59XG4iXSwidmVyc2lvbiI6M30=

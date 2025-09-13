@@ -1,0 +1,121 @@
+d86112d1f2d6fed1a9bc74a8574f6a31
+"use strict";
+
+/* istanbul ignore next */
+function cov_1l1xfnd6gs() {
+  var path = "/home/kim/tito/server/src/utils/requestId.ts";
+  var hash = "451754767f03b76ba9e393e99434bfeeb4126779";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/home/kim/tito/server/src/utils/requestId.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 2,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 3,
+          column: 46
+        }
+      },
+      "2": {
+        start: {
+          line: 8,
+          column: 4
+        },
+        end: {
+          line: 8,
+          column: 74
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "generateRequestId",
+        decl: {
+          start: {
+            line: 7,
+            column: 9
+          },
+          end: {
+            line: 7,
+            column: 26
+          }
+        },
+        loc: {
+          start: {
+            line: 7,
+            column: 29
+          },
+          end: {
+            line: 9,
+            column: 1
+          }
+        },
+        line: 7
+      }
+    },
+    branchMap: {},
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    },
+    f: {
+      "0": 0
+    },
+    b: {},
+    inputSourceMap: {
+      file: "/home/kim/tito/server/src/utils/requestId.ts",
+      mappings: ";;AAGA,8CAEC;AALD;;GAEG;AACH,SAAgB,iBAAiB;IAC/B,OAAO,OAAO,IAAI,CAAC,GAAG,EAAE,IAAI,IAAI,CAAC,MAAM,EAAE,CAAC,QAAQ,CAAC,EAAE,CAAC,CAAC,MAAM,CAAC,CAAC,EAAE,CAAC,CAAC,EAAE,CAAC;AACxE,CAAC",
+      names: [],
+      sources: ["/home/kim/tito/server/src/utils/requestId.ts"],
+      sourcesContent: ["/**\n * Generate a unique request ID\n */\nexport function generateRequestId(): string {\n  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;\n}"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "451754767f03b76ba9e393e99434bfeeb4126779"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1l1xfnd6gs = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1l1xfnd6gs();
+cov_1l1xfnd6gs().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1l1xfnd6gs().s[1]++;
+exports.generateRequestId = generateRequestId;
+/**
+ * Generate a unique request ID
+ */
+function generateRequestId() {
+  /* istanbul ignore next */
+  cov_1l1xfnd6gs().f[0]++;
+  cov_1l1xfnd6gs().s[2]++;
+  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJleHBvcnRzIiwiZ2VuZXJhdGVSZXF1ZXN0SWQiLCJjb3ZfMWwxeGZuZDZncyIsImYiLCJzIiwiRGF0ZSIsIm5vdyIsIk1hdGgiLCJyYW5kb20iLCJ0b1N0cmluZyIsInN1YnN0ciJdLCJzb3VyY2VzIjpbIi9ob21lL2tpbS90aXRvL3NlcnZlci9zcmMvdXRpbHMvcmVxdWVzdElkLnRzIl0sInNvdXJjZXNDb250ZW50IjpbIi8qKlxuICogR2VuZXJhdGUgYSB1bmlxdWUgcmVxdWVzdCBJRFxuICovXG5leHBvcnQgZnVuY3Rpb24gZ2VuZXJhdGVSZXF1ZXN0SWQoKTogc3RyaW5nIHtcbiAgcmV0dXJuIGByZXFfJHtEYXRlLm5vdygpfV8ke01hdGgucmFuZG9tKCkudG9TdHJpbmcoMzYpLnN1YnN0cigyLCA5KX1gO1xufSJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztBQUdBQSxPQUFBLENBQUFDLGlCQUFBLEdBQUFBLGlCQUFBO0FBSEE7OztBQUdBLFNBQWdCQSxpQkFBaUJBLENBQUE7RUFBQTtFQUFBQyxjQUFBLEdBQUFDLENBQUE7RUFBQUQsY0FBQSxHQUFBRSxDQUFBO0VBQy9CLE9BQU8sT0FBT0MsSUFBSSxDQUFDQyxHQUFHLEVBQUUsSUFBSUMsSUFBSSxDQUFDQyxNQUFNLEVBQUUsQ0FBQ0MsUUFBUSxDQUFDLEVBQUUsQ0FBQyxDQUFDQyxNQUFNLENBQUMsQ0FBQyxFQUFFLENBQUMsQ0FBQyxFQUFFO0FBQ3ZFIiwiaWdub3JlTGlzdCI6W119

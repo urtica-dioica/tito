@@ -1,0 +1,28 @@
+HTTP/1.1 200 OK
+Content-Security-Policy: default-src 'self';style-src 'self' 'unsafe-inline';script-src 'self';img-src 'self' data: https: http://localhost:3000 http://localhost:5173;base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';object-src 'none';script-src-attr 'none';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: cross-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=15552000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+Access-Control-Allow-Origin: http://localhost:5173
+Vary: Origin
+Access-Control-Allow-Credentials: true
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 99
+X-RateLimit-Reset: 60
+Set-Cookie: accessToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0MDU2ZTI4Yi00Y2Q5LTQwMjItOWExOC01ZTQzMjY3YWY0NDIiLCJlbWFpbCI6ImhyLmFkbWluQHRpdG8uY29tIiwicm9sZSI6ImhyIiwidG9rZW5WZXJzaW9uIjoxLCJpYXQiOjE3NTc3NzI2NDksImV4cCI6MTc1Nzc3MzU0OSwiYXVkIjoidGl0by1oci11c2VycyIsImlzcyI6InRpdG8taHItc3lzdGVtIn0.0OWpZpttK540T4AvlCKVQRgj1-gm34EyX_80fdrAOuc; Max-Age=900; Path=/; Expires=Sat, 13 Sep 2025 14:25:49 GMT; SameSite=Lax
+Set-Cookie: refreshToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0MDU2ZTI4Yi00Y2Q5LTQwMjItOWExOC01ZTQzMjY3YWY0NDIiLCJ0b2tlblZlcnNpb24iOjEsImlhdCI6MTc1Nzc3MjY0OSwiZXhwIjoxNzU4Mzc3NDQ5LCJhdWQiOiJ0aXRvLWhyLXJlZnJlc2giLCJpc3MiOiJ0aXRvLWhyLXN5c3RlbSJ9.8IFE59-2Z2ZzkCQkTjEnNiHzaU-DUhokODfHGRobXwI; Max-Age=604800; Path=/; Expires=Sat, 20 Sep 2025 14:10:49 GMT; SameSite=Lax
+Content-Type: application/json; charset=utf-8
+Content-Length: 371
+ETag: W/"173-rzndIE5o27CBUAEjKUbWEJcv37s"
+Date: Sat, 13 Sep 2025 14:10:49 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+

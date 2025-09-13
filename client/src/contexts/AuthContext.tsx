@@ -38,47 +38,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const currentUser = AuthService.getCurrentUser();
         const isAuth = AuthService.isAuthenticated();
-        
+
         if (currentUser && isAuth) {
           setUser(currentUser);
         } else {
           AuthService.clearAuthData();
-          // Clear React Query cache when no valid user (async to prevent blocking)
-          setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
-            queryClient.removeQueries({ queryKey: ['departmentHead'] });
-          }, 0);
-        }
-      } catch (err) {
-        console.error('Error initializing auth:', err);
-        // Clear invalid auth data
-        AuthService.clearAuthData();
-        // Clear React Query cache when there's an error (async to prevent blocking)
-        setTimeout(() => {
+          // Clear React Query cache when no valid user
           queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
           queryClient.removeQueries({ queryKey: ['departmentHead'] });
-        }, 0);
+        }
+      } catch (err) {
+        // Log error in development only
+        if (import.meta.env.DEV) {
+          console.error('Error initializing auth:', err);
+        }
+        // Clear invalid auth data
+        AuthService.clearAuthData();
+        // Clear React Query cache when there's an error
+        queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
+        queryClient.removeQueries({ queryKey: ['departmentHead'] });
       } finally {
         setLoading(false);
       }
     };
 
     initializeAuth();
-  }, []); // Remove queryClient dependency to prevent re-initialization
+  }, [queryClient]);
 
   // Clear cache when user changes (e.g., switching between department head accounts)
+  // Only clear cache when user ID actually changes, not on every render
   useEffect(() => {
     if (user?.id) {
       // Clear department head cache when a new user logs in
-      // Use a timeout to prevent blocking the UI
-      const timeoutId = setTimeout(() => {
+      // Use setTimeout to avoid immediate API calls that might interfere with login
+      setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
         queryClient.removeQueries({ queryKey: ['departmentHead'] });
       }, 100);
-      
-      return () => clearTimeout(timeoutId);
     }
-  }, [user?.id]); // Remove queryClient from dependencies to prevent infinite loop
+  }, [user?.id]); // Removed queryClient from dependencies to prevent unnecessary re-runs
 
   const login = async (credentials: LoginCredentials): Promise<void> => {
     try {
@@ -111,15 +109,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       await AuthService.logout();
     } catch (err) {
-      console.error('Logout error:', err);
+      // Log error in development only
+      if (import.meta.env.DEV) {
+        console.error('Logout error:', err);
+      }
     } finally {
       // Clear React Query cache to prevent data from previous user
-      // Specifically clear department head related queries (async to prevent blocking)
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
-        queryClient.removeQueries({ queryKey: ['departmentHead'] });
-      }, 0);
-      
+      queryClient.invalidateQueries({ queryKey: ['departmentHead'] });
+      queryClient.removeQueries({ queryKey: ['departmentHead'] });
+
       setUser(null);
       setError(null);
       setLoading(false);
@@ -136,18 +134,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const getUserFullName = (): string => {
     if (!user) return '';
-    // Handle both camelCase and snake_case properties
-    const firstName = (user as any).firstName || (user as any).first_name || '';
-    const lastName = (user as any).lastName || (user as any).last_name || '';
+    // Use the safe property access from the User interface
+    const firstName = user.firstName || '';
+    const lastName = user.lastName || '';
     return `${firstName} ${lastName}`.trim();
   };
 
   const getUserInitials = (): string => {
     if (!user) return '';
-    // Handle both camelCase and snake_case properties
-    const firstName = (user as any).firstName || (user as any).first_name || '';
-    const lastName = (user as any).lastName || (user as any).last_name || '';
-    
+    // Use the safe property access from the User interface
+    const firstName = user.firstName || '';
+    const lastName = user.lastName || '';
+
     if (!firstName || !lastName) return '';
     return `${firstName[0]}${lastName[0]}`.toUpperCase();
   };

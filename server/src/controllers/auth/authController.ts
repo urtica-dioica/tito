@@ -3,6 +3,7 @@ import { authService } from '../../services/auth/authService';
 import { userModel } from '../../models/auth/User';
 import { USER_ROLES } from '../../utils/constants/roles';
 import { ApiResponse } from '../../utils/types/express';
+import logger from '../../utils/logger';
 
 export class AuthController {
   /**
@@ -18,6 +19,7 @@ export class AuthController {
   async login(req: Request, res: Response<ApiResponse>): Promise<void> {
     try {
       const { email, password } = req.body;
+      logger.info('=== LOGIN REQUEST STARTED ===', { email });
 
       // Validate input
       if (!email || !password) {
@@ -45,10 +47,35 @@ export class AuthController {
         return;
       }
 
+      // Set HttpOnly cookies for security
+      logger.info('Setting cookies for user', { userId: result.data.user.id, email: result.data.user.email, nodeEnv: process.env.NODE_ENV });
+
+      const cookieOptions = {
+        httpOnly: false, // Temporarily make non-HttpOnly to test
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: (process.env.NODE_ENV === 'production' ? 'strict' : 'lax') as 'strict' | 'lax',
+        maxAge: 15 * 60 * 1000, // 15 minutes
+        path: '/'
+      };
+
+      res.cookie('accessToken', result.data.accessToken, cookieOptions);
+
+      const refreshCookieOptions = {
+        ...cookieOptions,
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      };
+
+      res.cookie('refreshToken', result.data.refreshToken, refreshCookieOptions);
+
+      logger.info('Cookies set successfully');
+
       res.status(200).json({
         success: true,
         message: result.message,
-        data: result.data,
+        data: {
+          user: result.data.user
+          // Tokens are now in HttpOnly cookies, not in response
+        },
         timestamp: new Date().toISOString(),
         requestId: this.getRequestId(req)
       });
@@ -96,6 +123,10 @@ export class AuthController {
         return;
       }
 
+      // Clear HttpOnly cookies
+      res.clearCookie('accessToken');
+      res.clearCookie('refreshToken');
+
       res.status(200).json({
         success: true,
         message: result.message,
@@ -118,7 +149,8 @@ export class AuthController {
    */
   async refreshToken(req: Request, res: Response<ApiResponse>): Promise<void> {
     try {
-      const { refreshToken } = req.body;
+      // Extract refresh token from HttpOnly cookie
+      const refreshToken = req.cookies.refreshToken;
 
       if (!refreshToken) {
         res.status(400).json({
@@ -145,10 +177,27 @@ export class AuthController {
         return;
       }
 
+      // Set new HttpOnly cookies
+      res.cookie('accessToken', result.data.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        maxAge: 15 * 60 * 1000 // 15 minutes
+      });
+
+      res.cookie('refreshToken', result.data.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
       res.status(200).json({
         success: true,
         message: result.message,
-        data: result.data,
+        data: {
+          // Tokens are now in HttpOnly cookies, not in response
+        },
         timestamp: new Date().toISOString(),
         requestId: this.getRequestId(req)
       });

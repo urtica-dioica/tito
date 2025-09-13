@@ -1,0 +1,584 @@
+464657e3162c44eedf3fddbb8e154b8b
+"use strict";
+
+/* istanbul ignore next */
+function cov_1wzjqut11z() {
+  var path = "/home/kim/tito/server/src/middleware/auth/authorize.ts";
+  var hash = "334393b39c38de4abcb61b69f55559235cc91bc1";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/home/kim/tito/server/src/middleware/auth/authorize.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 0
+        },
+        end: {
+          line: 2,
+          column: 62
+        }
+      },
+      "1": {
+        start: {
+          line: 3,
+          column: 0
+        },
+        end: {
+          line: 3,
+          column: 170
+        }
+      },
+      "2": {
+        start: {
+          line: 4,
+          column: 16
+        },
+        end: {
+          line: 4,
+          column: 54
+        }
+      },
+      "3": {
+        start: {
+          line: 9,
+          column: 18
+        },
+        end: {
+          line: 50,
+          column: 1
+        }
+      },
+      "4": {
+        start: {
+          line: 10,
+          column: 4
+        },
+        end: {
+          line: 49,
+          column: 6
+        }
+      },
+      "5": {
+        start: {
+          line: 11,
+          column: 8
+        },
+        end: {
+          line: 48,
+          column: 9
+        }
+      },
+      "6": {
+        start: {
+          line: 13,
+          column: 12
+        },
+        end: {
+          line: 16,
+          column: 13
+        }
+      },
+      "7": {
+        start: {
+          line: 14,
+          column: 16
+        },
+        end: {
+          line: 14,
+          column: 23
+        }
+      },
+      "8": {
+        start: {
+          line: 15,
+          column: 16
+        },
+        end: {
+          line: 15,
+          column: 23
+        }
+      },
+      "9": {
+        start: {
+          line: 18,
+          column: 12
+        },
+        end: {
+          line: 25,
+          column: 13
+        }
+      },
+      "10": {
+        start: {
+          line: 19,
+          column: 16
+        },
+        end: {
+          line: 23,
+          column: 19
+        }
+      },
+      "11": {
+        start: {
+          line: 24,
+          column: 16
+        },
+        end: {
+          line: 24,
+          column: 23
+        }
+      },
+      "12": {
+        start: {
+          line: 29,
+          column: 12
+        },
+        end: {
+          line: 38,
+          column: 13
+        }
+      },
+      "13": {
+        start: {
+          line: 30,
+          column: 16
+        },
+        end: {
+          line: 36,
+          column: 19
+        }
+      },
+      "14": {
+        start: {
+          line: 37,
+          column: 16
+        },
+        end: {
+          line: 37,
+          column: 23
+        }
+      },
+      "15": {
+        start: {
+          line: 40,
+          column: 12
+        },
+        end: {
+          line: 40,
+          column: 19
+        }
+      },
+      "16": {
+        start: {
+          line: 43,
+          column: 12
+        },
+        end: {
+          line: 47,
+          column: 15
+        }
+      },
+      "17": {
+        start: {
+          line: 51,
+          column: 0
+        },
+        end: {
+          line: 51,
+          column: 30
+        }
+      },
+      "18": {
+        start: {
+          line: 55,
+          column: 0
+        },
+        end: {
+          line: 55,
+          column: 68
+        }
+      },
+      "19": {
+        start: {
+          line: 59,
+          column: 0
+        },
+        end: {
+          line: 59,
+          column: 114
+        }
+      },
+      "20": {
+        start: {
+          line: 63,
+          column: 0
+        },
+        end: {
+          line: 63,
+          column: 148
+        }
+      },
+      "21": {
+        start: {
+          line: 67,
+          column: 0
+        },
+        end: {
+          line: 67,
+          column: 93
+        }
+      },
+      "22": {
+        start: {
+          line: 71,
+          column: 0
+        },
+        end: {
+          line: 71,
+          column: 80
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 9,
+            column: 18
+          },
+          end: {
+            line: 9,
+            column: 19
+          }
+        },
+        loc: {
+          start: {
+            line: 9,
+            column: 29
+          },
+          end: {
+            line: 50,
+            column: 1
+          }
+        },
+        line: 9
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 10,
+            column: 11
+          },
+          end: {
+            line: 10,
+            column: 12
+          }
+        },
+        loc: {
+          start: {
+            line: 10,
+            column: 31
+          },
+          end: {
+            line: 49,
+            column: 5
+          }
+        },
+        line: 10
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 13,
+            column: 12
+          },
+          end: {
+            line: 16,
+            column: 13
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 13,
+            column: 12
+          },
+          end: {
+            line: 16,
+            column: 13
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 13
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 18,
+            column: 12
+          },
+          end: {
+            line: 25,
+            column: 13
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 18,
+            column: 12
+          },
+          end: {
+            line: 25,
+            column: 13
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 18
+      },
+      "2": {
+        loc: {
+          start: {
+            line: 29,
+            column: 12
+          },
+          end: {
+            line: 38,
+            column: 13
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 29,
+            column: 12
+          },
+          end: {
+            line: 38,
+            column: 13
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 29
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0,
+      "16": 0,
+      "17": 0,
+      "18": 0,
+      "19": 0,
+      "20": 0,
+      "21": 0,
+      "22": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0
+    },
+    b: {
+      "0": [0, 0],
+      "1": [0, 0],
+      "2": [0, 0]
+    },
+    inputSourceMap: {
+      file: "/home/kim/tito/server/src/middleware/auth/authorize.ts",
+      mappings: ";;;AACA,uDAAyD;AAWzD;;;GAGG;AACI,MAAM,SAAS,GAAG,CAAC,KAAe,EAAE,EAAE;IAC3C,OAAO,CAAC,GAAyB,EAAE,GAAa,EAAE,IAAkB,EAAQ,EAAE;QAC5E,IAAI,CAAC;YACH,iCAAiC;YACjC,IAAI,GAAG,CAAC,MAAM,KAAK,SAAS,EAAE,CAAC;gBAC7B,IAAI,EAAE,CAAC;gBACP,OAAO;YACT,CAAC;YAED,mEAAmE;YACnE,IAAI,CAAC,GAAG,CAAC,IAAI,EAAE,CAAC;gBACd,GAAG,CAAC,MAAM,CAAC,GAAG,CAAC,CAAC,IAAI,CAAC;oBACnB,OAAO,EAAE,KAAK;oBACd,OAAO,EAAE,yBAAyB;oBAClC,KAAK,EAAE,yBAAyB;iBACjC,CAAC,CAAC;gBACH,OAAO;YACT,CAAC;YAED,4DAA4D;YAC5D,qDAAqD;YAErD,8CAA8C;YAC9C,IAAI,CAAC,KAAK,CAAC,QAAQ,CAAC,GAAG,CAAC,IAAI,CAAC,IAAI,CAAC,EAAE,CAAC;gBACnC,GAAG,CAAC,MAAM,CAAC,GAAG,CAAC,CAAC,IAAI,CAAC;oBACnB,OAAO,EAAE,KAAK;oBACd,OAAO,EAAE,0BAA0B;oBACnC,KAAK,EAAE,0BAA0B;oBACjC,aAAa,EAAE,KAAK;oBACpB,QAAQ,EAAE,GAAG,CAAC,IAAI,CAAC,IAAI;iBACxB,CAAC,CAAC;gBACH,OAAO;YACT,CAAC;YAED,kDAAkD;YAClD,IAAI,EAAE,CAAC;QACT,CAAC;QAAC,OAAO,KAAK,EAAE,CAAC;YACf,GAAG,CAAC,MAAM,CAAC,GAAG,CAAC,CAAC,IAAI,CAAC;gBACnB,OAAO,EAAE,KAAK;gBACd,OAAO,EAAE,4BAA4B;gBACrC,KAAK,EAAE,sBAAsB;aAC9B,CAAC,CAAC;QACL,CAAC;IACH,CAAC,CAAC;AACJ,CAAC,CAAC;AA5CW,QAAA,SAAS,aA4CpB;AAEF;;GAEG;AACU,QAAA,SAAS,GAAG,IAAA,iBAAS,EAAC,CAAC,kBAAU,CAAC,EAAE,CAAC,CAAC,CAAC;AAEpD;;GAEG;AACU,QAAA,mBAAmB,GAAG,IAAA,iBAAS,EAAC,CAAC,kBAAU,CAAC,EAAE,EAAE,kBAAU,CAAC,eAAe,CAAC,CAAC,CAAC;AAE1F;;GAEG;AACU,QAAA,wBAAwB,GAAG,IAAA,iBAAS,EAAC,CAAC,kBAAU,CAAC,EAAE,EAAE,kBAAU,CAAC,eAAe,EAAE,kBAAU,CAAC,QAAQ,CAAC,CAAC,CAAC;AAEpH;;GAEG;AACU,QAAA,qBAAqB,GAAG,IAAA,iBAAS,EAAC,CAAC,kBAAU,CAAC,eAAe,CAAC,CAAC,CAAC;AAE7E;;GAEG;AACU,QAAA,eAAe,GAAG,IAAA,iBAAS,EAAC,CAAC,kBAAU,CAAC,QAAQ,CAAC,CAAC,CAAC",
+      names: [],
+      sources: ["/home/kim/tito/server/src/middleware/auth/authorize.ts"],
+      sourcesContent: ["import { Request, Response, NextFunction } from 'express';\nimport { USER_ROLES } from '../../utils/constants/roles';\n\nexport interface AuthenticatedRequest extends Request {\n  user?: {\n    userId: string;\n    email: string;\n    role: string;\n    tokenVersion: number;\n  };\n}\n\n/**\n * Middleware to authorize users based on their role\n * @param roles Array of roles that are allowed to access the endpoint\n */\nexport const authorize = (roles: string[]) => {\n  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {\n    try {\n      // Handle CORS preflight requests\n      if (req.method === 'OPTIONS') {\n        next();\n        return;\n      }\n\n      // Check if user exists in request (set by authenticate middleware)\n      if (!req.user) {\n        res.status(401).json({\n          success: false,\n          message: 'Authentication required',\n          error: 'AUTHENTICATION_REQUIRED'\n        });\n        return;\n      }\n\n      // Note: User active status is checked at the database level\n      // This middleware only checks role-based permissions\n\n      // Check if user has one of the required roles\n      if (!roles.includes(req.user.role)) {\n        res.status(403).json({\n          success: false,\n          message: 'Insufficient permissions',\n          error: 'INSUFFICIENT_PERMISSIONS',\n          requiredRoles: roles,\n          userRole: req.user.role\n        });\n        return;\n      }\n\n      // User is authorized, continue to next middleware\n      next();\n    } catch (error) {\n      res.status(500).json({\n        success: false,\n        message: 'Authorization check failed',\n        error: 'AUTHORIZATION_FAILED'\n      });\n    }\n  };\n};\n\n/**\n * Middleware to check if user is HR admin\n */\nexport const requireHR = authorize([USER_ROLES.HR]);\n\n/**\n * Middleware to check if user is HR admin or department head\n */\nexport const requireHROrDeptHead = authorize([USER_ROLES.HR, USER_ROLES.DEPARTMENT_HEAD]);\n\n/**\n * Middleware to check if user is HR admin, department head, or employee\n */\nexport const requireAuthenticatedUser = authorize([USER_ROLES.HR, USER_ROLES.DEPARTMENT_HEAD, USER_ROLES.EMPLOYEE]);\n\n/**\n * Middleware to check if user is department head\n */\nexport const requireDepartmentHead = authorize([USER_ROLES.DEPARTMENT_HEAD]);\n\n/**\n * Middleware to check if user is employee\n */\nexport const requireEmployee = authorize([USER_ROLES.EMPLOYEE]); "],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "334393b39c38de4abcb61b69f55559235cc91bc1"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_1wzjqut11z = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_1wzjqut11z();
+cov_1wzjqut11z().s[0]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_1wzjqut11z().s[1]++;
+exports.requireEmployee = exports.requireDepartmentHead = exports.requireAuthenticatedUser = exports.requireHROrDeptHead = exports.requireHR = exports.authorize = void 0;
+const roles_1 =
+/* istanbul ignore next */
+(cov_1wzjqut11z().s[2]++, require("../../utils/constants/roles"));
+/**
+ * Middleware to authorize users based on their role
+ * @param roles Array of roles that are allowed to access the endpoint
+ */
+/* istanbul ignore next */
+cov_1wzjqut11z().s[3]++;
+const authorize = roles => {
+  /* istanbul ignore next */
+  cov_1wzjqut11z().f[0]++;
+  cov_1wzjqut11z().s[4]++;
+  return (req, res, next) => {
+    /* istanbul ignore next */
+    cov_1wzjqut11z().f[1]++;
+    cov_1wzjqut11z().s[5]++;
+    try {
+      /* istanbul ignore next */
+      cov_1wzjqut11z().s[6]++;
+      // Handle CORS preflight requests
+      if (req.method === 'OPTIONS') {
+        /* istanbul ignore next */
+        cov_1wzjqut11z().b[0][0]++;
+        cov_1wzjqut11z().s[7]++;
+        next();
+        /* istanbul ignore next */
+        cov_1wzjqut11z().s[8]++;
+        return;
+      } else
+      /* istanbul ignore next */
+      {
+        cov_1wzjqut11z().b[0][1]++;
+      }
+      // Check if user exists in request (set by authenticate middleware)
+      cov_1wzjqut11z().s[9]++;
+      if (!req.user) {
+        /* istanbul ignore next */
+        cov_1wzjqut11z().b[1][0]++;
+        cov_1wzjqut11z().s[10]++;
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          error: 'AUTHENTICATION_REQUIRED'
+        });
+        /* istanbul ignore next */
+        cov_1wzjqut11z().s[11]++;
+        return;
+      } else
+      /* istanbul ignore next */
+      {
+        cov_1wzjqut11z().b[1][1]++;
+      }
+      // Note: User active status is checked at the database level
+      // This middleware only checks role-based permissions
+      // Check if user has one of the required roles
+      cov_1wzjqut11z().s[12]++;
+      if (!roles.includes(req.user.role)) {
+        /* istanbul ignore next */
+        cov_1wzjqut11z().b[2][0]++;
+        cov_1wzjqut11z().s[13]++;
+        res.status(403).json({
+          success: false,
+          message: 'Insufficient permissions',
+          error: 'INSUFFICIENT_PERMISSIONS',
+          requiredRoles: roles,
+          userRole: req.user.role
+        });
+        /* istanbul ignore next */
+        cov_1wzjqut11z().s[14]++;
+        return;
+      } else
+      /* istanbul ignore next */
+      {
+        cov_1wzjqut11z().b[2][1]++;
+      }
+      // User is authorized, continue to next middleware
+      cov_1wzjqut11z().s[15]++;
+      next();
+    } catch (error) {
+      /* istanbul ignore next */
+      cov_1wzjqut11z().s[16]++;
+      res.status(500).json({
+        success: false,
+        message: 'Authorization check failed',
+        error: 'AUTHORIZATION_FAILED'
+      });
+    }
+  };
+};
+/* istanbul ignore next */
+cov_1wzjqut11z().s[17]++;
+exports.authorize = authorize;
+/**
+ * Middleware to check if user is HR admin
+ */
+/* istanbul ignore next */
+cov_1wzjqut11z().s[18]++;
+exports.requireHR = (0, exports.authorize)([roles_1.USER_ROLES.HR]);
+/**
+ * Middleware to check if user is HR admin or department head
+ */
+/* istanbul ignore next */
+cov_1wzjqut11z().s[19]++;
+exports.requireHROrDeptHead = (0, exports.authorize)([roles_1.USER_ROLES.HR, roles_1.USER_ROLES.DEPARTMENT_HEAD]);
+/**
+ * Middleware to check if user is HR admin, department head, or employee
+ */
+/* istanbul ignore next */
+cov_1wzjqut11z().s[20]++;
+exports.requireAuthenticatedUser = (0, exports.authorize)([roles_1.USER_ROLES.HR, roles_1.USER_ROLES.DEPARTMENT_HEAD, roles_1.USER_ROLES.EMPLOYEE]);
+/**
+ * Middleware to check if user is department head
+ */
+/* istanbul ignore next */
+cov_1wzjqut11z().s[21]++;
+exports.requireDepartmentHead = (0, exports.authorize)([roles_1.USER_ROLES.DEPARTMENT_HEAD]);
+/**
+ * Middleware to check if user is employee
+ */
+/* istanbul ignore next */
+cov_1wzjqut11z().s[22]++;
+exports.requireEmployee = (0, exports.authorize)([roles_1.USER_ROLES.EMPLOYEE]);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfMXd6anF1dDExeiIsImFjdHVhbENvdmVyYWdlIiwicyIsInJvbGVzXzEiLCJyZXF1aXJlIiwiYXV0aG9yaXplIiwicm9sZXMiLCJmIiwicmVxIiwicmVzIiwibmV4dCIsIm1ldGhvZCIsImIiLCJ1c2VyIiwic3RhdHVzIiwianNvbiIsInN1Y2Nlc3MiLCJtZXNzYWdlIiwiZXJyb3IiLCJpbmNsdWRlcyIsInJvbGUiLCJyZXF1aXJlZFJvbGVzIiwidXNlclJvbGUiLCJleHBvcnRzIiwicmVxdWlyZUhSIiwiVVNFUl9ST0xFUyIsIkhSIiwicmVxdWlyZUhST3JEZXB0SGVhZCIsIkRFUEFSVE1FTlRfSEVBRCIsInJlcXVpcmVBdXRoZW50aWNhdGVkVXNlciIsIkVNUExPWUVFIiwicmVxdWlyZURlcGFydG1lbnRIZWFkIiwicmVxdWlyZUVtcGxveWVlIl0sInNvdXJjZXMiOlsiL2hvbWUva2ltL3RpdG8vc2VydmVyL3NyYy9taWRkbGV3YXJlL2F1dGgvYXV0aG9yaXplLnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IFJlcXVlc3QsIFJlc3BvbnNlLCBOZXh0RnVuY3Rpb24gfSBmcm9tICdleHByZXNzJztcbmltcG9ydCB7IFVTRVJfUk9MRVMgfSBmcm9tICcuLi8uLi91dGlscy9jb25zdGFudHMvcm9sZXMnO1xuXG5leHBvcnQgaW50ZXJmYWNlIEF1dGhlbnRpY2F0ZWRSZXF1ZXN0IGV4dGVuZHMgUmVxdWVzdCB7XG4gIHVzZXI/OiB7XG4gICAgdXNlcklkOiBzdHJpbmc7XG4gICAgZW1haWw6IHN0cmluZztcbiAgICByb2xlOiBzdHJpbmc7XG4gICAgdG9rZW5WZXJzaW9uOiBudW1iZXI7XG4gIH07XG59XG5cbi8qKlxuICogTWlkZGxld2FyZSB0byBhdXRob3JpemUgdXNlcnMgYmFzZWQgb24gdGhlaXIgcm9sZVxuICogQHBhcmFtIHJvbGVzIEFycmF5IG9mIHJvbGVzIHRoYXQgYXJlIGFsbG93ZWQgdG8gYWNjZXNzIHRoZSBlbmRwb2ludFxuICovXG5leHBvcnQgY29uc3QgYXV0aG9yaXplID0gKHJvbGVzOiBzdHJpbmdbXSkgPT4ge1xuICByZXR1cm4gKHJlcTogQXV0aGVudGljYXRlZFJlcXVlc3QsIHJlczogUmVzcG9uc2UsIG5leHQ6IE5leHRGdW5jdGlvbik6IHZvaWQgPT4ge1xuICAgIHRyeSB7XG4gICAgICAvLyBIYW5kbGUgQ09SUyBwcmVmbGlnaHQgcmVxdWVzdHNcbiAgICAgIGlmIChyZXEubWV0aG9kID09PSAnT1BUSU9OUycpIHtcbiAgICAgICAgbmV4dCgpO1xuICAgICAgICByZXR1cm47XG4gICAgICB9XG5cbiAgICAgIC8vIENoZWNrIGlmIHVzZXIgZXhpc3RzIGluIHJlcXVlc3QgKHNldCBieSBhdXRoZW50aWNhdGUgbWlkZGxld2FyZSlcbiAgICAgIGlmICghcmVxLnVzZXIpIHtcbiAgICAgICAgcmVzLnN0YXR1cyg0MDEpLmpzb24oe1xuICAgICAgICAgIHN1Y2Nlc3M6IGZhbHNlLFxuICAgICAgICAgIG1lc3NhZ2U6ICdBdXRoZW50aWNhdGlvbiByZXF1aXJlZCcsXG4gICAgICAgICAgZXJyb3I6ICdBVVRIRU5USUNBVElPTl9SRVFVSVJFRCdcbiAgICAgICAgfSk7XG4gICAgICAgIHJldHVybjtcbiAgICAgIH1cblxuICAgICAgLy8gTm90ZTogVXNlciBhY3RpdmUgc3RhdHVzIGlzIGNoZWNrZWQgYXQgdGhlIGRhdGFiYXNlIGxldmVsXG4gICAgICAvLyBUaGlzIG1pZGRsZXdhcmUgb25seSBjaGVja3Mgcm9sZS1iYXNlZCBwZXJtaXNzaW9uc1xuXG4gICAgICAvLyBDaGVjayBpZiB1c2VyIGhhcyBvbmUgb2YgdGhlIHJlcXVpcmVkIHJvbGVzXG4gICAgICBpZiAoIXJvbGVzLmluY2x1ZGVzKHJlcS51c2VyLnJvbGUpKSB7XG4gICAgICAgIHJlcy5zdGF0dXMoNDAzKS5qc29uKHtcbiAgICAgICAgICBzdWNjZXNzOiBmYWxzZSxcbiAgICAgICAgICBtZXNzYWdlOiAnSW5zdWZmaWNpZW50IHBlcm1pc3Npb25zJyxcbiAgICAgICAgICBlcnJvcjogJ0lOU1VGRklDSUVOVF9QRVJNSVNTSU9OUycsXG4gICAgICAgICAgcmVxdWlyZWRSb2xlczogcm9sZXMsXG4gICAgICAgICAgdXNlclJvbGU6IHJlcS51c2VyLnJvbGVcbiAgICAgICAgfSk7XG4gICAgICAgIHJldHVybjtcbiAgICAgIH1cblxuICAgICAgLy8gVXNlciBpcyBhdXRob3JpemVkLCBjb250aW51ZSB0byBuZXh0IG1pZGRsZXdhcmVcbiAgICAgIG5leHQoKTtcbiAgICB9IGNhdGNoIChlcnJvcikge1xuICAgICAgcmVzLnN0YXR1cyg1MDApLmpzb24oe1xuICAgICAgICBzdWNjZXNzOiBmYWxzZSxcbiAgICAgICAgbWVzc2FnZTogJ0F1dGhvcml6YXRpb24gY2hlY2sgZmFpbGVkJyxcbiAgICAgICAgZXJyb3I6ICdBVVRIT1JJWkFUSU9OX0ZBSUxFRCdcbiAgICAgIH0pO1xuICAgIH1cbiAgfTtcbn07XG5cbi8qKlxuICogTWlkZGxld2FyZSB0byBjaGVjayBpZiB1c2VyIGlzIEhSIGFkbWluXG4gKi9cbmV4cG9ydCBjb25zdCByZXF1aXJlSFIgPSBhdXRob3JpemUoW1VTRVJfUk9MRVMuSFJdKTtcblxuLyoqXG4gKiBNaWRkbGV3YXJlIHRvIGNoZWNrIGlmIHVzZXIgaXMgSFIgYWRtaW4gb3IgZGVwYXJ0bWVudCBoZWFkXG4gKi9cbmV4cG9ydCBjb25zdCByZXF1aXJlSFJPckRlcHRIZWFkID0gYXV0aG9yaXplKFtVU0VSX1JPTEVTLkhSLCBVU0VSX1JPTEVTLkRFUEFSVE1FTlRfSEVBRF0pO1xuXG4vKipcbiAqIE1pZGRsZXdhcmUgdG8gY2hlY2sgaWYgdXNlciBpcyBIUiBhZG1pbiwgZGVwYXJ0bWVudCBoZWFkLCBvciBlbXBsb3llZVxuICovXG5leHBvcnQgY29uc3QgcmVxdWlyZUF1dGhlbnRpY2F0ZWRVc2VyID0gYXV0aG9yaXplKFtVU0VSX1JPTEVTLkhSLCBVU0VSX1JPTEVTLkRFUEFSVE1FTlRfSEVBRCwgVVNFUl9ST0xFUy5FTVBMT1lFRV0pO1xuXG4vKipcbiAqIE1pZGRsZXdhcmUgdG8gY2hlY2sgaWYgdXNlciBpcyBkZXBhcnRtZW50IGhlYWRcbiAqL1xuZXhwb3J0IGNvbnN0IHJlcXVpcmVEZXBhcnRtZW50SGVhZCA9IGF1dGhvcml6ZShbVVNFUl9ST0xFUy5ERVBBUlRNRU5UX0hFQURdKTtcblxuLyoqXG4gKiBNaWRkbGV3YXJlIHRvIGNoZWNrIGlmIHVzZXIgaXMgZW1wbG95ZWVcbiAqL1xuZXhwb3J0IGNvbnN0IHJlcXVpcmVFbXBsb3llZSA9IGF1dGhvcml6ZShbVVNFUl9ST0xFUy5FTVBMT1lFRV0pOyAiXSwibWFwcGluZ3MiOiI7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7OztJQXVCTTtJQUFBQSxjQUFBLFlBQUFBLENBQUE7TUFBQSxPQUFBQyxjQUFBO0lBQUE7RUFBQTtFQUFBLE9BQUFBLGNBQUE7QUFBQTtBQUFBRCxjQUFBO0FBQUFBLGNBQUEsR0FBQUUsQ0FBQTs7Ozs7OztBQXRCTixNQUFBQyxPQUFBO0FBQUE7QUFBQSxDQUFBSCxjQUFBLEdBQUFFLENBQUEsT0FBQUUsT0FBQTtB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

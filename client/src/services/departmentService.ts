@@ -18,13 +18,16 @@ export interface UpdateDepartmentRequest {
 export class DepartmentService {
   // Get all departments
   static async getDepartments(): Promise<Department[]> {
-    const response = await apiMethods.get<{ data: Department[] }>('/hr/departments');
-    return response.data;
+    const response = await apiMethods.get<Department[]>('/hr/departments');
+    return response.data || [];
   }
 
   // Get department by ID
   static async getDepartment(id: string): Promise<Department> {
-    const response = await apiMethods.get<{ data: Department }>(`/hr/departments/${id}`);
+    const response = await apiMethods.get<Department>(`/hr/departments/${id}`);
+    if (!response.data) {
+      throw new Error('Failed to fetch department');
+    }
     return response.data;
   }
 
@@ -35,7 +38,10 @@ export class DepartmentService {
       description: data.description,
       departmentHeadUserId: data.departmentHeadId
     };
-    const response = await apiMethods.post<{ data: Department }>('/hr/departments', requestData);
+    const response = await apiMethods.post<Department>('/hr/departments', requestData);
+    if (!response.data) {
+      throw new Error('Failed to create department');
+    }
     return response.data;
   }
 
@@ -46,7 +52,10 @@ export class DepartmentService {
       description: data.description,
       departmentHeadUserId: data.departmentHeadId
     };
-    const response = await apiMethods.put<{ data: Department }>(`/hr/departments/${id}`, requestData);
+    const response = await apiMethods.put<Department>(`/hr/departments/${id}`, requestData);
+    if (!response.data) {
+      throw new Error('Failed to update department');
+    }
     return response.data;
   }
 
@@ -61,14 +70,21 @@ export class DepartmentService {
     totalEmployees: number;
     averageEmployeesPerDepartment: number;
   }> {
-    const response = await apiMethods.get<{ data: any }>('/hr/departments/stats');
+    const response = await apiMethods.get<{
+      totalDepartments: number;
+      totalEmployees: number;
+      averageEmployeesPerDepartment: number;
+    }>('/hr/departments/stats');
+    if (!response.data) {
+      throw new Error('Failed to fetch department stats');
+    }
     return response.data;
   }
 
   // Get departments with employee count
   static async getDepartmentsWithEmployeeCount(): Promise<Department[]> {
-    const response = await apiMethods.get<{ data: Department[] }>('/hr/departments/with-employee-count');
-    return response.data;
+    const response = await apiMethods.get<Department[]>('/hr/departments/with-employee-count');
+    return response.data || [];
   }
 }
 

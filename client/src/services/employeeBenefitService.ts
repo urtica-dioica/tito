@@ -33,9 +33,13 @@ export class EmployeeBenefitService {
     if (params?.isActive !== undefined) queryParams.append('is_active', params.isActive.toString());
     if (params?.search) queryParams.append('search', params.search);
 
-    const response = await apiMethods.get<{ data: { records: any[]; total: number } }>(
-      `/payroll/employee-benefits?${queryParams.toString()}`
-    );
+    const response = await apiMethods.get<{
+      records: any[];
+      total: number;
+      page?: number;
+      limit?: number;
+      totalPages?: number;
+    }>(`/payroll/employee-benefits?${queryParams.toString()}`);
 
     // Transform snake_case to camelCase and extract employee info
     const transformedData = {
@@ -44,8 +48,8 @@ export class EmployeeBenefitService {
         employeeId: record.employee_id,
         benefitTypeId: record.benefit_type_id,
         benefitTypeName: record.benefit_type?.name || record.benefit_type_name,
-        employeeName: record.employee?.user ? 
-          `${record.employee.user.first_name} ${record.employee.user.last_name}` : 
+        employeeName: record.employee?.user ?
+          `${record.employee.user.first_name} ${record.employee.user.last_name}` :
           'Unknown Employee',
         employeeCode: record.employee?.employee_id,
         isActive: record.is_active,
@@ -53,9 +57,9 @@ export class EmployeeBenefitService {
         updatedAt: record.updated_at
       })),
       total: response.data?.total || 0,
-      page: parseInt(queryParams.get('page') || '1'),
-      limit: parseInt(queryParams.get('limit') || '10'),
-      totalPages: Math.ceil((response.data?.total || 0) / parseInt(queryParams.get('limit') || '10'))
+      page: response.data?.page || parseInt(queryParams.get('page') || '1'),
+      limit: response.data?.limit || parseInt(queryParams.get('limit') || '10'),
+      totalPages: response.data?.totalPages || Math.ceil((response.data?.total || 0) / parseInt(queryParams.get('limit') || '10'))
     };
 
     return transformedData;
@@ -65,7 +69,10 @@ export class EmployeeBenefitService {
    * Get employee benefit by ID
    */
   static async getEmployeeBenefit(id: string): Promise<EmployeeBenefit> {
-    const response = await apiMethods.get<{ data: EmployeeBenefit }>(`/payroll/employee-benefits/${id}`);
+    const response = await apiMethods.get<EmployeeBenefit>(`/payroll/employee-benefits/${id}`);
+    if (!response.data) {
+      throw new Error('Failed to fetch employee benefit');
+    }
     return response.data;
   }
 
@@ -73,8 +80,8 @@ export class EmployeeBenefitService {
    * Get employee benefits by employee ID
    */
   static async getEmployeeBenefitsByEmployee(employeeId: string): Promise<EmployeeBenefit[]> {
-    const response = await apiMethods.get<{ data: EmployeeBenefit[] }>(`/payroll/employee-benefits/employee/${employeeId}`);
-    return response.data;
+    const response = await apiMethods.get<EmployeeBenefit[]>(`/payroll/employee-benefits/employee/${employeeId}`);
+    return response.data || [];
   }
 
   /**
@@ -90,8 +97,11 @@ export class EmployeeBenefitService {
       end_date: data.endDate && data.endDate.trim() !== '' ? data.endDate : null,
       is_active: data.isActive
     };
-    
-    const response = await apiMethods.post<{ data: EmployeeBenefit }>('/payroll/employee-benefits', transformedData);
+
+    const response = await apiMethods.post<EmployeeBenefit>('/payroll/employee-benefits', transformedData);
+    if (!response.data) {
+      throw new Error('Failed to create employee benefit');
+    }
     return response.data;
   }
 
@@ -110,8 +120,11 @@ export class EmployeeBenefitService {
       transformedData.end_date = data.endDate && data.endDate.trim() !== '' ? data.endDate : null;
     }
     if (data.isActive !== undefined) transformedData.is_active = data.isActive;
-    
-    const response = await apiMethods.put<{ data: EmployeeBenefit }>(`/payroll/employee-benefits/${id}`, transformedData);
+
+    const response = await apiMethods.put<EmployeeBenefit>(`/payroll/employee-benefits/${id}`, transformedData);
+    if (!response.data) {
+      throw new Error('Failed to update employee benefit');
+    }
     return response.data;
   }
 
@@ -126,15 +139,18 @@ export class EmployeeBenefitService {
    * Get active employee benefits by employee ID
    */
   static async getActiveEmployeeBenefitsByEmployee(employeeId: string): Promise<EmployeeBenefit[]> {
-    const response = await apiMethods.get<{ data: EmployeeBenefit[] }>(`/payroll/employee-benefits/employee/${employeeId}/active`);
-    return response.data;
+    const response = await apiMethods.get<EmployeeBenefit[]>(`/payroll/employee-benefits/employee/${employeeId}/active`);
+    return response.data || [];
   }
 
   /**
    * Upload employee benefits from CSV
    */
   static async uploadEmployeeBenefits(csvData: any[]): Promise<{ successCount: number; errorCount: number; errors: any[] }> {
-    const response = await apiMethods.post<{ data: { successCount: number; errorCount: number; errors: any[] } }>('/payroll/employee-benefits/upload', csvData);
+    const response = await apiMethods.post<{ successCount: number; errorCount: number; errors: any[] }>('/payroll/employee-benefits/upload', { data: csvData });
+    if (!response.data) {
+      throw new Error('Failed to upload employee benefits');
+    }
     return response.data;
   }
 }

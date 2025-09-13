@@ -140,7 +140,7 @@ export class EmployeeService {
   private calculateWorkingDays(startDate: Date, endDate: Date): number {
     let workingDays = 0;
     const currentDate = new Date(startDate);
-    
+
     while (currentDate <= endDate) {
       const dayOfWeek = currentDate.getDay();
       // Count Monday (1) through Friday (5) as working days
@@ -149,9 +149,10 @@ export class EmployeeService {
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     return workingDays;
   }
+
 
   /**
    * Get employee ID by user ID
@@ -977,7 +978,13 @@ export class EmployeeService {
           'startDate', l.start_date,
           'endDate', l.end_date,
           'reason', 'Leave request',
-          'days', (l.end_date - l.start_date + 1)
+          'days', CASE
+            WHEN l.start_date IS NOT NULL AND l.end_date IS NOT NULL
+            THEN EXTRACT(DAY FROM (l.end_date - l.start_date)) + 1 -
+                 CASE WHEN EXTRACT(DOW FROM l.start_date) = 0 THEN 1 ELSE 0 END -
+                 CASE WHEN EXTRACT(DOW FROM l.end_date) = 6 THEN 1 ELSE 0 END
+            ELSE 0
+          END
         ) as details
       FROM leaves l
       LEFT JOIN users u ON l.approver_id = u.id
@@ -1243,7 +1250,7 @@ export class EmployeeService {
           name: b.name,
           amount: parseFloat(b.amount)
         })),
-        createdAt: row.createdAt
+        createdAt: row.created_at
       });
     }
 

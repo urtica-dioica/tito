@@ -76,21 +76,18 @@ export class AttendanceService {
    * Get recent attendance records for dashboard
    */
   static async getRecentAttendance(limit: number = 10): Promise<RecentAttendanceRecord[]> {
-    const response = await apiMethods.get<{
-      success: boolean;
-      data: RecentAttendanceRecord[];
-    }>(`/attendance/recent?limit=${limit}`);
-    return response.data;
+    const response = await apiMethods.get<RecentAttendanceRecord[]>(`/attendance/recent?limit=${limit}`);
+    return response.data || [];
   }
 
   /**
    * Get attendance statistics for dashboard
    */
   static async getAttendanceStats(): Promise<AttendanceStats> {
-    const response = await apiMethods.get<{
-      success: boolean;
-      data: AttendanceStats;
-    }>('/attendance/stats');
+    const response = await apiMethods.get<AttendanceStats>('/attendance/stats');
+    if (!response.data) {
+      throw new Error('Failed to fetch attendance stats');
+    }
     return response.data;
   }
 
@@ -103,22 +100,19 @@ export class AttendanceService {
     if (date) {
       params.append('date', date);
     }
-    
-    const response = await apiMethods.get<{
-      success: boolean;
-      data: DailyAttendanceRecord[];
-    }>(`/attendance/daily?${params.toString()}`);
-    return response.data;
+
+    const response = await apiMethods.get<DailyAttendanceRecord[]>(`/attendance/daily?${params.toString()}`);
+    return response.data || [];
   }
 
   /**
    * Get all sessions for an attendance record
    */
   static async getAttendanceRecordSessions(attendanceRecordId: string): Promise<AttendanceRecordSessions> {
-    const response = await apiMethods.get<{
-      success: boolean;
-      data: AttendanceRecordSessions;
-    }>(`/attendance/record/${attendanceRecordId}/sessions`);
+    const response = await apiMethods.get<AttendanceRecordSessions>(`/attendance/record/${attendanceRecordId}/sessions`);
+    if (!response.data) {
+      throw new Error('Failed to fetch attendance record sessions');
+    }
     return response.data;
   }
 
@@ -126,10 +120,10 @@ export class AttendanceService {
    * Get detailed attendance record by ID
    */
   static async getAttendanceDetail(id: string): Promise<AttendanceDetail> {
-    const response = await apiMethods.get<{
-      success: boolean;
-      data: AttendanceDetail;
-    }>(`/attendance/${id}`);
+    const response = await apiMethods.get<AttendanceDetail>(`/attendance/${id}`);
+    if (!response.data) {
+      throw new Error('Failed to fetch attendance detail');
+    }
     return response.data;
   }
 }

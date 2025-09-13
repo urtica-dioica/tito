@@ -1,0 +1,1906 @@
+e7ca5e7a060e783ac09bdd870d9e3e45
+"use strict";
+
+/* istanbul ignore next */
+function cov_rawm0g82() {
+  var path = "/home/kim/tito/server/src/services/hr/hrRequestService.ts";
+  var hash = "c8bf2518a2256fa246227518d826909fc999ff52";
+  var global = new Function("return this")();
+  var gcv = "__coverage__";
+  var coverageData = {
+    path: "/home/kim/tito/server/src/services/hr/hrRequestService.ts",
+    statementMap: {
+      "0": {
+        start: {
+          line: 2,
+          column: 22
+        },
+        end: {
+          line: 4,
+          column: 1
+        }
+      },
+      "1": {
+        start: {
+          line: 3,
+          column: 4
+        },
+        end: {
+          line: 3,
+          column: 62
+        }
+      },
+      "2": {
+        start: {
+          line: 5,
+          column: 0
+        },
+        end: {
+          line: 5,
+          column: 62
+        }
+      },
+      "3": {
+        start: {
+          line: 6,
+          column: 0
+        },
+        end: {
+          line: 6,
+          column: 61
+        }
+      },
+      "4": {
+        start: {
+          line: 7,
+          column: 19
+        },
+        end: {
+          line: 7,
+          column: 51
+        }
+      },
+      "5": {
+        start: {
+          line: 8,
+          column: 17
+        },
+        end: {
+          line: 8,
+          column: 63
+        }
+      },
+      "6": {
+        start: {
+          line: 14,
+          column: 8
+        },
+        end: {
+          line: 235,
+          column: 9
+        }
+      },
+      "7": {
+        start: {
+          line: 15,
+          column: 81
+        },
+        end: {
+          line: 15,
+          column: 87
+        }
+      },
+      "8": {
+        start: {
+          line: 16,
+          column: 27
+        },
+        end: {
+          line: 16,
+          column: 45
+        }
+      },
+      "9": {
+        start: {
+          line: 18,
+          column: 36
+        },
+        end: {
+          line: 18,
+          column: 38
+        }
+      },
+      "10": {
+        start: {
+          line: 19,
+          column: 32
+        },
+        end: {
+          line: 19,
+          column: 34
+        }
+      },
+      "11": {
+        start: {
+          line: 20,
+          column: 29
+        },
+        end: {
+          line: 20,
+          column: 30
+        }
+      },
+      "12": {
+        start: {
+          line: 21,
+          column: 12
+        },
+        end: {
+          line: 25,
+          column: 13
+        }
+      },
+      "13": {
+        start: {
+          line: 22,
+          column: 16
+        },
+        end: {
+          line: 22,
+          column: 65
+        }
+      },
+      "14": {
+        start: {
+          line: 23,
+          column: 16
+        },
+        end: {
+          line: 23,
+          column: 39
+        }
+      },
+      "15": {
+        start: {
+          line: 24,
+          column: 16
+        },
+        end: {
+          line: 24,
+          column: 29
+        }
+      },
+      "16": {
+        start: {
+          line: 26,
+          column: 12
+        },
+        end: {
+          line: 30,
+          column: 13
+        }
+      },
+      "17": {
+        start: {
+          line: 27,
+          column: 16
+        },
+        end: {
+          line: 27,
+          column: 67
+        }
+      },
+      "18": {
+        start: {
+          line: 28,
+          column: 16
+        },
+        end: {
+          line: 28,
+          column: 41
+        }
+      },
+      "19": {
+        start: {
+          line: 29,
+          column: 16
+        },
+        end: {
+          line: 29,
+          column: 29
+        }
+      },
+      "20": {
+        start: {
+          line: 31,
+          column: 12
+        },
+        end: {
+          line: 35,
+          column: 13
+        }
+      },
+      "21": {
+        start: {
+          line: 32,
+          column: 16
+        },
+        end: {
+          line: 32,
+          column: 62
+        }
+      },
+      "22": {
+        start: {
+          line: 33,
+          column: 16
+        },
+        end: {
+          line: 33,
+          column: 47
+        }
+      },
+      "23": {
+        start: {
+          line: 34,
+          column: 16
+        },
+        end: {
+          line: 34,
+          column: 29
+        }
+      },
+      "24": {
+        start: {
+          line: 36,
+          column: 12
+        },
+        end: {
+          line: 40,
+          column: 13
+        }
+      },
+      "25": {
+        start: {
+          line: 37,
+          column: 16
+        },
+        end: {
+          line: 37,
+          column: 150
+        }
+      },
+      "26": {
+        start: {
+          line: 38,
+          column: 16
+        },
+        end: {
+          line: 38,
+          column: 48
+        }
+      },
+      "27": {
+        start: {
+          line: 39,
+          column: 16
+        },
+        end: {
+          line: 39,
+          column: 29
+        }
+      },
+      "28": {
+        start: {
+          line: 41,
+          column: 32
+        },
+        end: {
+          line: 41,
+          column: 106
+        }
+      },
+      "29": {
+        start: {
+          line: 43,
+          column: 31
+        },
+        end: {
+          line: 134,
+          column: 7
+        }
+      },
+      "30": {
+        start: {
+          line: 135,
+          column: 12
+        },
+        end: {
+          line: 135,
+          column: 44
+        }
+      },
+      "31": {
+        start: {
+          line: 137,
+          column: 31
+        },
+        end: {
+          line: 194,
+          column: 7
+        }
+      },
+      "32": {
+        start: {
+          line: 195,
+          column: 50
+        },
+        end: {
+          line: 198,
+          column: 14
+        }
+      },
+      "33": {
+        start: {
+          line: 199,
+          column: 29
+        },
+        end: {
+          line: 211,
+          column: 15
+        }
+      },
+      "34": {
+        start: {
+          line: 199,
+          column: 61
+        },
+        end: {
+          line: 211,
+          column: 13
+        }
+      },
+      "35": {
+        start: {
+          line: 212,
+          column: 26
+        },
+        end: {
+          line: 212,
+          column: 61
+        }
+      },
+      "36": {
+        start: {
+          line: 213,
+          column: 31
+        },
+        end: {
+          line: 213,
+          column: 55
+        }
+      },
+      "37": {
+        start: {
+          line: 214,
+          column: 12
+        },
+        end: {
+          line: 220,
+          column: 15
+        }
+      },
+      "38": {
+        start: {
+          line: 221,
+          column: 12
+        },
+        end: {
+          line: 227,
+          column: 14
+        }
+      },
+      "39": {
+        start: {
+          line: 230,
+          column: 12
+        },
+        end: {
+          line: 233,
+          column: 15
+        }
+      },
+      "40": {
+        start: {
+          line: 234,
+          column: 12
+        },
+        end: {
+          line: 234,
+          column: 24
+        }
+      },
+      "41": {
+        start: {
+          line: 241,
+          column: 8
+        },
+        end: {
+          line: 294,
+          column: 9
+        }
+      },
+      "42": {
+        start: {
+          line: 242,
+          column: 31
+        },
+        end: {
+          line: 256,
+          column: 7
+        }
+      },
+      "43": {
+        start: {
+          line: 257,
+          column: 32
+        },
+        end: {
+          line: 271,
+          column: 7
+        }
+      },
+      "44": {
+        start: {
+          line: 272,
+          column: 48
+        },
+        end: {
+          line: 275,
+          column: 14
+        }
+      },
+      "45": {
+        start: {
+          line: 276,
+          column: 26
+        },
+        end: {
+          line: 276,
+          column: 45
+        }
+      },
+      "46": {
+        start: {
+          line: 277,
+          column: 27
+        },
+        end: {
+          line: 280,
+          column: 15
+        }
+      },
+      "47": {
+        start: {
+          line: 277,
+          column: 57
+        },
+        end: {
+          line: 280,
+          column: 13
+        }
+      },
+      "48": {
+        start: {
+          line: 281,
+          column: 12
+        },
+        end: {
+          line: 287,
+          column: 14
+        }
+      },
+      "49": {
+        start: {
+          line: 290,
+          column: 12
+        },
+        end: {
+          line: 292,
+          column: 15
+        }
+      },
+      "50": {
+        start: {
+          line: 293,
+          column: 12
+        },
+        end: {
+          line: 293,
+          column: 24
+        }
+      },
+      "51": {
+        start: {
+          line: 300,
+          column: 8
+        },
+        end: {
+          line: 431,
+          column: 9
+        }
+      },
+      "52": {
+        start: {
+          line: 302,
+          column: 28
+        },
+        end: {
+          line: 403,
+          column: 13
+        }
+      },
+      "53": {
+        start: {
+          line: 404,
+          column: 12
+        },
+        end: {
+          line: 422,
+          column: 13
+        }
+      },
+      "54": {
+        start: {
+          line: 405,
+          column: 31
+        },
+        end: {
+          line: 405,
+          column: 81
+        }
+      },
+      "55": {
+        start: {
+          line: 406,
+          column: 16
+        },
+        end: {
+          line: 421,
+          column: 17
+        }
+      },
+      "56": {
+        start: {
+          line: 407,
+          column: 32
+        },
+        end: {
+          line: 407,
+          column: 46
+        }
+      },
+      "57": {
+        start: {
+          line: 408,
+          column: 20
+        },
+        end: {
+          line: 420,
+          column: 22
+        }
+      },
+      "58": {
+        start: {
+          line: 423,
+          column: 12
+        },
+        end: {
+          line: 423,
+          column: 24
+        }
+      },
+      "59": {
+        start: {
+          line: 426,
+          column: 12
+        },
+        end: {
+          line: 429,
+          column: 15
+        }
+      },
+      "60": {
+        start: {
+          line: 430,
+          column: 12
+        },
+        end: {
+          line: 430,
+          column: 24
+        }
+      },
+      "61": {
+        start: {
+          line: 434,
+          column: 0
+        },
+        end: {
+          line: 434,
+          column: 44
+        }
+      },
+      "62": {
+        start: {
+          line: 435,
+          column: 0
+        },
+        end: {
+          line: 435,
+          column: 50
+        }
+      }
+    },
+    fnMap: {
+      "0": {
+        name: "(anonymous_0)",
+        decl: {
+          start: {
+            line: 2,
+            column: 56
+          },
+          end: {
+            line: 2,
+            column: 57
+          }
+        },
+        loc: {
+          start: {
+            line: 2,
+            column: 71
+          },
+          end: {
+            line: 4,
+            column: 1
+          }
+        },
+        line: 2
+      },
+      "1": {
+        name: "(anonymous_1)",
+        decl: {
+          start: {
+            line: 13,
+            column: 4
+          },
+          end: {
+            line: 13,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 13,
+            column: 38
+          },
+          end: {
+            line: 236,
+            column: 5
+          }
+        },
+        line: 13
+      },
+      "2": {
+        name: "(anonymous_2)",
+        decl: {
+          start: {
+            line: 199,
+            column: 53
+          },
+          end: {
+            line: 199,
+            column: 54
+          }
+        },
+        loc: {
+          start: {
+            line: 199,
+            column: 61
+          },
+          end: {
+            line: 211,
+            column: 13
+          }
+        },
+        line: 199
+      },
+      "3": {
+        name: "(anonymous_3)",
+        decl: {
+          start: {
+            line: 240,
+            column: 4
+          },
+          end: {
+            line: 240,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 240,
+            column: 28
+          },
+          end: {
+            line: 295,
+            column: 5
+          }
+        },
+        line: 240
+      },
+      "4": {
+        name: "(anonymous_4)",
+        decl: {
+          start: {
+            line: 277,
+            column: 49
+          },
+          end: {
+            line: 277,
+            column: 50
+          }
+        },
+        loc: {
+          start: {
+            line: 277,
+            column: 57
+          },
+          end: {
+            line: 280,
+            column: 13
+          }
+        },
+        line: 277
+      },
+      "5": {
+        name: "(anonymous_5)",
+        decl: {
+          start: {
+            line: 299,
+            column: 4
+          },
+          end: {
+            line: 299,
+            column: 5
+          }
+        },
+        loc: {
+          start: {
+            line: 299,
+            column: 29
+          },
+          end: {
+            line: 432,
+            column: 5
+          }
+        },
+        line: 299
+      }
+    },
+    branchMap: {
+      "0": {
+        loc: {
+          start: {
+            line: 2,
+            column: 22
+          },
+          end: {
+            line: 4,
+            column: 1
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 2,
+            column: 23
+          },
+          end: {
+            line: 2,
+            column: 27
+          }
+        }, {
+          start: {
+            line: 2,
+            column: 31
+          },
+          end: {
+            line: 2,
+            column: 51
+          }
+        }, {
+          start: {
+            line: 2,
+            column: 56
+          },
+          end: {
+            line: 4,
+            column: 1
+          }
+        }],
+        line: 2
+      },
+      "1": {
+        loc: {
+          start: {
+            line: 3,
+            column: 11
+          },
+          end: {
+            line: 3,
+            column: 61
+          }
+        },
+        type: "cond-expr",
+        locations: [{
+          start: {
+            line: 3,
+            column: 37
+          },
+          end: {
+            line: 3,
+            column: 40
+          }
+        }, {
+          start: {
+            line: 3,
+            column: 43
+          },
+          end: {
+            line: 3,
+            column: 61
+          }
+        }],
+        line: 3
+      },
+      "2": {
+        loc: {
+          start: {
+            line: 3,
+            column: 12
+          },
+          end: {
+            line: 3,
+            column: 33
+          }
+        },
+        type: "binary-expr",
+        locations: [{
+          start: {
+            line: 3,
+            column: 12
+          },
+          end: {
+            line: 3,
+            column: 15
+          }
+        }, {
+          start: {
+            line: 3,
+            column: 19
+          },
+          end: {
+            line: 3,
+            column: 33
+          }
+        }],
+        line: 3
+      },
+      "3": {
+        loc: {
+          start: {
+            line: 13,
+            column: 25
+          },
+          end: {
+            line: 13,
+            column: 36
+          }
+        },
+        type: "default-arg",
+        locations: [{
+          start: {
+            line: 13,
+            column: 34
+          },
+          end: {
+            line: 13,
+            column: 36
+          }
+        }],
+        line: 13
+      },
+      "4": {
+        loc: {
+          start: {
+            line: 15,
+            column: 56
+          },
+          end: {
+            line: 15,
+            column: 64
+          }
+        },
+        type: "default-arg",
+        locations: [{
+          start: {
+            line: 15,
+            column: 63
+          },
+          end: {
+            line: 15,
+            column: 64
+          }
+        }],
+        line: 15
+      },
+      "5": {
+        loc: {
+          start: {
+            line: 15,
+            column: 66
+          },
+          end: {
+            line: 15,
+            column: 76
+          }
+        },
+        type: "default-arg",
+        locations: [{
+          start: {
+            line: 15,
+            column: 74
+          },
+          end: {
+            line: 15,
+            column: 76
+          }
+        }],
+        line: 15
+      },
+      "6": {
+        loc: {
+          start: {
+            line: 21,
+            column: 12
+          },
+          end: {
+            line: 25,
+            column: 13
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 21,
+            column: 12
+          },
+          end: {
+            line: 25,
+            column: 13
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 21
+      },
+      "7": {
+        loc: {
+          start: {
+            line: 26,
+            column: 12
+          },
+          end: {
+            line: 30,
+            column: 13
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 26,
+            column: 12
+          },
+          end: {
+            line: 30,
+            column: 13
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 26
+      },
+      "8": {
+        loc: {
+          start: {
+            line: 31,
+            column: 12
+          },
+          end: {
+            line: 35,
+            column: 13
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 31,
+            column: 12
+          },
+          end: {
+            line: 35,
+            column: 13
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 31
+      },
+      "9": {
+        loc: {
+          start: {
+            line: 36,
+            column: 12
+          },
+          end: {
+            line: 40,
+            column: 13
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 36,
+            column: 12
+          },
+          end: {
+            line: 40,
+            column: 13
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 36
+      },
+      "10": {
+        loc: {
+          start: {
+            line: 41,
+            column: 32
+          },
+          end: {
+            line: 41,
+            column: 106
+          }
+        },
+        type: "cond-expr",
+        locations: [{
+          start: {
+            line: 41,
+            column: 61
+          },
+          end: {
+            line: 41,
+            column: 101
+          }
+        }, {
+          start: {
+            line: 41,
+            column: 104
+          },
+          end: {
+            line: 41,
+            column: 106
+          }
+        }],
+        line: 41
+      },
+      "11": {
+        loc: {
+          start: {
+            line: 406,
+            column: 16
+          },
+          end: {
+            line: 421,
+            column: 17
+          }
+        },
+        type: "if",
+        locations: [{
+          start: {
+            line: 406,
+            column: 16
+          },
+          end: {
+            line: 421,
+            column: 17
+          }
+        }, {
+          start: {
+            line: undefined,
+            column: undefined
+          },
+          end: {
+            line: undefined,
+            column: undefined
+          }
+        }],
+        line: 406
+      }
+    },
+    s: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+      "6": 0,
+      "7": 0,
+      "8": 0,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 0,
+      "16": 0,
+      "17": 0,
+      "18": 0,
+      "19": 0,
+      "20": 0,
+      "21": 0,
+      "22": 0,
+      "23": 0,
+      "24": 0,
+      "25": 0,
+      "26": 0,
+      "27": 0,
+      "28": 0,
+      "29": 0,
+      "30": 0,
+      "31": 0,
+      "32": 0,
+      "33": 0,
+      "34": 0,
+      "35": 0,
+      "36": 0,
+      "37": 0,
+      "38": 0,
+      "39": 0,
+      "40": 0,
+      "41": 0,
+      "42": 0,
+      "43": 0,
+      "44": 0,
+      "45": 0,
+      "46": 0,
+      "47": 0,
+      "48": 0,
+      "49": 0,
+      "50": 0,
+      "51": 0,
+      "52": 0,
+      "53": 0,
+      "54": 0,
+      "55": 0,
+      "56": 0,
+      "57": 0,
+      "58": 0,
+      "59": 0,
+      "60": 0,
+      "61": 0,
+      "62": 0
+    },
+    f: {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0
+    },
+    b: {
+      "0": [0, 0, 0],
+      "1": [0, 0],
+      "2": [0, 0],
+      "3": [0],
+      "4": [0],
+      "5": [0],
+      "6": [0, 0],
+      "7": [0, 0],
+      "8": [0, 0],
+      "9": [0, 0],
+      "10": [0, 0],
+      "11": [0, 0]
+    },
+    inputSourceMap: {
+      file: "/home/kim/tito/server/src/services/hr/hrRequestService.ts",
+      mappings: "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",
+      names: [],
+      sources: ["/home/kim/tito/server/src/services/hr/hrRequestService.ts"],
+      sourcesContent: ["import { getPool } from '../../config/database';\nimport logger from '../../utils/logger';\n\nexport interface UnifiedRequest {\n  id: string;\n  type: 'time_correction' | 'overtime' | 'leave';\n  employeeId: string;\n  employeeName: string;\n  departmentName: string;\n  status: 'pending' | 'approved' | 'rejected';\n  submittedAt: string;\n  approverName?: string;\n  approvedAt?: string;\n  details: any;\n  requestTable: string; // Track which table this came from\n}\n\nexport interface RequestListParams {\n  type?: string;\n  status?: 'pending' | 'approved' | 'rejected';\n  departmentId?: string;\n  search?: string;\n  page?: number;\n  limit?: number;\n}\n\nexport interface RequestStats {\n  total: number;\n  pending: number;\n  approved: number;\n  rejected: number;\n  byType: Array<{\n    type: string;\n    count: number;\n  }>;\n}\n\nexport class HrRequestService {\n  /**\n   * Get all requests from all tables (time corrections, overtime, leaves)\n   */\n  async getAllRequests(params: RequestListParams = {}): Promise<{\n    requests: UnifiedRequest[];\n    total: number;\n    page: number;\n    limit: number;\n    totalPages: number;\n  }> {\n    try {\n      const {\n        type,\n        status,\n        departmentId,\n        search,\n        page = 1,\n        limit = 50\n      } = params;\n\n      const offset = (page - 1) * limit;\n      \n      // Build WHERE conditions\n      const whereConditions: string[] = [];\n      const queryParams: any[] = [];\n      let paramIndex = 1;\n\n      if (type) {\n        whereConditions.push(`ar.type = $${paramIndex}`);\n        queryParams.push(type);\n        paramIndex++;\n      }\n\n      if (status) {\n        whereConditions.push(`ar.status = $${paramIndex}`);\n        queryParams.push(status);\n        paramIndex++;\n      }\n\n      if (departmentId) {\n        whereConditions.push(`d.id = $${paramIndex}`);\n        queryParams.push(departmentId);\n        paramIndex++;\n      }\n\n      if (search) {\n        whereConditions.push(`(u.first_name ILIKE $${paramIndex} OR u.last_name ILIKE $${paramIndex} OR e.employee_id ILIKE $${paramIndex})`);\n        queryParams.push(`%${search}%`);\n        paramIndex++;\n      }\n\n      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';\n\n      // Union query to get all requests from all tables\n      const unionQuery = `\n        WITH all_requests AS (\n          -- Time Correction Requests\n          SELECT \n            tc.id,\n            'time_correction' as type,\n            tc.employee_id as employee_id,\n            CONCAT(u.first_name, ' ', u.last_name) as employee_name,\n            d.name as department_name,\n            tc.status::text as status,\n            tc.created_at as submitted_at,\n            approver.first_name || ' ' || approver.last_name as approver_name,\n            tc.approved_at,\n            jsonb_build_object(\n              'date', tc.correction_date,\n              'requestedClockIn', tc.requested_clock_in,\n              'requestedClockOut', tc.requested_clock_out,\n              'reason', tc.reason,\n              'comments', tc.comments\n            ) as details,\n            'time_correction_requests' as request_table\n          FROM time_correction_requests tc\n          JOIN employees e ON tc.employee_id = e.id\n          JOIN users u ON e.user_id = u.id\n          JOIN departments d ON e.department_id = d.id\n          LEFT JOIN users approver ON tc.approver_id = approver.id\n          \n          UNION ALL\n          \n          -- Overtime Requests\n          SELECT \n            ot.id,\n            'overtime' as type,\n            ot.employee_id as employee_id,\n            CONCAT(u.first_name, ' ', u.last_name) as employee_name,\n            d.name as department_name,\n            ot.status::text as status,\n            ot.created_at as submitted_at,\n            approver.first_name || ' ' || approver.last_name as approver_name,\n            ot.approved_at,\n            jsonb_build_object(\n              'date', ot.overtime_date,\n              'startTime', ot.start_time,\n              'endTime', ot.end_time,\n              'hours', ot.requested_hours,\n              'reason', ot.reason,\n              'comments', ot.comments\n            ) as details,\n            'overtime_requests' as request_table\n          FROM overtime_requests ot\n          JOIN employees e ON ot.employee_id = e.id\n          JOIN users u ON e.user_id = u.id\n          JOIN departments d ON e.department_id = d.id\n          LEFT JOIN users approver ON ot.approver_id = approver.id\n          \n          UNION ALL\n          \n          -- Leave Requests\n          SELECT \n            lr.id,\n            'leave' as type,\n            lr.employee_id as employee_id,\n            CONCAT(u.first_name, ' ', u.last_name) as employee_name,\n            d.name as department_name,\n            lr.status::text as status,\n            lr.created_at as submitted_at,\n            approver.first_name || ' ' || approver.last_name as approver_name,\n            NULL as approved_at,\n            jsonb_build_object(\n              'leaveType', lr.leave_type,\n              'startDate', lr.start_date,\n              'endDate', lr.end_date,\n              'totalDays', (lr.end_date - lr.start_date + 1)\n            ) as details,\n            'leaves' as request_table\n          FROM leaves lr\n          JOIN employees e ON lr.employee_id = e.id\n          JOIN users u ON e.user_id = u.id\n          JOIN departments d ON e.department_id = d.id\n          LEFT JOIN users approver ON lr.approver_id = approver.id\n        )\n        SELECT \n          ar.*,\n          e.employee_id as employee_display_id\n        FROM all_requests ar\n        JOIN employees e ON ar.employee_id = e.id\n        JOIN users u ON e.user_id = u.id\n        JOIN departments d ON e.department_id = d.id\n        ${whereClause}\n        ORDER BY ar.submitted_at DESC\n        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}\n      `;\n\n      queryParams.push(limit, offset);\n\n      // Count query\n      const countQuery = `\n        WITH all_requests AS (\n          -- Time Correction Requests\n          SELECT \n            tc.id,\n            'time_correction' as type,\n            tc.employee_id as employee_id,\n            CONCAT(u.first_name, ' ', u.last_name) as employee_name,\n            d.name as department_name,\n            tc.status::text as status,\n            tc.created_at as submitted_at,\n            'time_correction_requests' as request_table\n          FROM time_correction_requests tc\n          JOIN employees e ON tc.employee_id = e.id\n          JOIN users u ON e.user_id = u.id\n          JOIN departments d ON e.department_id = d.id\n          \n          UNION ALL\n          \n          -- Overtime Requests\n          SELECT \n            ot.id,\n            'overtime' as type,\n            ot.employee_id as employee_id,\n            CONCAT(u.first_name, ' ', u.last_name) as employee_name,\n            d.name as department_name,\n            ot.status::text as status,\n            ot.created_at as submitted_at,\n            'overtime_requests' as request_table\n          FROM overtime_requests ot\n          JOIN employees e ON ot.employee_id = e.id\n          JOIN users u ON e.user_id = u.id\n          JOIN departments d ON e.department_id = d.id\n          \n          UNION ALL\n          \n          -- Leave Requests\n          SELECT \n            lr.id,\n            'leave' as type,\n            lr.employee_id as employee_id,\n            CONCAT(u.first_name, ' ', u.last_name) as employee_name,\n            d.name as department_name,\n            lr.status::text as status,\n            lr.created_at as submitted_at,\n            'leaves' as request_table\n          FROM leaves lr\n          JOIN employees e ON lr.employee_id = e.id\n          JOIN users u ON e.user_id = u.id\n          JOIN departments d ON e.department_id = d.id\n        )\n        SELECT COUNT(*) as total\n        FROM all_requests ar\n        JOIN employees e ON ar.employee_id = e.id\n        JOIN users u ON e.user_id = u.id\n        JOIN departments d ON e.department_id = d.id\n        ${whereClause}\n      `;\n\n      const [requestsResult, countResult] = await Promise.all([\n        getPool().query(unionQuery, queryParams),\n        getPool().query(countQuery, queryParams.slice(0, -2)) // Remove limit and offset for count\n      ]);\n\n      const requests = requestsResult.rows.map(row => ({\n        id: row.id,\n        type: row.type,\n        employeeId: row.employee_display_id,\n        employeeName: row.employee_name,\n        departmentName: row.department_name,\n        status: row.status,\n        submittedAt: row.submitted_at,\n        approverName: row.approver_name,\n        approvedAt: row.approved_at,\n        details: row.details,\n        requestTable: row.request_table\n      }));\n\n      const total = parseInt(countResult.rows[0].total);\n      const totalPages = Math.ceil(total / limit);\n\n      logger.info('Retrieved HR requests', {\n        total,\n        returned: requests.length,\n        page,\n        limit,\n        filters: { type, status, departmentId, search }\n      });\n\n      return {\n        requests,\n        total,\n        page,\n        limit,\n        totalPages\n      };\n    } catch (error) {\n      logger.error('Error getting all HR requests', { \n        error: (error as Error).message,\n        params\n      });\n      throw error;\n    }\n  }\n\n  /**\n   * Get request statistics\n   */\n  async getRequestStats(): Promise<RequestStats> {\n    try {\n      const statsQuery = `\n        WITH all_requests AS (\n          SELECT 'time_correction' as type, status::text as status FROM time_correction_requests\n          UNION ALL\n          SELECT 'overtime' as type, status::text as status FROM overtime_requests\n          UNION ALL\n          SELECT 'leave' as type, status::text as status FROM leaves\n        )\n        SELECT \n          COUNT(*) as total,\n          COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,\n          COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved,\n          COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected\n        FROM all_requests\n      `;\n\n      const byTypeQuery = `\n        WITH all_requests AS (\n          SELECT 'time_correction' as type FROM time_correction_requests\n          UNION ALL\n          SELECT 'overtime' as type FROM overtime_requests\n          UNION ALL\n          SELECT 'leave' as type FROM leaves\n        )\n        SELECT \n          type,\n          COUNT(*) as count\n        FROM all_requests\n        GROUP BY type\n        ORDER BY count DESC\n      `;\n\n      const [statsResult, byTypeResult] = await Promise.all([\n        getPool().query(statsQuery),\n        getPool().query(byTypeQuery)\n      ]);\n\n      const stats = statsResult.rows[0];\n      const byType = byTypeResult.rows.map(row => ({\n        type: row.type,\n        count: parseInt(row.count)\n      }));\n\n      return {\n        total: parseInt(stats.total),\n        pending: parseInt(stats.pending),\n        approved: parseInt(stats.approved),\n        rejected: parseInt(stats.rejected),\n        byType\n      };\n    } catch (error) {\n      logger.error('Error getting request stats', { \n        error: (error as Error).message\n      });\n      throw error;\n    }\n  }\n\n  /**\n   * Get request by ID from any table\n   */\n  async getRequestById(id: string): Promise<UnifiedRequest | null> {\n    try {\n      // Try to find the request in any of the tables\n      const queries = [\n        // Time correction\n        {\n          table: 'time_correction_requests',\n          type: 'time_correction',\n          query: `\n            SELECT \n              tc.id,\n              'time_correction' as type,\n              tc.employee_id as employee_id,\n              CONCAT(u.first_name, ' ', u.last_name) as employee_name,\n              d.name as department_name,\n              tc.status::text as status,\n              tc.created_at as submitted_at,\n              approver.first_name || ' ' || approver.last_name as approver_name,\n              tc.approved_at,\n              jsonb_build_object(\n                'date', tc.correction_date,\n                'originalClockIn', tc.original_clock_in,\n                'originalClockOut', tc.original_clock_out,\n                'correctedClockIn', tc.corrected_clock_in,\n                'correctedClockOut', tc.corrected_clock_out,\n                'reason', tc.reason,\n                'justification', tc.justification\n              ) as details,\n              'time_correction_requests' as request_table,\n              e.employee_id as employee_display_id\n            FROM time_correction_requests tc\n            JOIN employees e ON tc.employee_id = e.id\n            JOIN users u ON e.user_id = u.id\n            JOIN departments d ON e.department_id = d.id\n            LEFT JOIN users approver ON tc.approver_id = approver.id\n            WHERE tc.id = $1\n          `\n        },\n        // Overtime\n        {\n          table: 'overtime_requests',\n          type: 'overtime',\n          query: `\n            SELECT \n              ot.id,\n              'overtime' as type,\n              ot.employee_id as employee_id,\n              CONCAT(u.first_name, ' ', u.last_name) as employee_name,\n              d.name as department_name,\n              ot.status::text as status,\n              ot.created_at as submitted_at,\n              approver.first_name || ' ' || approver.last_name as approver_name,\n              ot.approved_at,\n              jsonb_build_object(\n                'date', ot.overtime_date,\n                'startTime', ot.start_time,\n                'endTime', ot.end_time,\n                'hours', ot.hours,\n                'reason', ot.reason,\n                'justification', ot.justification\n              ) as details,\n              'overtime_requests' as request_table,\n              e.employee_id as employee_display_id\n            FROM overtime_requests ot\n            JOIN employees e ON ot.employee_id = e.id\n            JOIN users u ON e.user_id = u.id\n            JOIN departments d ON e.department_id = d.id\n            LEFT JOIN users approver ON ot.approver_id = approver.id\n            WHERE ot.id = $1\n          `\n        },\n        // Leave\n        {\n          table: 'leaves',\n          type: 'leave',\n          query: `\n            SELECT \n              lr.id,\n              'leave' as type,\n              lr.employee_id as employee_id,\n              CONCAT(u.first_name, ' ', u.last_name) as employee_name,\n              d.name as department_name,\n              lr.status::text as status,\n              lr.created_at as submitted_at,\n              approver.first_name || ' ' || approver.last_name as approver_name,\n              NULL as approved_at,\n              jsonb_build_object(\n                'leaveType', lr.leave_type,\n                'startDate', lr.start_date,\n                'endDate', lr.end_date,\n                'days', lr.days,\n                'reason', lr.reason,\n                'justification', lr.justification\n              ) as details,\n              'leaves' as request_table,\n              e.employee_id as employee_display_id\n            FROM leaves lr\n            JOIN employees e ON lr.employee_id = e.id\n            JOIN users u ON e.user_id = u.id\n            JOIN departments d ON e.department_id = d.id\n            LEFT JOIN users approver ON lr.approver_id = approver.id\n            WHERE lr.id = $1\n          `\n        }\n      ];\n\n      for (const { query } of queries) {\n        const result = await getPool().query(query, [id]);\n        if (result.rows.length > 0) {\n          const row = result.rows[0];\n          return {\n            id: row.id,\n            type: row.type,\n            employeeId: row.employee_display_id,\n            employeeName: row.employee_name,\n            departmentName: row.department_name,\n            status: row.status,\n            submittedAt: row.submitted_at,\n            approverName: row.approver_name,\n            approvedAt: row.approved_at,\n            details: row.details,\n            requestTable: row.request_table\n          };\n        }\n      }\n\n      return null;\n    } catch (error) {\n      logger.error('Error getting request by ID', { \n        error: (error as Error).message,\n        id\n      });\n      throw error;\n    }\n  }\n}\n\nexport const hrRequestService = new HrRequestService();\n"],
+      version: 3
+    },
+    _coverageSchema: "1a1c01bbd47fc00a2c39e90264f33305004495a9",
+    hash: "c8bf2518a2256fa246227518d826909fc999ff52"
+  };
+  var coverage = global[gcv] || (global[gcv] = {});
+  if (!coverage[path] || coverage[path].hash !== hash) {
+    coverage[path] = coverageData;
+  }
+  var actualCoverage = coverage[path];
+  {
+    // @ts-ignore
+    cov_rawm0g82 = function () {
+      return actualCoverage;
+    };
+  }
+  return actualCoverage;
+}
+cov_rawm0g82();
+var __importDefault =
+/* istanbul ignore next */
+(cov_rawm0g82().s[0]++,
+/* istanbul ignore next */
+(cov_rawm0g82().b[0][0]++, this) &&
+/* istanbul ignore next */
+(cov_rawm0g82().b[0][1]++, this.__importDefault) ||
+/* istanbul ignore next */
+(cov_rawm0g82().b[0][2]++, function (mod) {
+  /* istanbul ignore next */
+  cov_rawm0g82().f[0]++;
+  cov_rawm0g82().s[1]++;
+  return /* istanbul ignore next */(cov_rawm0g82().b[2][0]++, mod) &&
+  /* istanbul ignore next */
+  (cov_rawm0g82().b[2][1]++, mod.__esModule) ?
+  /* istanbul ignore next */
+  (cov_rawm0g82().b[1][0]++, mod) :
+  /* istanbul ignore next */
+  (cov_rawm0g82().b[1][1]++, {
+    "default": mod
+  });
+}));
+/* istanbul ignore next */
+cov_rawm0g82().s[2]++;
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+/* istanbul ignore next */
+cov_rawm0g82().s[3]++;
+exports.hrRequestService = exports.HrRequestService = void 0;
+const database_1 =
+/* istanbul ignore next */
+(cov_rawm0g82().s[4]++, require("../../config/database"));
+const logger_1 =
+/* istanbul ignore next */
+(cov_rawm0g82().s[5]++, __importDefault(require("../../utils/logger")));
+class HrRequestService {
+  /**
+   * Get all requests from all tables (time corrections, overtime, leaves)
+   */
+  async getAllRequests(params =
+  /* istanbul ignore next */
+  (cov_rawm0g82().b[3][0]++, {})) {
+    /* istanbul ignore next */
+    cov_rawm0g82().f[1]++;
+    cov_rawm0g82().s[6]++;
+    try {
+      const {
+        type,
+        status,
+        departmentId,
+        search,
+        page =
+        /* istanbul ignore next */
+        (cov_rawm0g82().b[4][0]++, 1),
+        limit =
+        /* istanbul ignore next */
+        (cov_rawm0g82().b[5][0]++, 50)
+      } =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[7]++, params);
+      const offset =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[8]++, (page - 1) * limit);
+      // Build WHERE conditions
+      const whereConditions =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[9]++, []);
+      const queryParams =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[10]++, []);
+      let paramIndex =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[11]++, 1);
+      /* istanbul ignore next */
+      cov_rawm0g82().s[12]++;
+      if (type) {
+        /* istanbul ignore next */
+        cov_rawm0g82().b[6][0]++;
+        cov_rawm0g82().s[13]++;
+        whereConditions.push(`ar.type = $${paramIndex}`);
+        /* istanbul ignore next */
+        cov_rawm0g82().s[14]++;
+        queryParams.push(type);
+        /* istanbul ignore next */
+        cov_rawm0g82().s[15]++;
+        paramIndex++;
+      } else
+      /* istanbul ignore next */
+      {
+        cov_rawm0g82().b[6][1]++;
+      }
+      cov_rawm0g82().s[16]++;
+      if (status) {
+        /* istanbul ignore next */
+        cov_rawm0g82().b[7][0]++;
+        cov_rawm0g82().s[17]++;
+        whereConditions.push(`ar.status = $${paramIndex}`);
+        /* istanbul ignore next */
+        cov_rawm0g82().s[18]++;
+        queryParams.push(status);
+        /* istanbul ignore next */
+        cov_rawm0g82().s[19]++;
+        paramIndex++;
+      } else
+      /* istanbul ignore next */
+      {
+        cov_rawm0g82().b[7][1]++;
+      }
+      cov_rawm0g82().s[20]++;
+      if (departmentId) {
+        /* istanbul ignore next */
+        cov_rawm0g82().b[8][0]++;
+        cov_rawm0g82().s[21]++;
+        whereConditions.push(`d.id = $${paramIndex}`);
+        /* istanbul ignore next */
+        cov_rawm0g82().s[22]++;
+        queryParams.push(departmentId);
+        /* istanbul ignore next */
+        cov_rawm0g82().s[23]++;
+        paramIndex++;
+      } else
+      /* istanbul ignore next */
+      {
+        cov_rawm0g82().b[8][1]++;
+      }
+      cov_rawm0g82().s[24]++;
+      if (search) {
+        /* istanbul ignore next */
+        cov_rawm0g82().b[9][0]++;
+        cov_rawm0g82().s[25]++;
+        whereConditions.push(`(u.first_name ILIKE $${paramIndex} OR u.last_name ILIKE $${paramIndex} OR e.employee_id ILIKE $${paramIndex})`);
+        /* istanbul ignore next */
+        cov_rawm0g82().s[26]++;
+        queryParams.push(`%${search}%`);
+        /* istanbul ignore next */
+        cov_rawm0g82().s[27]++;
+        paramIndex++;
+      } else
+      /* istanbul ignore next */
+      {
+        cov_rawm0g82().b[9][1]++;
+      }
+      const whereClause =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[28]++, whereConditions.length > 0 ?
+      /* istanbul ignore next */
+      (cov_rawm0g82().b[10][0]++, `WHERE ${whereConditions.join(' AND ')}`) :
+      /* istanbul ignore next */
+      (cov_rawm0g82().b[10][1]++, ''));
+      // Union query to get all requests from all tables
+      const unionQuery =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[29]++, `
+        WITH all_requests AS (
+          -- Time Correction Requests
+          SELECT 
+            tc.id,
+            'time_correction' as type,
+            tc.employee_id as employee_id,
+            CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+            d.name as department_name,
+            tc.status::text as status,
+            tc.created_at as submitted_at,
+            approver.first_name || ' ' || approver.last_name as approver_name,
+            tc.approved_at,
+            jsonb_build_object(
+              'date', tc.correction_date,
+              'requestedClockIn', tc.requested_clock_in,
+              'requestedClockOut', tc.requested_clock_out,
+              'reason', tc.reason,
+              'comments', tc.comments
+            ) as details,
+            'time_correction_requests' as request_table
+          FROM time_correction_requests tc
+          JOIN employees e ON tc.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
+          JOIN departments d ON e.department_id = d.id
+          LEFT JOIN users approver ON tc.approver_id = approver.id
+          
+          UNION ALL
+          
+          -- Overtime Requests
+          SELECT 
+            ot.id,
+            'overtime' as type,
+            ot.employee_id as employee_id,
+            CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+            d.name as department_name,
+            ot.status::text as status,
+            ot.created_at as submitted_at,
+            approver.first_name || ' ' || approver.last_name as approver_name,
+            ot.approved_at,
+            jsonb_build_object(
+              'date', ot.overtime_date,
+              'startTime', ot.start_time,
+              'endTime', ot.end_time,
+              'hours', ot.requested_hours,
+              'reason', ot.reason,
+              'comments', ot.comments
+            ) as details,
+            'overtime_requests' as request_table
+          FROM overtime_requests ot
+          JOIN employees e ON ot.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
+          JOIN departments d ON e.department_id = d.id
+          LEFT JOIN users approver ON ot.approver_id = approver.id
+          
+          UNION ALL
+          
+          -- Leave Requests
+          SELECT 
+            lr.id,
+            'leave' as type,
+            lr.employee_id as employee_id,
+            CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+            d.name as department_name,
+            lr.status::text as status,
+            lr.created_at as submitted_at,
+            approver.first_name || ' ' || approver.last_name as approver_name,
+            NULL as approved_at,
+            jsonb_build_object(
+              'leaveType', lr.leave_type,
+              'startDate', lr.start_date,
+              'endDate', lr.end_date,
+              'totalDays', (lr.end_date - lr.start_date + 1)
+            ) as details,
+            'leaves' as request_table
+          FROM leaves lr
+          JOIN employees e ON lr.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
+          JOIN departments d ON e.department_id = d.id
+          LEFT JOIN users approver ON lr.approver_id = approver.id
+        )
+        SELECT 
+          ar.*,
+          e.employee_id as employee_display_id
+        FROM all_requests ar
+        JOIN employees e ON ar.employee_id = e.id
+        JOIN users u ON e.user_id = u.id
+        JOIN departments d ON e.department_id = d.id
+        ${whereClause}
+        ORDER BY ar.submitted_at DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `);
+      /* istanbul ignore next */
+      cov_rawm0g82().s[30]++;
+      queryParams.push(limit, offset);
+      // Count query
+      const countQuery =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[31]++, `
+        WITH all_requests AS (
+          -- Time Correction Requests
+          SELECT 
+            tc.id,
+            'time_correction' as type,
+            tc.employee_id as employee_id,
+            CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+            d.name as department_name,
+            tc.status::text as status,
+            tc.created_at as submitted_at,
+            'time_correction_requests' as request_table
+          FROM time_correction_requests tc
+          JOIN employees e ON tc.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
+          JOIN departments d ON e.department_id = d.id
+          
+          UNION ALL
+          
+          -- Overtime Requests
+          SELECT 
+            ot.id,
+            'overtime' as type,
+            ot.employee_id as employee_id,
+            CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+            d.name as department_name,
+            ot.status::text as status,
+            ot.created_at as submitted_at,
+            'overtime_requests' as request_table
+          FROM overtime_requests ot
+          JOIN employees e ON ot.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
+          JOIN departments d ON e.department_id = d.id
+          
+          UNION ALL
+          
+          -- Leave Requests
+          SELECT 
+            lr.id,
+            'leave' as type,
+            lr.employee_id as employee_id,
+            CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+            d.name as department_name,
+            lr.status::text as status,
+            lr.created_at as submitted_at,
+            'leaves' as request_table
+          FROM leaves lr
+          JOIN employees e ON lr.employee_id = e.id
+          JOIN users u ON e.user_id = u.id
+          JOIN departments d ON e.department_id = d.id
+        )
+        SELECT COUNT(*) as total
+        FROM all_requests ar
+        JOIN employees e ON ar.employee_id = e.id
+        JOIN users u ON e.user_id = u.id
+        JOIN departments d ON e.department_id = d.id
+        ${whereClause}
+      `);
+      const [requestsResult, countResult] =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[32]++, await Promise.all([(0, database_1.getPool)().query(unionQuery, queryParams), (0, database_1.getPool)().query(countQuery, queryParams.slice(0, -2)) // Remove limit and offset for count
+      ]));
+      const requests =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[33]++, requestsResult.rows.map(row => {
+        /* istanbul ignore next */
+        cov_rawm0g82().f[2]++;
+        cov_rawm0g82().s[34]++;
+        return {
+          id: row.id,
+          type: row.type,
+          employeeId: row.employee_display_id,
+          employeeName: row.employee_name,
+          departmentName: row.department_name,
+          status: row.status,
+          submittedAt: row.submitted_at,
+          approverName: row.approver_name,
+          approvedAt: row.approved_at,
+          details: row.details,
+          requestTable: row.request_table
+        };
+      }));
+      const total =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[35]++, parseInt(countResult.rows[0].total));
+      const totalPages =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[36]++, Math.ceil(total / limit));
+      /* istanbul ignore next */
+      cov_rawm0g82().s[37]++;
+      logger_1.default.info('Retrieved HR requests', {
+        total,
+        returned: requests.length,
+        page,
+        limit,
+        filters: {
+          type,
+          status,
+          departmentId,
+          search
+        }
+      });
+      /* istanbul ignore next */
+      cov_rawm0g82().s[38]++;
+      return {
+        requests,
+        total,
+        page,
+        limit,
+        totalPages
+      };
+    } catch (error) {
+      /* istanbul ignore next */
+      cov_rawm0g82().s[39]++;
+      logger_1.default.error('Error getting all HR requests', {
+        error: error.message,
+        params
+      });
+      /* istanbul ignore next */
+      cov_rawm0g82().s[40]++;
+      throw error;
+    }
+  }
+  /**
+   * Get request statistics
+   */
+  async getRequestStats() {
+    /* istanbul ignore next */
+    cov_rawm0g82().f[3]++;
+    cov_rawm0g82().s[41]++;
+    try {
+      const statsQuery =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[42]++, `
+        WITH all_requests AS (
+          SELECT 'time_correction' as type, status::text as status FROM time_correction_requests
+          UNION ALL
+          SELECT 'overtime' as type, status::text as status FROM overtime_requests
+          UNION ALL
+          SELECT 'leave' as type, status::text as status FROM leaves
+        )
+        SELECT 
+          COUNT(*) as total,
+          COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+          COUNT(CASE WHEN status = 'approved' THEN 1 END) as approved,
+          COUNT(CASE WHEN status = 'rejected' THEN 1 END) as rejected
+        FROM all_requests
+      `);
+      const byTypeQuery =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[43]++, `
+        WITH all_requests AS (
+          SELECT 'time_correction' as type FROM time_correction_requests
+          UNION ALL
+          SELECT 'overtime' as type FROM overtime_requests
+          UNION ALL
+          SELECT 'leave' as type FROM leaves
+        )
+        SELECT 
+          type,
+          COUNT(*) as count
+        FROM all_requests
+        GROUP BY type
+        ORDER BY count DESC
+      `);
+      const [statsResult, byTypeResult] =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[44]++, await Promise.all([(0, database_1.getPool)().query(statsQuery), (0, database_1.getPool)().query(byTypeQuery)]));
+      const stats =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[45]++, statsResult.rows[0]);
+      const byType =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[46]++, byTypeResult.rows.map(row => {
+        /* istanbul ignore next */
+        cov_rawm0g82().f[4]++;
+        cov_rawm0g82().s[47]++;
+        return {
+          type: row.type,
+          count: parseInt(row.count)
+        };
+      }));
+      /* istanbul ignore next */
+      cov_rawm0g82().s[48]++;
+      return {
+        total: parseInt(stats.total),
+        pending: parseInt(stats.pending),
+        approved: parseInt(stats.approved),
+        rejected: parseInt(stats.rejected),
+        byType
+      };
+    } catch (error) {
+      /* istanbul ignore next */
+      cov_rawm0g82().s[49]++;
+      logger_1.default.error('Error getting request stats', {
+        error: error.message
+      });
+      /* istanbul ignore next */
+      cov_rawm0g82().s[50]++;
+      throw error;
+    }
+  }
+  /**
+   * Get request by ID from any table
+   */
+  async getRequestById(id) {
+    /* istanbul ignore next */
+    cov_rawm0g82().f[5]++;
+    cov_rawm0g82().s[51]++;
+    try {
+      // Try to find the request in any of the tables
+      const queries =
+      /* istanbul ignore next */
+      (cov_rawm0g82().s[52]++, [
+      // Time correction
+      {
+        table: 'time_correction_requests',
+        type: 'time_correction',
+        query: `
+            SELECT 
+              tc.id,
+              'time_correction' as type,
+              tc.employee_id as employee_id,
+              CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+              d.name as department_name,
+              tc.status::text as status,
+              tc.created_at as submitted_at,
+              approver.first_name || ' ' || approver.last_name as approver_name,
+              tc.approved_at,
+              jsonb_build_object(
+                'date', tc.correction_date,
+                'originalClockIn', tc.original_clock_in,
+                'originalClockOut', tc.original_clock_out,
+                'correctedClockIn', tc.corrected_clock_in,
+                'correctedClockOut', tc.corrected_clock_out,
+                'reason', tc.reason,
+                'justification', tc.justification
+              ) as details,
+              'time_correction_requests' as request_table,
+              e.employee_id as employee_display_id
+            FROM time_correction_requests tc
+            JOIN employees e ON tc.employee_id = e.id
+            JOIN users u ON e.user_id = u.id
+            JOIN departments d ON e.department_id = d.id
+            LEFT JOIN users approver ON tc.approver_id = approver.id
+            WHERE tc.id = $1
+          `
+      },
+      // Overtime
+      {
+        table: 'overtime_requests',
+        type: 'overtime',
+        query: `
+            SELECT 
+              ot.id,
+              'overtime' as type,
+              ot.employee_id as employee_id,
+              CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+              d.name as department_name,
+              ot.status::text as status,
+              ot.created_at as submitted_at,
+              approver.first_name || ' ' || approver.last_name as approver_name,
+              ot.approved_at,
+              jsonb_build_object(
+                'date', ot.overtime_date,
+                'startTime', ot.start_time,
+                'endTime', ot.end_time,
+                'hours', ot.hours,
+                'reason', ot.reason,
+                'justification', ot.justification
+              ) as details,
+              'overtime_requests' as request_table,
+              e.employee_id as employee_display_id
+            FROM overtime_requests ot
+            JOIN employees e ON ot.employee_id = e.id
+            JOIN users u ON e.user_id = u.id
+            JOIN departments d ON e.department_id = d.id
+            LEFT JOIN users approver ON ot.approver_id = approver.id
+            WHERE ot.id = $1
+          `
+      },
+      // Leave
+      {
+        table: 'leaves',
+        type: 'leave',
+        query: `
+            SELECT 
+              lr.id,
+              'leave' as type,
+              lr.employee_id as employee_id,
+              CONCAT(u.first_name, ' ', u.last_name) as employee_name,
+              d.name as department_name,
+              lr.status::text as status,
+              lr.created_at as submitted_at,
+              approver.first_name || ' ' || approver.last_name as approver_name,
+              NULL as approved_at,
+              jsonb_build_object(
+                'leaveType', lr.leave_type,
+                'startDate', lr.start_date,
+                'endDate', lr.end_date,
+                'days', lr.days,
+                'reason', lr.reason,
+                'justification', lr.justification
+              ) as details,
+              'leaves' as request_table,
+              e.employee_id as employee_display_id
+            FROM leaves lr
+            JOIN employees e ON lr.employee_id = e.id
+            JOIN users u ON e.user_id = u.id
+            JOIN departments d ON e.department_id = d.id
+            LEFT JOIN users approver ON lr.approver_id = approver.id
+            WHERE lr.id = $1
+          `
+      }]);
+      /* istanbul ignore next */
+      cov_rawm0g82().s[53]++;
+      for (const {
+        query
+      } of queries) {
+        const result =
+        /* istanbul ignore next */
+        (cov_rawm0g82().s[54]++, await (0, database_1.getPool)().query(query, [id]));
+        /* istanbul ignore next */
+        cov_rawm0g82().s[55]++;
+        if (result.rows.length > 0) {
+          /* istanbul ignore next */
+          cov_rawm0g82().b[11][0]++;
+          const row =
+          /* istanbul ignore next */
+          (cov_rawm0g82().s[56]++, result.rows[0]);
+          /* istanbul ignore next */
+          cov_rawm0g82().s[57]++;
+          return {
+            id: row.id,
+            type: row.type,
+            employeeId: row.employee_display_id,
+            employeeName: row.employee_name,
+            departmentName: row.department_name,
+            status: row.status,
+            submittedAt: row.submitted_at,
+            approverName: row.approver_name,
+            approvedAt: row.approved_at,
+            details: row.details,
+            requestTable: row.request_table
+          };
+        } else
+        /* istanbul ignore next */
+        {
+          cov_rawm0g82().b[11][1]++;
+        }
+      }
+      /* istanbul ignore next */
+      cov_rawm0g82().s[58]++;
+      return null;
+    } catch (error) {
+      /* istanbul ignore next */
+      cov_rawm0g82().s[59]++;
+      logger_1.default.error('Error getting request by ID', {
+        error: error.message,
+        id
+      });
+      /* istanbul ignore next */
+      cov_rawm0g82().s[60]++;
+      throw error;
+    }
+  }
+}
+/* istanbul ignore next */
+cov_rawm0g82().s[61]++;
+exports.HrRequestService = HrRequestService;
+/* istanbul ignore next */
+cov_rawm0g82().s[62]++;
+exports.hrRequestService = new HrRequestService();
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJuYW1lcyI6WyJjb3ZfcmF3bTBnODIiLCJhY3R1YWxDb3ZlcmFnZSIsImRhdGFiYXNlXzEiLCJzIiwicmVxdWlyZSIsImxvZ2dlcl8xIiwiX19pbXBvcnREZWZhdWx0IiwiSHJSZXF1ZXN0U2VydmljZSIsImdldEFsbFJlcXVlc3RzIiwicGFyYW1zIiwiYiIsImYiLCJ0eXBlIiwic3RhdHVzIiwiZGVwYXJ0bWVudElkIiwic2VhcmNoIiwicGFnZSIsImxpbWl0Iiwib2Zmc2V0Iiwid2hlcmVDb25kaXRpb25zIiwicXVlcnlQYXJhbXMiLCJwYXJhbUluZGV4IiwicHVzaCIsIndoZXJlQ2xhdXNlIiwibGVuZ3RoIiwiam9pbiIsInVuaW9uUXVlcnkiLCJjb3VudFF1ZXJ5IiwicmVxdWVzdHNSZXN1bHQiLCJjb3VudFJlc3VsdCIsIlByb21pc2UiLCJhbGwiLCJnZXRQb29sIiwicXVlcnkiLCJzbGljZSIsInJlcXVlc3RzIiwicm93cyIsIm1hcCIsInJvdyIsImlkIiwiZW1wbG95ZWVJZCIsImVtcGxveWVlX2Rpc3BsYXlfaWQiLCJlbXBsb3llZU5hbWUiLCJlbXBsb3llZV9uYW1lIiwiZGVwYXJ0bWVudE5hbWUiLCJkZXBhcnRtZW50X25hbWUiLCJzdWJtaXR0ZWRBdCIsInN1Ym1pdHRlZF9hdCIsImFwcHJvdmVyTmFtZSIsImFwcHJvdmVyX25hbWUiLCJhcHByb3ZlZEF0IiwiYXBwcm92ZWRfYXQiLCJkZXRhaWxzIiwicmVxdWVzdFRhYmxlIiwicmVxdWVzdF90YWJsZSIsInRvdGFsIiwicGFyc2VJbnQiLCJ0b3RhbFBhZ2VzIiwiTWF0aCIsImNlaWwiLCJkZWZhdWx0IiwiaW5mbyIsInJldHVybmVkIiwiZmlsdGVycyIsImVycm9yIiwibWVzc2FnZSIsImdldFJlcXVlc3RTdGF0cyIsInN0YXRzUXVlcnkiLCJieVR5cGVRdWVyeSIsInN0YXRzUmVzdWx0IiwiYnlUeXBlUmVzdWx0Iiwic3RhdHMiLCJieVR5cGUiLCJjb3VudCIsInBlbmRpbmciLCJhcHByb3ZlZCIsInJlamVjdGVkIiwiZ2V0UmVxdWVzdEJ5SWQiLCJxdWVyaWVzIiwidGFibGUiLCJyZXN1bHQiLCJleHBvcnRzIiwiaHJSZXF1ZXN0U2VydmljZSJdLCJzb3VyY2VzIjpbIi9ob21lL2tpbS90aXRvL3NlcnZlci9zcmMvc2VydmljZXMvaHIvaHJSZXF1ZXN0U2VydmljZS50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBnZXRQb29sIH0gZnJvbSAnLi4vLi4vY29uZmlnL2RhdGFiYXNlJztcbmltcG9ydCBsb2dnZXIgZnJvbSAnLi4vLi4vdXRpbHMvbG9nZ2VyJztcblxuZXhwb3J0IGludGVyZmFjZSBVbmlmaWVkUmVxdWVzdCB7XG4gIGlkOiBzdHJpbmc7XG4gIHR5cGU6ICd0aW1lX2NvcnJlY3Rpb24nIHwgJ292ZXJ0aW1lJyB8ICdsZWF2ZSc7XG4gIGVtcGxveWVlSWQ6IHN0cmluZztcbiAgZW1wbG95ZWVOYW1lOiBzdHJpbmc7XG4gIGRlcGFydG1lbnROYW1lOiBzdHJpbmc7XG4gIHN0YXR1czogJ3BlbmRpbmcnIHwgJ2FwcHJvdmVkJyB8ICdyZWplY3RlZCc7XG4gIHN1Ym1pdHRlZEF0OiBzdHJpbmc7XG4gIGFwcHJvdmVyTmFtZT86IHN0cmluZztcbiAgYXBwcm92ZWRBdD86IHN0cmluZztcbiAgZGV0YWlsczogYW55O1xuICByZXF1ZXN0VGFibGU6IHN0cmluZzsgLy8gVHJhY2sgd2hpY2ggdGFibGUgdGhpcyBjYW1lIGZyb21cbn1cblxuZXhwb3J0IGludGVyZmFjZSBSZXF1ZXN0TGlzdFBhcmFtcyB7XG4gIHR5cGU/OiBzdHJpbmc7XG4gIHN0YXR1cz86ICdwZW5kaW5nJyB8ICdhcHByb3ZlZCcgfCAncmVqZWN0ZWQnO1xuICBkZXBhcnRtZW50SWQ/OiBzdHJpbmc7XG4gIHNlYXJjaD86IHN0cmluZztcbiAgcGFnZT86IG51bWJlcjtcbiAgbGltaXQ/OiBudW1iZXI7XG59XG5cbmV4cG9ydCBpbnRlcmZhY2UgUmVxdWVzdFN0YXRzIHtcbiAgdG90YWw6IG51bWJlcjtcbiAgcGVuZGluZzogbnVtYmVyO1xuICBhcHByb3ZlZDogbnVtYmVyO1xuICByZWplY3RlZDogbnVtYmVyO1xuICBieVR5cGU6IEFycmF5PHtcbiAgICB0eXBlOiBzdHJpbmc7XG4gICAgY291bnQ6IG51bWJlcjtcbiAgfT47XG59XG5cbmV4cG9ydCBjbGFzcyBIclJlcXVlc3RTZXJ2aWNlIHtcbiAgLyoqXG4gICAqIEdldCBhbGwgcmVxdWVzdHMgZnJvbSBhbGwgdGFibGVzICh0aW1lIGNvcnJlY3Rpb25zLCBvdmVydGltZSwgbGVhdmVzKVxuICAgKi9cbiAgYXN5bmMgZ2V0QWxsUmVxdWVzdHMocGFyYW1zOiBSZXF1ZXN0TGlzdFBhcmFtcyA9IHt9KTogUHJvbWlzZTx7XG4gICAgcmVxdWVzdHM6IFVuaWZpZWRSZXF1ZXN0W107XG4gICAgdG90YWw6IG51bWJlcjtcbiAgICBwYWdlOiBudW1iZXI7XG4gICAgbGltaXQ6IG51bWJlcjtcbiAgICB0b3RhbFBhZ2VzOiBudW1iZXI7XG4gIH0+IHtcbiAgICB0cnkge1xuICAgICAgY29uc3Qge1xuICAgICAgICB0eXBlLFxuICAgICAgICBzdGF0dXMsXG4gICAgICAgIGRlcGFydG1lbnRJZCxcbiAgICAgICAgc2VhcmNoLFxuICAgICAgICBwYWdlID0gMSxcbiAgICAgICAgbGltaXQgPSA1MFxuICAgICAgfSA9IHBhcmFtcztcblxuICAgICAgY29uc3Qgb2Zmc2V0ID0gKHBhZ2UgLSAxKSAqIGxpbWl0O1xuICAgICAgXG4gICAgICAvLyBCdWlsZCBXSEVSRSBjb25kaXRpb25zXG4gICAgICBjb25zdCB3aGVyZUNvbmRpdGlvbnM6IHN0cmluZ1tdID0gW107XG4gICAgICBjb25zdCBxdWVyeVBhcmFtczogYW55W10gPSBbXTtcbiAgICAgIGxldCBwYXJhbUluZGV4ID0gMTtcblxuICAgICAgaWYgKHR5cGUpIHtcbiAgICAgICAgd2hlcmVDb25kaXRpb25zLnB1c2goYGFyLnR5cGUgPSAkJHtwYXJhbUluZGV4fWApO1xuICAgICAgICBxdWVyeVBhcmFtcy5wdXNoKHR5cGUpO1xuICAgICAgICBwYXJhbUluZGV4Kys7XG4gICAgICB9XG5cbiAgICAgIGlmIChzdGF0dXMpIHtcbiAgICAgICAgd2hlcmVDb25kaXRpb25zLnB1c2goYGFyLnN0YXR1cyA9ICQke3BhcmFtSW5kZXh9YCk7XG4gICAgICAgIHF1ZXJ5UGFyYW1zLnB1c2goc3RhdHVzKTtcbiAgICAgICAgcGFyYW1JbmRleCsrO1xuICAgICAgfVxuXG4gICAgICBpZiAoZGVwYXJ0bWVudElkKSB7XG4gICAgICAgIHdoZXJlQ29uZGl0aW9ucy5wdXNoKGBkLmlkID0gJCR7cGFyYW1JbmRleH1gKTtcbiAgICAgICAgcXVlcnlQYXJhbXMucHVzaChkZXBhcnRtZW50SWQpO1xuICAgICAgICBwYXJhbUluZGV4Kys7XG4gICAgICB9XG5cbiAgICAgIGlmIChzZWFyY2gpIHtcbiAgICAgICAgd2hlcmVDb25kaXRpb25zLnB1c2goYCh1LmZpcnN0X25hbWUgSUxJS0UgJCR7cGFyYW1JbmRleH0gT1IgdS5sYXN0X25hbWUgSUxJS0UgJCR7cGFyYW1JbmRleH0gT1IgZS5lbXBsb3llZV9pZCBJTElLRSAkJHtwYXJhbUluZGV4fSlgKTtcbiAgICAgICAgcXVlcnlQYXJhbXMucHVzaChgJSR7c2VhcmNofSVgKTtcbiAgICAgICAgcGFyYW1JbmRleCsrO1xuICAgICAgfVxuXG4gICAgICBjb25zdCB3aGVyZUNsYXVzZSA9IHdoZXJlQ29uZGl0aW9ucy5sZW5ndGggPiAwID8gYFdIRVJFICR7d2hlcmVDb25kaXRpb25zLmpvaW4oJyBBTkQgJyl9YCA6ICcnO1xuXG4gICAgICAvLyBVbmlvbiBxdWVyeSB0byBnZXQgYWxsIHJlcXVlc3RzIGZyb20gYWxsIHRhYmxlc1xuICAgICAgY29uc3QgdW5pb25RdWVyeSA9IGBcbiAgICAgICAgV0lUSCBhbGxfcmVxdWVzdHMgQVMgKFxuICAgICAgICAgIC0tIFRpbWUgQ29ycmVjdGlvbiBSZXF1ZXN0c1xuICAgICAgICAgIFNFTEVDVCBcbiAgICAgICAgICAgIHRjLmlkLFxuICAgICAgICAgICAgJ3RpbWVfY29ycmVjdGlvbicgYXMgdHlwZSxcbiAgICAgICAgICAgIHRjLmVtcGxveWVlX2lkIGFzIGVtcGxveWVlX2lkLFxuICAgICAgICAgICAgQ09OQ0FUKHUuZmlyc3RfbmFtZSwgJyAnLCB1Lmxhc3RfbmFtZSkgYXMgZW1wbG95ZWVfbmFtZSxcbiAgICAgICAgICAgIGQubmFtZSBhcyBkZXBhcnRtZW50X25hbWUsXG4gICAgICAgICAgICB0Yy5zdGF0dXM6OnRleHQgYXMgc3RhdHVzLFxuICAgICAgICAgICAgdGMuY3JlYXRlZF9hdCBhcyBzdWJtaXR0ZWRfYXQsXG4gICAgICAgICAgICBhcHByb3Zlci5maXJzdF9uYW1lIHx8ICcgJyB8fCBhcHByb3Zlci5sYXN0X25hbWUgYXMgYXBwcm92ZXJfbmFtZSxcbiAgICAgICAgICAgIHRjLmFwcHJvdmVkX2F0LFxuICAgICAgICAgICAganNvbmJfYnVpbGRfb2JqZWN0KFxuICAgICAgICAgICAgICAnZGF0ZScsIHRjLmNvcnJlY3Rpb25fZGF0ZSxcbiAgICAgICAgICAgICAgJ3JlcXVlc3RlZENsb2NrSW4nLCB0Yy5yZXF1ZXN0ZWRfY2xvY2tfaW4sXG4gICAgICAgICAgICAgICdyZXF1ZXN0ZWRDbG9ja091dCcsIHRjLnJlcXVlc3RlZF9jbG9ja19vdXQsXG4gICAgICAgICAgICAgICdyZWFzb24nLCB0Yy5yZWFzb24sXG4gICAgICAgICAgICAgICdjb21tZW50cycsIHRjLmNvbW1lbnRzXG4gICAgICAgICAgICApIGFzIGRldGFpbHMsXG4gICAgICAgICAgICAndGltZV9jb3JyZWN0aW9uX3JlcXVlc3RzJyBhcyByZXF1ZXN0X3RhYmxlXG4gICAgICAgICAgRlJPTSB0aW1lX2NvcnJlY3Rpb25fcmVxdWVzdHMgdGNcbiAgICAgICAgICBKT0lOIGVtcGxveWVlcyBlIE9OIHRjLmVtcGxveWVlX2lkID0gZS5pZFxuICAgICAgICAgIEpPSU4gdXNlcnMgdSBPTiBlLnVzZXJfaWQgPSB1LmlkXG4gICAgICAgICAgSk9JTiBkZXBhcnRtZW50cyBkIE9OIGUuZGVwYXJ0bWVudF9pZCA9IGQuaWRcbiAgICAgICAgICBMRUZUIEpPSU4gdXNlcnMgYXBwcm92ZXIgT04gdGMuYXBwcm92ZXJfaWQgPSBhcHByb3Zlci5pZFxuICAgICAgICAgIFxuICAgICAgICAgIFVOSU9OIEFMTFxuICAgICAgICAgIFxuICAgICAgICAgIC0tIE92ZXJ0aW1lIFJlcXVlc3RzXG4gICAgICAgICAgU0VMRUNUIFxuICAgICAgICAgICAgb3QuaWQsXG4gICAgICAgICAgICAnb3ZlcnRpbWUnIGFzIHR5cGUsXG4gICAgICAgICAgICBvdC5lbXBsb3llZV9pZCBhcyBlbXBsb3llZV9pZCxcbiAgICAgICAgICAgIENPTkNBVCh1LmZpcnN0X25hbWUsICcgJywgdS5sYXN0X25hbWUpIGFzIGVtcGxveWVlX25hbWUsXG4gICAgICAgICAgICBkLm5hbWUgYXMgZGVwYXJ0bWVudF9uYW1lLFxuICAgICAgICAgICAgb3Quc3RhdHVzOjp0ZXh0IGFzIHN0YXR1cyxcbiAgICAgICAgICAgIG90LmNyZWF0ZWRfYXQgYXMgc3VibWl0dGVkX2F0LFxuICAgICAgICAgICAgYXBwcm92ZXIuZmlyc3RfbmFtZSB8fCAnICcgfHwgYXBwcm92ZXIubGFzdF9uYW1lIGFzIGFwcHJvdmVyX25hbWUsXG4gICAgICAgICAgICBvdC5hcHByb3ZlZF9hdCxcbiAgICAgICAgICAgIGpzb25iX2J1aWxkX29iamVjdChcbiAgICAgICAgICAgICAgJ2RhdGUnLCBvdC5vdmVydGltZV9kYXRlLFxuICAgICAgICAgICAgICAnc3RhcnRUaW1lJywgb3Quc3RhcnRfdGltZSxcbiAgICAgICAgICAgICAgJ2VuZFRpbWUnLCBvdC5lbmRfdGltZSxcbiAgICAgICAgICAgICAgJ2hvdXJzJywgb3QucmVxdWVzdGVkX2hvdXJzLFxuICAgICAgICAgICAgICAncmVhc29uJywgb3QucmVhc29uLFxuICAgICAgICAgICAgICAnY29tbWVudHMnLCBvdC5jb21tZW50c1xuICAgICAgICAgICAgKSBhcyBkZXRhaWxzLFxuICAgICAgICAgICAgJ292ZXJ0aW1lX3JlcXVlc3RzJyBhcyByZXF1ZXN0X3RhYmxlXG4gICAgICAgICAgRlJPTSBvdmVydGltZV9yZXF1ZXN0cyBvdFxuICAgICAgICAgIEpPSU4gZW1wbG95ZWVzIGUgT04gb3QuZW1wbG95ZWVfaWQgPSBlLmlkXG4gICAgICAgICAgSk9JTiB1c2VycyB1IE9OIGUudXNlcl9pZCA9IHUuaWRcbiAgICAgICAgICBKT0lOIGRlcGFydG1lbnRzIGQgT04gZS5kZXBhcnRtZW50X2lkID0gZC5pZFxuICAgICAgICAgIExFRlQgSk9JTiB1c2VycyBhcHByb3ZlciBPTiBvdC5hcHByb3Zlcl9pZCA9IGFwcHJvdmVyLmlkXG4gICAgICAgICAgXG4gICAgICAgICAgVU5JT04gQUxMXG4gICAgICAgICAgXG4gICAgICAgICAgLS0gTGVhdmUgUmVxdWVzdHNcbiAgICAgICAgICBTRUxFQ1QgXG4gICAgICAgICAgICBsci5pZCxcbiAgICAgICAgICAgICdsZWF2ZScgYXMgdHlwZSxcbiAgICAgICAgICAgIGxyLmVtcGxveWVlX2lkIGFzIGVtcGxveWVlX2lkLFxuICAgICAgICAgICAgQ09OQ0FUKHUuZmlyc3RfbmFtZSwgJyAnLCB1Lmxhc3RfbmFtZSkgYXMgZW1wbG95ZWVfbmFtZSxcbiAgICAgICAgICAgIGQubmFtZSBhcyBkZXBhcnRtZW50X25hbWUsXG4gICAgICAgICAgICBsci5zdGF0dXM6OnRleHQgYXMgc3RhdHVzLFxuICAgICAgICAgICAgbHIuY3JlYXRlZF9hdCBhcyBzdWJtaXR0ZWRfYXQsXG4gICAgICAgICAgICBhcHByb3Zlci5maXJzdF9uYW1lIHx8ICcgJyB8fCBhcHByb3Zlci5sYXN0X25hbWUgYXMgYXBwcm92ZXJfbmFtZSxcbiAgICAgICAgICAgIE5VTEwgYXMgYXBwcm92ZWRfYXQsXG4gICAgICAgICAgICBqc29uYl9idWlsZF9vYmplY3QoXG4gICAgICAgICAgICAgICdsZWF2ZVR5cGUnLCBsci5sZWF2ZV90eXBlLFxuICAgICAgICAgICAgICAnc3RhcnREYXRlJywgbHIuc3RhcnRfZGF0ZSxcbiAgICAgICAgICAgICAgJ2VuZERhdGUnLCBsci5lbmRfZGF0ZSxcbiAgICAgICAgICAgICAgJ3RvdGFsRGF5cycsIChsci5lbmRfZGF0ZSAtIGxyLnN0YXJ0X2RhdGUgKyAxKVxuICAgICAgICAgICAgKSBhcyBkZXRhaWxzLFxuICAgICAgICAgICAgJ2xlYXZlcycgYXMgcmVxdWVzdF90YWJsZVxuICAgICAgICAgIEZST00gbGVhdmVzIGxyXG4gICAgICAgICAgSk9JTiBlbXBsb3llZXMgZSBPTiBsci5lbXBsb3llZV9pZCA9IGUuaWRcbiAgICAgICAgICBKT0lOIHVzZXJzIHUgT04gZS51c2VyX2lkID0gdS5pZFxuICAgICAgICAgIEpPSU4gZGVwYXJ0bWVudHMgZCBPTiBlLmRlcGFydG1lbnRfaWQgPSBkLmlkXG4gICAgICAgICAgTEVGVCBKT0lOIHVzZXJzIGFwcHJvdmVyIE9OIGxyLmFwcHJvdmVyX2lkID0gYXBwcm92ZXIuaWRcbiAgICAgICAgKVxuICAgICAgICBTRUxFQ1QgXG4gICAgICAgICAgYXIuKixcbiAgICAgICAgICBlLmVtcGxveWVlX2lkIGFzIGVtcGxveWVlX2Rpc3BsYXlfaWRcbiAgICAgICAgRlJPTSBhbGxfcmVxdWVzdHMgYXJcbiAgICAgICAgSk9JTiBlbXBsb3llZXMgZSBPTiBhci5lbXBsb3llZV9pZCA9IGUuaWRcbiAgICAgICAgSk9JTiB1c2VycyB1IE9OIGUudXNlcl9pZCA9IHUuaWRcbiAgICAgICAgSk9JTiBkZXBhcnRtZW50cyBkIE9OIGUuZGVwYXJ0bWVudF9pZCA9IGQuaWRcbiAgICAgICAgJHt3aGVyZUNsYXVzZX1cbiAgICAgICAgT1JERVIgQlkgYXIuc3VibWl0dGVkX2F0IERFU0NcbiAgICAgICAgTElNSVQgJCR7cGFyYW1JbmRleH0gT0ZGU0VUICQke3BhcmFtSW5kZXggKyAxfVxuICAgICAgYDtcblxuICAgICAgcXVlcnlQYXJhbXMucHVzaChsaW1pdCwgb2Zmc2V0KTtcblxuICAgICAgLy8gQ291bnQgcXVlcnlcbiAgICAgIGNvbnN0IGNvdW50UXVlcnkgPSBgXG4gICAgICAgIFdJVEggYWxsX3JlcXVlc3RzIEFTIChcbiAgICAgICAgICAtLSBUaW1lIENvcnJlY3Rpb24gUmVxdWVzdHNcbiAgICAgICAgICBTRUxFQ1QgXG4gICAgICAgICAgICB0Yy5pZCxcbiAgICAgICAgICAgICd0aW1lX2NvcnJlY3Rpb24nIGFzIHR5cGUsXG4gICAgICAgICAgICB0Yy5lbXBsb3llZV9pZCBhcyBlbXBsb3llZV9pZCxcbiAgICAgICAgICAgIENPTkNBVCh1LmZpcnN0X25hbWUsICcgJywgdS5sYXN0X25hbWUpIGFzIGVtcGxveWVlX25hbWUsXG4gICAgICAgICAgICBkLm5hbWUgYXMgZGVwYXJ0bWVudF9uYW1lLFxuICAgICAgICAgICAgdGMuc3RhdHVzOjp0ZXh0IGFzIHN0YXR1cyxcbiAgICAgICAgICAgIHRjLmNyZWF0ZWRfYXQgYXMgc3VibWl0dGVkX2F0LFxuICAgICAgICAgICAgJ3RpbWVfY29ycmVjdGlvbl9yZXF1ZXN0cycgYXMgcmVxdWVzdF90YWJsZVxuICAgICAgICAgIEZST00gdGltZV9jb3JyZWN0aW9uX3JlcXVlc3RzIHRjXG4gICAgICAgICAgSk9JTiBlbXBsb3llZXMgZSBPTiB0Yy5lbXBsb3llZV9pZCA9IGUuaWRcbiAgICAgICAgICBKT0lOIHVzZXJzIHUgT04gZS51c2VyX2lkID0gdS5pZFxuICAgICAgICAgIEpPSU4gZGVwYXJ0bWVudHMgZCBPTiBlLmRlcGFydG1lbnRfaWQgPSBkLmlkXG4gICAgICAgICAgXG4gICAgICAgICAgVU5JT04gQUxMXG4gICAgICAgICAgXG4gICAgICAgICAgLS0gT3ZlcnRpbWUgUmVxdWVzdHNcbiAgICAgICAgICBTRUxFQ1QgXG4gICAgICAgICAgICBvdC5pZCxcbiAgICAgICAgICAgICdvdmVydGltZScgYXMgdHlwZSxcbiAgICAgICAgICAgIG90LmVtcGxveWVlX2lkIGFzIGVtcGxveWVlX2lkLFxuICAgICAgICAgICAgQ09OQ0FUKHUuZmlyc3RfbmFtZSwgJyAnLCB1Lmxhc3RfbmFtZSkgYXMgZW1wbG95ZWVfbmFtZSxcbiAgICAgICAgICAgIGQubmFtZSBhcyBkZXBhcnRtZW50X25hbWUsXG4gICAgICAgICAgICBvdC5zdGF0dXM6OnRleHQgYXMgc3RhdHVzLFxuICAgICAgICAgICAgb3QuY3JlYXRlZF9hdCBhcyBzdWJtaXR0ZWRfYXQsXG4gICAgICAgICAgICAnb3ZlcnRpbWVfcmVxdWVzdHMnIGFzIHJlcXVlc3RfdGFibGVcbiAgICAgICAgICBGUk9NIG92ZXJ0aW1lX3JlcXVlc3RzIG90XG4gICAgICAgICAgSk9JTiBlbXBsb3llZXMgZSBPTiBvdC5lbXBsb3llZV9pZCA9IGUuaWRcbiAgICAgICAgICBKT0lOIHVzZXJzIHUgT04gZS51c2VyX2lkID0gdS5pZFxuICAgICAgICAgIEpPSU4gZGVwYXJ0bWVudHMgZCBPTiBlLmRlcGFydG1lbnRfaWQgPSBkLmlkXG4gICAgICAgICAgXG4gICAgICAgICAgVU5JT04gQUxMXG4gICAgICAgICAgXG4gICAgICAgICAgLS0gTGVhdmUgUmVxdWVzdHNcbiAgICAgICAgICBTRUxFQ1QgXG4gICAgICAgICAgICBsci5pZCxcbiAgICAgICAgICAgICdsZWF2ZScgYXMgdHlwZSxcbiAgICAgICAgICAgIGxyLmVtcGxveWVlX2lkIGFzIGVtcGxveWVlX2lkLFxuICAgICAgICAgICAgQ09OQ0FUKHUuZmlyc3RfbmFtZSwgJyAnLCB1Lmxhc3RfbmFtZSkgYXMgZW1wbG95ZWVfbmFtZSxcbiAgICAgICAgICAgIGQubmFtZSBhcyBkZXBhcnRtZW50X25hbWUsXG4gICAgICAgICAgICBsci5zdGF0dXM6OnRleHQgYXMgc3RhdHVzLFxuICAgICAgICAgICAgbHIuY3JlYXRlZF9hdCBhcyBzdWJtaXR0ZWRfYXQsXG4gICAgICAgICAgICAnbGVhdmVzJyBhcyByZXF1ZXN0X3RhYmxlXG4gICAgICAgICAgRlJPTSBsZWF2ZXMgbHJcbiAgICAgICAgICBKT0lOIGVtcGxveWVlcyBlIE9OIGxyLmVtcGxveWVlX2lkID0gZS5pZFxuICAgICAgICAgIEpPSU4gdXNlcnMgdSBPTiBlLnVzZXJfaWQgPSB1LmlkXG4gICAgICAgICAgSk9JTiBkZXBhcnRtZW50cyBkIE9OIGUuZGVwYXJ0bWVudF9pZCA9IGQuaWRcbiAgICAgICAgKVxuICAgICAgICBTRUxFQ1QgQ09VTlQoKikgYXMgdG90YWxcbiAgICAgICAgRlJPTSBhbGxfcmVxdWVzdHMgYXJcbiAgICAgICAgSk9JTiBlbXBsb3llZXMgZSBPTiBhci5lbXBsb3llZV9pZCA9IGUuaWRcbiAgICAgICAgSk9JTiB1c2VycyB1IE9OIGUudXNlcl9pZCA9IHUuaWRcbiAgICAgICAgSk9JTiBkZXBhcnRtZW50cyBkIE9OIGUuZGVwYXJ0bWVudF9pZCA9IGQuaWRcbiAgICAgICAgJHt3aGVyZUNsYXVzZX1cbiAgICAgIGA7XG5cbiAgICAgIGNvbnN0IFtyZXF1ZXN0c1Jlc3VsdCwgY291bnRSZXN1bHRdID0gYXdhaXQgUHJvbWlzZS5hbGwoW1xuICAgICAgICBnZXRQb29sKCkucXVlcnkodW5pb25RdWVyeSwgcXVlcnlQYXJhbXMpLFxuICAgICAgICBnZXRQb29sKCkucXVlcnkoY291bnRRdWVyeSwgcXVlcnlQYXJhbXMuc2xpY2UoMCwgLTIpKSAvLyBSZW1vdmUgbGltaXQgYW5kIG9mZnNldCBmb3IgY291bnRcbiAgICAgIF0pO1xuXG4gICAgICBjb25zdCByZXF1ZXN0cyA9IHJlcXVlc3RzUmVzdWx0LnJvd3MubWFwKHJvdyA9PiAoe1xuICAgICAgICBpZDogcm93LmlkLFxuICAgICAgICB0eXBlOiByb3cudHlwZSxcbiAgICAgICAgZW1wbG95ZWVJZDogcm93LmVtcGxveWVlX2Rpc3BsYXlfaWQsXG4gICAgICAgIGVtcGxveWVlTmFtZTogcm93LmVtcGxveWVlX25hbWUsXG4gICAgICAgIGRlcGFydG1lbnROYW1lOiByb3cuZGVwYXJ0bWVudF9uYW1lLFxuICAgICAgICBzdGF0dXM6IHJvdy5zdGF0dXMsXG4gICAgICAgIHN1Ym1pdHRlZEF0OiByb3cuc3VibWl0dGVkX2F0LFxuICAgICAgICBhcHByb3Zlck5hbWU6IHJvdy5hcHByb3Zlcl9uYW1lLFxuICAgICAgICBhcHByb3ZlZEF0OiByb3cuYXBwcm92ZWRfYXQsXG4gICAgICAgIGRldGFpbHM6IHJvdy5kZXRhaWxzLFxuICAgICAgICByZXF1ZXN0VGFibGU6IHJvdy5yZXF1ZXN0X3RhYmxlXG4gICAgICB9KSk7XG5cbiAgICAgIGNvbnN0IHRvdGFsID0gcGFyc2VJbnQoY291bnRSZXN1bHQucm93c1swXS50b3RhbCk7XG4gICAgICBjb25zdCB0b3RhbFBhZ2VzID0gTWF0aC5jZWlsKHRvdGFsIC8gbGltaXQpO1xuXG4gICAgICBsb2dnZXIuaW5mbygnUmV0cmlldmVkIEhSIHJlcXVlc3RzJywge1xuICAgICAgICB0b3RhbCxcbiAgICAgICAgcmV0dXJuZWQ6IHJlcXVlc3RzLmxlbmd0aCxcbiAgICAgICAgcGFnZSxcbiAgICAgICAgbGltaXQsXG4gICAgICAgIGZpbHRlcnM6IHsgdHlwZSwgc3RhdHVzLCBkZXBhcnRtZW50SWQsIHNlYXJjaCB9XG4gICAgICB9KTtcblxuICAgICAgcmV0dXJuIHtcbiAgICAgICAgcmVxdWVzdHMsXG4gICAgICAgIHRvdGFsLFxuICAgICAgICBwYWdlLFxuICAgICAgICBsaW1pdCxcbiAgICAgICAgdG90YWxQYWdlc1xuICAgICAgfTtcbiAgICB9IGNhdGNoIChlcnJvcikge1xuICAgICAgbG9nZ2VyLmVycm9yKCdFcnJvciBnZXR0aW5nIGFsbCBIUiByZXF1ZXN0cycsIHsgXG4gICAgICAgIGVycm9yOiAoZXJyb3IgYXMgRXJyb3IpLm1lc3NhZ2UsXG4gICAgICAgIHBhcmFtc1xuICAgICAgfSk7XG4gICAgICB0aHJvdyBlcnJvcjtcbiAgICB9XG4gIH1cblxuICAvKipcbiAgICogR2V0IHJlcXVlc3Qgc3RhdGlzdGljc1xuICAgKi9cbiAgYXN5bmMgZ2V0UmVxdWVzdFN0YXRzKCk6IFByb21pc2U8UmVxdWVzdFN0YXRzPiB7XG4gICAgdHJ5IHtcbiAgICAgIGNvbnN0IHN0YXRzUXVlcnkgPSBgXG4gICAgICAgIFdJVEggYWxsX3JlcXVlc3RzIEFTIChcbiAgICAgICAgICBTRUxFQ1QgJ3RpbWVfY29ycmVjdGlvbicgYXMgdHlwZSwgc3RhdHVzOjp0ZXh0IGFzIHN0YXR1cyBGUk9NIHRpbWVfY29ycmVjdGlvbl9yZXF1ZXN0c1xuICAgICAgICAgIFVOSU9OIEFMTFxuICAgICAgICAgIFNFTEVDVCAnb3ZlcnRpbWUnIGFzIHR5cGUsIHN0YXR1czo6dGV4dCBhcyBzdGF0dXMgRlJPTSBvdmVydGltZV9yZXF1ZXN0c1xuICAgICAgICAgIFVOSU9OIEFMTFxuICAgICAgICAgIFNFTEVDVCAnbGVhdmUnIGFzIHR5cGUsIHN0YXR1czo6dGV4dCBhcyBzdGF0dXMgRlJPTSBsZWF2ZXNcbiAgICAgICAgKVxuICAgICAgICBTRUxFQ1QgXG4gICAgICAgICAgQ09VTlQoKikgYXMgdG90YWwsXG4gICAgICAgICAgQ09VTlQoQ0FTRSBXSEVOIHN0YXR1cyA9ICdwZW5kaW5nJyBUSEVOIDEgRU5EKSBhcyBwZW5kaW5nLFxuICAgICAgICAgIENPVU5UKENBU0UgV0hFTiBzdGF0dXMgPSAnYXBwcm92ZWQnIFRIRU4gMSBFTkQpIGFzIGFwcHJvdmVkLFxuICAgICAgICAgIENPVU5UKENBU0UgV0hFTiBzdGF0dXMgPSAncmVqZWN0ZWQnIFRIRU4gMSBFTkQpIGFzIHJlamVjdGVkXG4gICAgICAgIEZST00gYWxsX3JlcXVlc3RzXG4gICAgICBgO1xuXG4gICAgICBjb25zdCBieVR5cGVRdWVyeSA9IGBcbiAgICAgICAgV0lUSCBhbGxfcmVxdWVzdHMgQVMgKFxuICAgICAgICAgIFNFTEVDVCAndGltZV9jb3JyZWN0aW9uJyBhcyB0eXBlIEZST00gdGltZV9jb3JyZWN0aW9uX3JlcXVlc3RzXG4gICAgICAgICAgVU5JT04gQUxMXG4gICAgICAgICAgU0VMRUNUICdvdmVydGltZScgYXMgdHlwZSBGUk9NIG92ZXJ0aW1lX3JlcXVlc3RzXG4gICAgICAgICAgVU5JT04gQUxMXG4gICAgICAgICAgU0VMRUNUICdsZWF2ZScgYXMgdHlwZSBGUk9NIGxlYXZlc1xuICAgICAgICApXG4gICAgICAgIFNFTEVDVCBcbiAgICAgICAgICB0eXBlLFxuICAgICAgICAgIENPVU5UKCopIGFzIGNvdW50XG4gICAgICAgIEZST00gYWxsX3JlcXVlc3RzXG4gICAgICAgIEdST1VQIEJZIHR5cGVcbiAgICAgICAgT1JERVIgQlkgY291bnQgREVTQ1xuICAgICAgYDtcblxuICAgICAgY29uc3QgW3N0YXRzUmVzdWx0LCBieVR5cGVSZXN1bHRdID0gYXdhaXQgUHJvbWlzZS5hbGwoW1xuICAgICAgICBnZXRQb29sKCkucXVlcnkoc3RhdHNRdWVyeSksXG4gICAgICAgIGdldFBvb2woKS5xdWVyeShieVR5cGVRdWVyeSlcbiAgICAgIF0pO1xuXG4gICAgICBjb25zdCBzdGF0cyA9IHN0YXRzUmVzdWx0LnJvd3NbMF07XG4gICAgICBjb25zdCBieVR5cGUgPSBieVR5cGVSZXN1bHQucm93cy5tYXAocm93ID0+ICh7XG4gICAgICAgIHR5cGU6IHJvdy50eXBlLFxuICAgICAgICBjb3VudDogcGFyc2VJbnQocm93LmNvdW50KVxuICAgICAgfSkpO1xuXG4gICAgICByZXR1cm4ge1xuICAgICAgICB0b3RhbDogcGFyc2VJbnQoc3RhdHMudG90YWwpLFxuICAgICAgICBwZW5kaW5nOiBwYXJzZUludChzdGF0cy5wZW5kaW5nKSxcbiAgICAgICAgYXBwcm92ZWQ6IHBhcnNlSW50KHN0YXRzLmFwcHJvdmVkKSxcbiAgICAgICAgcmVqZWN0ZWQ6IHBhcnNlSW50KHN0YXRzLnJlamVjdGVkKSxcbiAgICAgICAgYnlUeXBlXG4gICAgICB9O1xuICAgIH0gY2F0Y2ggKGVycm9yKSB7XG4gICAgICBsb2dnZXIuZXJyb3IoJ0Vycm9yIGdldHRpbmcgcmVxdWVzdCBzdGF0cycsIHsgXG4gICAgICAgIGVycm9yOiAoZXJyb3IgYXMgRXJyb3IpLm1lc3NhZ2VcbiAgICAgIH0pO1xuICAgICAgdGhyb3cgZXJyb3I7XG4gICAgfVxuICB9XG5cbiAgLyoqXG4gICAqIEdldCByZXF1ZXN0IGJ5IElEIGZyb20gYW55IHRhYmxlXG4gICAqL1xuICBhc3luYyBnZXRSZXF1ZXN0QnlJZChpZDogc3RyaW5nKTogUHJvbWlzZTxVbmlmaWVkUmVxdWVzdCB8IG51bGw+IHtcbiAgICB0cnkge1xuICAgICAgLy8gVHJ5IHRvIGZpbmQgdGhlIHJlcXVlc3QgaW4gYW55IG9mIHRoZSB0YWJsZXNcbiAgICAgIGNvbnN0IHF1ZXJpZXMgPSBbXG4gICAgICAgIC8vIFRpbWUgY29ycmVjdGlvblxuICAgICAgICB7XG4gICAgICAgICAgdGFibGU6ICd0aW1lX2NvcnJlY3Rpb25fcmVxdWVzdHMnLFxuICAgICAgICAgIHR5cGU6ICd0aW1lX2NvcnJlY3Rpb24nLFxuICAgICAgICAgIHF1ZXJ5OiBgXG4gICAgICAgICAgICBTRUxFQ1QgXG4gICAgICAgICAgICAgIHRjLmlkLFxuICAgICAgICAgICAgICAndGltZV9jb3JyZWN0aW9uJyBhcyB0eXBlLFxuICAgICAgICAgICAgICB0Yy5lbXBsb3llZV9pZCBhcyBlbXBsb3llZV9pZCxcbiAgICAgICAgICAgICAgQ09OQ0FUKHUuZmlyc3RfbmFtZSwgJyAnLCB1Lmxhc3RfbmFtZSkgYXMgZW1wbG95ZWVfbmFtZSxcbiAgICAgICAgICAgICAgZC5uYW1lIGFzIGRlcGFydG1lbnRfbmFtZSxcbiAgICAgICAgICAgICAgdGMuc3RhdHVzOjp0ZXh0IGFzIHN0YXR1cyxcbiAgICAgICAgICAgICAgdGMuY3JlYXRlZF9hdCBhcyBzdWJtaXR0ZWRfYXQsXG4gICAgICAgICAgICAgIGFwcHJvdmVyLmZpcnN0X25hbWUgfHwgJyAnIHx8IGFwcHJvdmVyLmxhc3RfbmFtZSBhcyBhcHByb3Zlcl9uYW1lLFxuICAgICAgICAgICAgICB0Yy5hcHByb3ZlZF9hdCxcbiAgICAgICAgICAgICAganNvbmJfYnVpbGRfb2JqZWN0KFxuICAgICAgICAgICAgICAgICdkYXRlJywgdGMuY29ycmVjdGlvbl9kYXRlLFxuICAgICAgICAgICAgICAgICdvcmlnaW5hbENsb2NrSW4nLCB0Yy5vcmlnaW5hbF9jbG9ja19pbixcbiAgICAgICAgICAgICAgICAnb3JpZ2luYWxDbG9ja091dCcsIHRjLm9yaWdpbmFsX2Nsb2NrX291dCxcbiAgICAgICAgICAgICAgICAnY29ycmVjdGVkQ2xvY2tJbicsIHRjLmNvcnJlY3RlZF9jbG9ja19pbixcbiAgICAgICAgICAgICAgICAnY29ycmVjdGVkQ2xvY2tPdXQnLCB0Yy5jb3JyZWN0ZWRfY2xvY2tfb3V0LFxuICAgICAgICAgICAgICAgICdyZWFzb24nLCB0Yy5yZWFzb24sXG4gICAgICAgICAgICAgICAgJ2p1c3RpZmljYXRpb24nLCB0Yy5qdXN0aWZpY2F0aW9uXG4gICAgICAgICAgICAgICkgYXMgZGV0YWlscyxcbiAgICAgICAgICAgICAgJ3RpbWVfY29ycmVjdGlvbl9yZXF1ZXN0cycgYXMgcmVxdWVzdF90YWJsZSxcbiAgICAgICAgICAgICAgZS5lbXBsb3llZV9pZCBhcyBlbXBsb3llZV9kaXNwbGF5X2lkXG4gICAgICAgICAgICBGUk9NIHRpbWVfY29ycmVjdGlvbl9yZXF1ZXN0cyB0Y1xuICAgICAgICAgICAgSk9JTiBlbXBsb3llZXMgZSBPTiB0Yy5lbXBsb3llZV9pZCA9IGUuaWRcbiAgICAgICAgICAgIEpPSU4gdXNlcnMgdSBPTiBlLnVzZXJfaWQgPSB1LmlkXG4gICAgICAgICAgICBKT0lOIGRlcGFydG1lbnRzIGQgT04gZS5kZXBhcnRtZW50X2lkID0gZC5pZFxuICAgICAgICAgICAgTEVGVCBKT0lOIHVzZXJzIGFwcHJvdmVyIE9OIHRjLmFwcHJvdmVyX2lkID0gYXBwcm92ZXIuaWRcbiAgICAgICAgICAgIFdIRVJFIHRjLmlkID0gJDFcbiAgICAgICAgICBgXG4gICAgICAgIH0sXG4gICAgICAgIC8vIE92ZXJ0aW1lXG4gICAgICAgIHtcbiAgICAgICAgICB0YWJsZTogJ292ZXJ0aW1lX3JlcXVlc3RzJyxcbiAgICAgICAgICB0eXBlOiAnb3ZlcnRpbWUnLFxuICAgICAgICAgIHF1ZXJ5OiBgXG4gICAgICAgICAgICBTRUxFQ1QgXG4gICAgICAgICAgICAgIG90LmlkLFxuICAgICAgICAgICAgICAnb3ZlcnRpbWUnIGFzIHR5cGUsXG4gICAgICAgICAgICAgIG90LmVtcGxveWVlX2lkIGFzIGVtcGxveWVlX2lkLFxuICAgICAgICAgICAgICBDT05DQVQodS5maXJzdF9uYW1lLCAnICcsIHUubGFzdF9uYW1lKSBhcyBlbXBsb3llZV9uYW1lLFxuICAgICAgICAgICAgICBkLm5hbWUgYXMgZGVwYXJ0bWVudF9uYW1lLFxuICAgICAgICAgICAgICBvdC5zdGF0dXM6OnRleHQgYXMgc3RhdHVzLFxuICAgICAgICAgICAgICBvdC5jcmVhdGVkX2F0IGFzIHN1Ym1pdHRlZF9hdCxcbiAgICAgICAgICAgICAgYXBwcm92ZXIuZmlyc3RfbmFtZSB8fCAnICcgfHwgYXBwcm92ZXIubGFzdF9uYW1lIGFzIGFwcHJvdmVyX25hbWUsXG4gICAgICAgICAgICAgIG90LmFwcHJvdmVkX2F0LFxuICAgICAgICAgICAgICBqc29uYl9idWlsZF9vYmplY3QoXG4gICAgICAgICAgICAgICAgJ2RhdGUnLCBvdC5vdmVydGltZV9kYXRlLFxuICAgICAgICAgICAgICAgICdzdGFydFRpbWUnLCBvdC5zdGFydF90aW1lLFxuICAgICAgICAgICAgICAgICdlbmRUaW1lJywgb3QuZW5kX3RpbWUsXG4gICAgICAgICAgICAgICAgJ2hvdXJzJywgb3QuaG91cnMsXG4gICAgICAgICAgICAgICAgJ3JlYXNvbicsIG90LnJlYXNvbixcbiAgICAgICAgICAgICAgICAnanVzdGlmaWNhdGlvbicsIG90Lmp1c3RpZmljYXRpb25cbiAgICAgICAgICAgICAgKSBhcyBkZXRhaWxzLFxuICAgICAgICAgICAgICAnb3ZlcnRpbWVfcmVxdWVzdHMnIGFzIHJlcXVlc3RfdGFibGUsXG4gICAgICAgICAgICAgIGUuZW1wbG95ZWVfaWQgYXMgZW1wbG95ZWVfZGlzcGxheV9pZFxuICAgICAgICAgICAgRlJPTSBvdmVydGltZV9yZXF1ZXN0cyBvdFxuICAgICAgICAgICAgSk9JTiBlbXBsb3llZXMgZSBPTiBvdC5lbXBsb3llZV9pZCA9IGUuaWRcbiAgICAgICAgICAgIEpPSU4gdXNlcnMgdSBPTiBlLnVzZXJfaWQgPSB1LmlkXG4gICAgICAgICAgICBKT0lOIGRlcGFydG1lbnRzIGQgT04gZS5kZXBhcnRtZW50X2lkID0gZC5pZFxuICAgICAgICAgICAgTEVGVCBKT0lOIHVzZXJzIGFwcHJvdmVyIE9OIG90LmFwcHJvdmVyX2lkID0gYXBwcm92ZXIuaWRcbiAgICAgICAgICAgIFdIRVJFIG90LmlkID0gJDFcbiAgICAgICAgICBgXG4gICAgICAgIH0sXG4gICAgICAgIC8vIExlYXZlXG4gICAgICAgIHtcbiAgICAgICAgICB0YWJsZTogJ2xlYXZlcycsXG4gICAgICAgICAgdHlwZTogJ2xlYXZlJyxcbiAgICAgICAgICBxdWVyeTogYFxuICAgICAgICAgICAgU0VMRUNUIFxuICAgICAgICAgICAgICBsci5pZCxcbiAgICAgICAgICAgICAgJ2xlYXZlJyBhcyB0eXBlLFxuICAgICAgICAgICAgICBsci5lbXBsb3llZV9pZCBhcyBlbXBsb3llZV9pZCxcbiAgICAgICAgICAgICAgQ09OQ0FUKHUuZmlyc3RfbmFtZSwgJyAnLCB1Lmxhc3RfbmFtZSkgYXMgZW1wbG95ZWVfbmFtZSxcbiAgICAgICAgICAgICAgZC5uYW1lIGFzIGRlcGFydG1lbnRfbmFtZSxcbiAgICAgICAgICAgICAgbHIuc3RhdHVzOjp0ZXh0IGFzIHN0YXR1cyxcbiAgICAgICAgICAgICAgbHIuY3JlYXRlZF9hdCBhcyBzdWJtaXR0ZWRfYXQsXG4gICAgICAgICAgICAgIGFwcHJvdmVyLmZpcnN0X25hbWUgfHwgJyAnIHx8IGFwcHJvdmVyLmxhc3RfbmFtZSBhcyBhcHByb3Zlcl9uYW1lLFxuICAgICAgICAgICAgICBOVUxMIGFzIGFwcHJvdmVkX2F0LFxuICAgICAgICAgICAgICBqc29uYl9idWlsZF9vYmplY3QoXG4gICAgICAgICAgICAgICAgJ2xlYXZlVHlwZScsIGxyLmxlYXZlX3R5cGUsXG4gICAgICAgICAgICAgICAgJ3N0YXJ0RGF0ZScsIGxyLnN0YXJ0X2RhdGUsXG4gICAgICAgICAgICAgICAgJ2VuZERhdGUnLCBsci5lbmRfZGF0ZSxcbiAgICAgICAgICAgICAgICAnZGF5cycsIGxyLmRheXMsXG4gICAgICAgICAgICAgICAgJ3JlYXNvbicsIGxyLnJlYXNvbixcbiAgICAgICAgICAgICAgICAnanVzdGlmaWNhdGlvbicsIGxyLmp1c3RpZmljYXRpb25cbiAgICAgICAgICAgICAgKSBhcyBkZXRhaWxzLFxuICAgICAgICAgICAgICAnbGVhdmVzJyBhcyByZXF1ZXN0X3RhYmxlLFxuICAgICAgICAgICAgICBlLmVtcGxveWVlX2lkIGFzIGVtcGxveWVlX2Rpc3BsYXlfaWRcbiAgICAgICAgICAgIEZST00gbGVhdmVzIGxyXG4gICAgICAgICAgICBKT0lOIGVtcGxveWVlcyBlIE9OIGxyLmVtcGxveWVlX2lkID0gZS5pZFxuICAgICAgICAgICAgSk9JTiB1c2VycyB1IE9OIGUudXNlcl9pZCA9IHUuaWRcbiAgICAgICAgICAgIEpPSU4gZGVwYXJ0bWVudHMgZCBPTiBlLmRlcGFydG1lbnRfaWQgPSBkLmlkXG4gICAgICAgICAgICBMRUZUIEpPSU4gdXNlcnMgYXBwcm92ZXIgT04gbHIuYXBwcm92ZXJfaWQgPSBhcHByb3Zlci5pZFxuICAgICAgICAgICAgV0hFUkUgbHIuaWQgPSAkMVxuICAgICAgICAgIGBcbiAgICAgICAgfVxuICAgICAgXTtcblxuICAgICAgZm9yIChjb25zdCB7IHF1ZXJ5IH0gb2YgcXVlcmllcykge1xuICAgICAgICBjb25zdCByZXN1bHQgPSBhd2FpdCBnZXRQb29sKCkucXVlcnkocXVlcnksIFtpZF0pO1xuICAgICAgICBpZiAocmVzdWx0LnJvd3MubGVuZ3RoID4gMCkge1xuICAgICAgICAgIGNvbnN0IHJvdyA9IHJlc3VsdC5yb3dzWzBdO1xuICAgICAgICAgIHJldHVybiB7XG4gICAgICAgICAgICBpZDogcm93LmlkLFxuICAgICAgICAgICAgdHlwZTogcm93LnR5cGUsXG4gICAgICAgICAgICBlbXBsb3llZUlkOiByb3cuZW1wbG95ZWVfZGlzcGxheV9pZCxcbiAgICAgICAgICAgIGVtcGxveWVlTmFtZTogcm93LmVtcGxveWVlX25hbWUsXG4gICAgICAgICAgICBkZXBhcnRtZW50TmFtZTogcm93LmRlcGFydG1lbnRfbmFtZSxcbiAgICAgICAgICAgIHN0YXR1czogcm93LnN0YXR1cyxcbiAgICAgICAgICAgIHN1Ym1pdHRlZEF0OiByb3cuc3VibWl0dGVkX2F0LFxuICAgICAgICAgICAgYXBwcm92ZXJOYW1lOiByb3cuYXBwcm92ZXJfbmFtZSxcbiAgICAgICAgICAgIGFwcHJvdmVkQXQ6IHJvdy5hcHByb3ZlZF9hdCxcbiAgICAgICAgICAgIGRldGFpbHM6IHJvdy5kZXRhaWxzLFxuICAgICAgICAgICAgcmVxdWVzdFRhYmxlOiByb3cucmVxdWVzdF90YWJsZVxuICAgICAgICAgIH07XG4gICAgICAgIH1cbiAgICAgIH1cblxuICAgICAgcmV0dXJuIG51bGw7XG4gICAgfSBjYXRjaCAoZXJyb3IpIHtcbiAgICAgIGxvZ2dlci5lcnJvcignRXJyb3IgZ2V0dGluZyByZXF1ZXN0IGJ5IElEJywgeyBcbiAgICAgICAgZXJyb3I6IChlcnJvciBhcyBFcnJvcikubWVzc2FnZSxcbiAgICAgICAgaWRcbiAgICAgIH0pO1xuICAgICAgdGhyb3cgZXJyb3I7XG4gICAgfVxuICB9XG59XG5cbmV4cG9ydCBjb25zdCBoclJlcXVlc3RTZXJ2aWNlID0gbmV3IEhyUmVxdWVzdFNlcnZpY2UoKTtcbiJdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7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

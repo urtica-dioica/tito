@@ -84,7 +84,7 @@ export interface Request {
   approverName?: string;
   approvedAt?: string;
   rejectionReason?: string;
-  details: any;
+  details: Record<string, unknown>;
 }
 
 export interface RequestStats {
@@ -125,8 +125,11 @@ export class EmployeeService {
    * Get employee dashboard data
    */
   static async getDashboard(): Promise<EmployeeDashboard> {
-    const response = await apiMethods.get('/employee/dashboard');
-    return (response as any).data;
+    const response = await apiMethods.get<EmployeeDashboard>('/employee/dashboard');
+    if (!response.data) {
+      throw new Error('No dashboard data received');
+    }
+    return response.data;
   }
 
   /**
@@ -135,8 +138,8 @@ export class EmployeeService {
   static async getAttendanceHistory(params: {
     month?: string;
   } = {}): Promise<AttendanceRecord[]> {
-    const response = await apiMethods.get('/employee/attendance/history', { params });
-    return (response as any).data;
+    const response = await apiMethods.get<AttendanceRecord[]>('/employee/attendance/history', { params });
+    return response.data || [];
   }
 
   /**
@@ -145,8 +148,11 @@ export class EmployeeService {
   static async getAttendanceSummary(params: {
     month?: string;
   } = {}): Promise<AttendanceSummary> {
-    const response = await apiMethods.get('/employee/attendance/summary', { params });
-    return (response as any).data;
+    const response = await apiMethods.get<AttendanceSummary>('/employee/attendance/summary', { params });
+    if (!response.data) {
+      throw new Error('No attendance summary data received');
+    }
+    return response.data;
   }
 
   // Removed getCurrentStatus - endpoint doesn't exist
@@ -160,8 +166,11 @@ export class EmployeeService {
     selfieImagePath?: string;
     timestamp?: string;
   }): Promise<{ success: boolean; message: string }> {
-    const response = await apiMethods.post('/attendance/clock-in', data);
-    return (response as any).data;
+    const response = await apiMethods.post<{ success: boolean; message: string }>('/attendance/clock-in', data);
+    if (!response.data) {
+      throw new Error('No clock-in response received');
+    }
+    return response.data;
   }
 
   /**
@@ -172,18 +181,24 @@ export class EmployeeService {
     selfieImagePath?: string;
     timestamp?: string;
   }): Promise<{ success: boolean; message: string }> {
-    const response = await apiMethods.post('/attendance/clock-out', data);
-    return (response as any).data;
+    const response = await apiMethods.post<{ success: boolean; message: string }>('/attendance/clock-out', data);
+    if (!response.data) {
+      throw new Error('No clock-out response received');
+    }
+    return response.data;
   }
 
   /**
    * Get leave balance
    */
   static async getLeaveBalance(year?: number): Promise<LeaveBalance> {
-    const response = await apiMethods.get('/leaves/balance', { 
-      params: year ? { year } : {} 
+    const response = await apiMethods.get<LeaveBalance>('/leaves/balance', {
+      params: year ? { year } : {}
     });
-    return (response as any).data;
+    if (!response.data) {
+      throw new Error('No leave balance data received');
+    }
+    return response.data;
   }
 
   /**
@@ -201,8 +216,17 @@ export class EmployeeService {
     limit: number;
     totalPages: number;
   }> {
-    const response = await apiMethods.get('/leaves/employee', { params });
-    return (response as any).data;
+    const response = await apiMethods.get<{
+      requests: Request[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>('/leaves/employee', { params });
+    if (!response.data) {
+      throw new Error('No leave requests data received');
+    }
+    return response.data;
   }
 
   /**
@@ -220,8 +244,17 @@ export class EmployeeService {
     limit: number;
     totalPages: number;
   }> {
-    const response = await apiMethods.get('/time-corrections/employee', { params });
-    return (response as any).data;
+    const response = await apiMethods.get<{
+      requests: Request[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>('/time-corrections/employee', { params });
+    if (!response.data) {
+      throw new Error('No time correction requests data received');
+    }
+    return response.data;
   }
 
   /**
@@ -239,8 +272,17 @@ export class EmployeeService {
     limit: number;
     totalPages: number;
   }> {
-    const response = await apiMethods.get('/overtime/employee', { params });
-    return (response as any).data;
+    const response = await apiMethods.get<{
+      requests: Request[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>('/overtime/employee', { params });
+    if (!response.data) {
+      throw new Error('No overtime requests data received');
+    }
+    return response.data;
   }
 
   /**
@@ -252,8 +294,11 @@ export class EmployeeService {
     endDate: string;
     reason: string;
   }): Promise<{ success: boolean; message: string; requestId?: string }> {
-    const response = await apiMethods.post('/leaves', data);
-    return (response as any).data;
+    const response = await apiMethods.post<{ success: boolean; message: string; requestId?: string }>('/leaves', data);
+    if (!response.data) {
+      throw new Error('No leave request creation response received');
+    }
+    return response.data;
   }
 
   /**
@@ -272,9 +317,12 @@ export class EmployeeService {
       requestedTime: data.requestedTime,
       reason: data.reason
     };
-    
-    const response = await apiMethods.post('/time-corrections', backendData);
-    return (response as any).data;
+
+    const response = await apiMethods.post<{ success: boolean; message: string; requestId?: string }>('/time-corrections', backendData);
+    if (!response.data) {
+      throw new Error('No time correction request creation response received');
+    }
+    return response.data;
   }
 
   /**
@@ -290,27 +338,27 @@ export class EmployeeService {
     if (!data.startTime || !data.endTime) {
       throw new Error('Start time and end time are required');
     }
-    
+
     // Validate time format (HH:MM)
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
     if (!timeRegex.test(data.startTime) || !timeRegex.test(data.endTime)) {
       throw new Error('Invalid time format. Please use HH:MM format (e.g., 09:30)');
     }
-    
+
     // Calculate requested hours from start and end times
     const start = new Date(`2000-01-01T${data.startTime}:00`);
     const end = new Date(`2000-01-01T${data.endTime}:00`);
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       throw new Error('Invalid time format provided');
     }
-    
+
     const requestedHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-    
+
     if (requestedHours <= 0) {
       throw new Error('End time must be after start time');
     }
-    
+
     // Transform data to match backend expectations
     const backendData = {
       requestDate: data.overtimeDate,
@@ -319,9 +367,12 @@ export class EmployeeService {
       requestedHours: requestedHours,
       reason: data.reason
     };
-    
-    const response = await apiMethods.post('/overtime', backendData);
-    return (response as any).data;
+
+    const response = await apiMethods.post<{ success: boolean; message: string; requestId?: string }>('/overtime', backendData);
+    if (!response.data) {
+      throw new Error('No overtime request creation response received');
+    }
+    return response.data;
   }
 
   /**
@@ -333,16 +384,19 @@ export class EmployeeService {
     limit?: number;
     offset?: number;
   } = {}): Promise<Request[]> {
-    const response = await apiMethods.get('/employee/requests', { params });
-    return (response as any).data;
+    const response = await apiMethods.get<Request[]>('/employee/requests', { params });
+    return response.data || [];
   }
 
   /**
    * Get request statistics
    */
   static async getRequestStats(): Promise<RequestStats> {
-    const response = await apiMethods.get('/employee/requests/stats');
-    return (response as any).data;
+    const response = await apiMethods.get<RequestStats>('/employee/requests/stats');
+    if (!response.data) {
+      throw new Error('No request statistics data received');
+    }
+    return response.data;
   }
 
   /**
@@ -354,16 +408,16 @@ export class EmployeeService {
     page?: number;
     limit?: number;
   } = {}): Promise<PaystubData[]> {
-    const response = await apiMethods.get('/employee/paystubs', { params });
-    return (response as any).data;
+    const response = await apiMethods.get<PaystubData[]>('/employee/paystubs', { params });
+    return response.data || [];
   }
 
   /**
    * Get latest paystub
    */
   static async getLatestPaystub(): Promise<PaystubData | null> {
-    const response = await apiMethods.get('/employee/paystubs/latest');
-    return (response as any).data;
+    const response = await apiMethods.get<PaystubData | null>('/employee/paystubs/latest');
+    return response.data || null;
   }
 
   /**
@@ -371,27 +425,26 @@ export class EmployeeService {
    */
   static async downloadPaystubPDF(paystubId: string): Promise<Blob> {
     try {
-      console.log('Making PDF download request for paystub:', paystubId);
-      const response = await apiMethods.get(`/employee/paystubs/${paystubId}/download/pdf`, {
+      const response = await apiMethods.get<Blob>(`/employee/paystubs/${paystubId}/download/pdf`, {
         responseType: 'blob'
       });
-      
-      console.log('PDF download response:', response);
-      
-      // The response itself is the Blob when using responseType: 'blob'
-      const data = response as Blob;
-      console.log('PDF response data:', data, 'Type:', typeof data, 'Is Blob:', data instanceof Blob);
-      
+
+      // The data property contains the Blob when using responseType: 'blob'
+      const data = response.data as Blob;
+
       // Check if the response is an error (JSON error response)
       if (data instanceof Blob && data.type === 'application/json') {
         const text = await data.text();
         const errorData = JSON.parse(text);
         throw new Error(errorData.message || 'Download failed');
       }
-      
+
       return data;
     } catch (error) {
-      console.error('Error downloading PDF:', error);
+      // Log error in development only
+      if (import.meta.env.DEV) {
+        console.error('Error downloading PDF:', error);
+      }
       throw error;
     }
   }
@@ -401,27 +454,26 @@ export class EmployeeService {
    */
   static async downloadPaystubExcel(paystubId: string): Promise<Blob> {
     try {
-      console.log('Making Excel download request for paystub:', paystubId);
-      const response = await apiMethods.get(`/employee/paystubs/${paystubId}/download/excel`, {
+      const response = await apiMethods.get<Blob>(`/employee/paystubs/${paystubId}/download/excel`, {
         responseType: 'blob'
       });
-      
-      console.log('Excel download response:', response);
-      
-      // The response itself is the Blob when using responseType: 'blob'
-      const data = response as Blob;
-      console.log('Excel response data:', data, 'Type:', typeof data, 'Is Blob:', data instanceof Blob);
-      
+
+      // The data property contains the Blob when using responseType: 'blob'
+      const data = response.data as Blob;
+
       // Check if the response is an error (JSON error response)
       if (data instanceof Blob && data.type === 'application/json') {
         const text = await data.text();
         const errorData = JSON.parse(text);
         throw new Error(errorData.message || 'Download failed');
       }
-      
+
       return data;
     } catch (error) {
-      console.error('Error downloading Excel:', error);
+      // Log error in development only
+      if (import.meta.env.DEV) {
+        console.error('Error downloading Excel:', error);
+      }
       throw error;
     }
   }

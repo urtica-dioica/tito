@@ -38,15 +38,20 @@ const Login: React.FC = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (isAuthenticated && user && !loading) {
       const roleRoutes = {
         hr: '/hr/dashboard',
         department_head: '/dept/dashboard',
         employee: '/employee/dashboard',
       };
-      navigate(roleRoutes[user.role], { replace: true });
+      // Add a small delay to prevent rapid redirects during auth initialization
+      const timeoutId = setTimeout(() => {
+        navigate(roleRoutes[user.role], { replace: true });
+      }, 100);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, loading, navigate]);
 
   const onSubmit = async (data: LoginFormData) => {
     try {

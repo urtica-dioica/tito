@@ -55,6 +55,14 @@ router.get('/health', (_req, res) => {
   });
 });
 
+// Debug endpoint
+router.get('/test-debug', (_req, res) => {
+  res.json({
+    message: 'Debug endpoint reached',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Root endpoint
 router.get('/', (_req, res) => {
   res.json({
