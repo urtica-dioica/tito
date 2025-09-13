@@ -75,25 +75,52 @@ export class HREmployeeService {
     limit: number;
     totalPages: number;
   }> {
-    type PaginatedEmployees = {
-      data: HREmployee[];
-      pagination: { total: number; page: number; limit: number; totalPages: number };
-    };
+    type Pagination = { total: number; page: number; limit: number; totalPages: number };
 
-    const response = await apiMethods.get<PaginatedEmployees>(
+    type VariantA = { data: HREmployee[]; pagination?: Pagination };
+    type VariantB = { employees: HREmployee[]; pagination?: Pagination };
+
+    const response = await apiMethods.get<VariantA | VariantB | HREmployee[]>(
       '/hr/employees',
       { params: params as any }
     );
 
-    // Extract the payload from the generic ApiResponse wrapper
-    const payload = response.data ?? { data: [], pagination: { total: 0, page: 1, limit: 10, totalPages: 0 } };
+    // Normalise server payload to consistent shape
+    let employees: HREmployee[] = [];
+    let pagination: Pagination | undefined;
+
+    const raw = response.data;
+
+    if (Array.isArray(raw)) {
+      // Variant C: bare array
+      employees = raw;
+    } else if (raw && 'employees' in raw) {
+      // Variant B
+      const r = raw as VariantB;
+      employees = r.employees;
+      pagination = r.pagination;
+    } else if (raw && 'data' in raw) {
+      // Variant A
+      const r = raw as VariantA;
+      employees = r.data;
+      pagination = r.pagination;
+    }
+
+    const defaultPagination: Pagination = {
+      total: employees.length,
+      page: 1,
+      limit: employees.length,
+      totalPages: 1,
+    };
+
+    const pg = pagination ?? defaultPagination;
 
     return {
-      employees: payload.data,
-      total: payload.pagination.total,
-      page: payload.pagination.page,
-      limit: payload.pagination.limit,
-      totalPages: payload.pagination.totalPages,
+      employees,
+      total: pg.total,
+      page: pg.page,
+      limit: pg.limit,
+      totalPages: pg.totalPages,
     };
   }
 
