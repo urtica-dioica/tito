@@ -160,14 +160,24 @@ export class DepartmentHeadService {
     search?: string;
     status?: 'active' | 'inactive' | 'terminated' | 'on_leave';
   }): Promise<{ employees: DepartmentEmployee[]; total: number }> {
+    // Filter out undefined values to prevent "undefined" in URL
+    const cleanParams: Record<string, string> = {};
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          cleanParams[key] = String(value);
+        }
+      });
+    }
+
     const response = await apiMethods.get<{
       data: DepartmentEmployee[];
       pagination: { total: number };
-    }>(`/department-head/employees?${new URLSearchParams(params as any).toString()}`);
+    }>(`/department-head/employees?${new URLSearchParams(cleanParams).toString()}`);
 
     return {
-      employees: response.data?.data || [],
-      total: response.data?.pagination?.total || 0
+      employees: response.data || [],
+      total: response.pagination?.total || response.pagination?.pages || 0
     };
   }
 
@@ -184,14 +194,24 @@ export class DepartmentHeadService {
     type?: 'time_correction' | 'overtime' | 'leave';
     status?: 'pending' | 'approved' | 'rejected';
   }): Promise<{ requests: DepartmentHeadRequest[]; total: number }> {
+    // Filter out undefined values to prevent "undefined" in URL
+    const cleanParams: Record<string, string> = {};
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          cleanParams[key] = String(value);
+        }
+      });
+    }
+
     const response = await apiMethods.get<{
       data: DepartmentHeadRequest[];
       pagination: { total: number };
-    }>(`/department-head/requests?${new URLSearchParams(params as any).toString()}`);
+    }>(`/department-head/requests?${new URLSearchParams(cleanParams).toString()}`);
 
     return {
-      requests: response.data?.data || [],
-      total: response.data?.pagination?.total || 0
+      requests: response.data || [],
+      total: response.pagination?.total || response.pagination?.totalPages || 0
     };
   }
 

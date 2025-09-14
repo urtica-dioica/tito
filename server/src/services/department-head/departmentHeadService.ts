@@ -136,7 +136,6 @@ export class DepartmentHeadService {
           e.employee_id,
           e.position,
           e.employment_type,
-          e.base_salary,
           e.hire_date,
           e.status,
           u.id as user_id,
@@ -170,7 +169,7 @@ export class DepartmentHeadService {
       }
 
       query += ` ORDER BY u.first_name, u.last_name LIMIT $${paramCount++} OFFSET $${paramCount++}`;
-      queryParams.push(options.limit, offset);
+      queryParams.push(parseInt(options.limit.toString()), parseInt(offset.toString()));
 
       const result = await getPool().query(query, queryParams);
 
@@ -189,7 +188,8 @@ export class DepartmentHeadService {
       }
 
       if (options.search) {
-        countQuery += ` AND (u.first_name ILIKE $${countParams.length + 1} OR u.last_name ILIKE $${countParams.length + 1} OR e.employee_id ILIKE $${countParams.length + 1})`;
+        const searchParamIndex = countParams.length + 1;
+        countQuery += ` AND (u.first_name ILIKE $${searchParamIndex} OR u.last_name ILIKE $${searchParamIndex} OR e.employee_id ILIKE $${searchParamIndex})`;
         countParams.push(`%${options.search}%`);
       }
 
@@ -207,7 +207,6 @@ export class DepartmentHeadService {
         },
         position: row.position,
         employmentType: row.employment_type,
-        baseSalary: parseFloat(row.base_salary) || 0,
         hireDate: row.hire_date,
         status: row.status,
         lastAttendance: row.last_attendance
@@ -674,25 +673,25 @@ export class DepartmentHeadService {
           -- Calculate punctuality score (on-time arrivals)
           COALESCE(
             ROUND(
-              (COUNT(CASE WHEN ar.overall_status = 'present' AND as.clock_in::time <= '09:00:00' THEN 1 END) * 100.0 / 
+              (COUNT(CASE WHEN ar.overall_status = 'present' AND ats.clock_in::time <= '09:00:00' THEN 1 END) * 100.0 / 
                NULLIF(COUNT(CASE WHEN ar.overall_status = 'present' THEN 1 END), 0)), 2
             ), 0
           ) as punctuality_score,
           -- Count late days
-          COUNT(CASE WHEN ar.overall_status = 'present' AND as.clock_in::time > '09:00:00' THEN 1 END) as total_days_late,
+          COUNT(CASE WHEN ar.overall_status = 'present' AND ats.clock_in::time > '09:00:00' THEN 1 END) as total_days_late,
           -- Count absent days
           COUNT(CASE WHEN ar.overall_status = 'absent' THEN 1 END) as total_days_absent,
           -- Average clock-in time
           COALESCE(
-            TO_CHAR(AVG(CASE WHEN ar.overall_status = 'present' THEN as.clock_in::time END), 'HH24:MI'), 
+            TO_CHAR(AVG(CASE WHEN ar.overall_status = 'present' THEN ats.clock_in::time END), 'HH24:MI'), 
             'N/A'
           ) as average_clock_in_time
         FROM employees e
         JOIN users u ON e.user_id = u.id
         LEFT JOIN attendance_records ar ON e.id = ar.employee_id 
           AND ar.created_at >= CURRENT_DATE - INTERVAL '30 days'
-        LEFT JOIN attendance_sessions as ON ar.id = as.attendance_record_id
-          AND as.session_type = 'morning'
+        LEFT JOIN attendance_sessions ats ON ar.id = ats.attendance_record_id
+          AND ats.session_type = 'morning'
         WHERE e.department_id = $1
         GROUP BY e.id, u.first_name, u.last_name, e.position, e.employee_id
         ORDER BY attendance_rate DESC, punctuality_score DESC

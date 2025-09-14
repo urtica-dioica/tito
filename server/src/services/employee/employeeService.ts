@@ -222,6 +222,7 @@ export class EmployeeService {
         e.id,
         e.employee_id as "employeeId",
         CONCAT(u.first_name, ' ', u.last_name) as name,
+        u.email,
         d.name as department,
         e.position,
         e.hire_date as "hireDate"
@@ -980,7 +981,7 @@ export class EmployeeService {
           'reason', 'Leave request',
           'days', CASE
             WHEN l.start_date IS NOT NULL AND l.end_date IS NOT NULL
-            THEN EXTRACT(DAY FROM (l.end_date - l.start_date)) + 1 -
+            THEN (l.end_date - l.start_date) + 1 -
                  CASE WHEN EXTRACT(DOW FROM l.start_date) = 0 THEN 1 ELSE 0 END -
                  CASE WHEN EXTRACT(DOW FROM l.end_date) = 6 THEN 1 ELSE 0 END
             ELSE 0

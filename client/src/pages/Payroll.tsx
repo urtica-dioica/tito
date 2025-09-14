@@ -17,7 +17,7 @@ const Payroll: React.FC = () => {
             <DollarSign className="h-8 w-8 text-green-500" />
             <div className="ml-4">
               <h3 className="text-lg font-medium text-gray-900">Total Payroll</h3>
-              <p className="text-2xl font-bold text-green-600">$125,000</p>
+              <p className="text-2xl font-bold text-green-600">₱125,000</p>
             </div>
           </div>
         </div>

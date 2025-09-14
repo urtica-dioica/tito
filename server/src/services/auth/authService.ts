@@ -307,11 +307,15 @@ export class AuthService {
       // Store reset token in cache (expires in 1 hour)
       await redisService.setCache(resetTokenKey, resetToken, 60 * 60);
 
-      // TODO: Send email with reset link
-      // For now, just return success
+      // LIMITATION: Email service not implemented
+      // The reset token is generated and stored in Redis, but email sending is not implemented
+      // In a production system, this would send an email with the reset link
+      
       return {
         success: true,
-        message: 'Password reset link sent to your email'
+        message: 'Password reset token generated. Email service not implemented - please contact administrator.',
+        // In development, include the token for testing purposes
+        ...(process.env['NODE_ENV'] !== 'production' && { resetToken, resetTokenKey })
       };
     } catch (error) {
       return {

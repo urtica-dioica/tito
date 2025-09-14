@@ -1525,12 +1525,14 @@ class PayrollService {
         // Calculate paid days (considering yearly limits if applicable)
         let paidDays = leaveDays;
         if (maxPaidDaysPerYear) {
-          // TODO: Implement yearly limit checking (would need to track used days per year)
-          // For now, we'll use the full leave days
-          logger.info('Yearly limit check not implemented yet', {
+          // LIMITATION: Yearly limit checking not implemented
+          // This would require tracking used days per year across payroll periods
+          // Current behavior: Uses full leave days without yearly limit enforcement
+          logger.info('Yearly limit check not implemented - using full leave days', {
             leaveType,
             maxPaidDaysPerYear,
-            requestedDays: leaveDays
+            requestedDays: leaveDays,
+            limitation: 'yearly_limit_check_not_implemented'
           });
         }
         

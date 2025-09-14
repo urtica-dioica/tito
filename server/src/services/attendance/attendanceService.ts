@@ -651,8 +651,10 @@ export class AttendanceService {
 
     if (existingSession) {
       // Update existing session - this branch is currently disabled due to type mismatch
-      // TODO: Implement proper session update logic when database schema supports time-based sessions
-      throw new Error('Session update not implemented for time-based attendance');
+      // LIMITATION: Session update not implemented for time-based attendance
+      // This requires database schema changes to support time-based session updates
+      // Current workaround: Create new sessions instead of updating existing ones
+      throw new Error('FEATURE_LIMITATION: Session update not implemented for time-based attendance. Please create a new session instead.');
     } else {
       // Create new session
       const sessionData: CreateAttendanceSessionData = {

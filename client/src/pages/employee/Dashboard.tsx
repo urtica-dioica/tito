@@ -200,6 +200,7 @@ const EmployeeDashboard: React.FC = () => {
                 {dashboardData.employee.name}
               </h2>
               <p className="text-text-secondary">{dashboardData.employee.position}</p>
+              <p className="text-sm text-text-secondary">{dashboardData.employee.email}</p>
               <div className="flex items-center space-x-4 mt-2 text-sm text-text-secondary">
                 <div className="flex items-center space-x-1">
                   <MapPin className="h-4 w-4" />

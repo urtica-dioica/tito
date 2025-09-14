@@ -137,15 +137,17 @@ router.get('/accruals/employee/:employeeId/summary', authorize(['hr', 'employee'
 
 /**
  * @route POST /api/v1/leaves/accruals/process-overtime
- * @desc Process overtime to leave accrual
+ * @desc Process overtime to leave accrual (DEPRECATED - Feature disabled 2025-09-14)
  * @access HR Admin
+ * @deprecated This endpoint is deprecated. Overtime-to-leave conversion has been removed.
  */
 router.post('/accruals/process-overtime', authorize(['hr']), leaveAccrualController.processOvertimeToLeaveAccrual.bind(leaveAccrualController));
 
 /**
  * @route POST /api/v1/leaves/accruals/process-bulk
- * @desc Process bulk overtime accruals
+ * @desc Process bulk overtime accruals (DEPRECATED - Feature disabled 2025-09-14)
  * @access HR Admin
+ * @deprecated This endpoint is deprecated. Overtime-to-leave conversion has been removed.
  */
 router.post('/accruals/process-bulk', authorize(['hr']), leaveAccrualController.processBulkOvertimeAccruals.bind(leaveAccrualController));
 
