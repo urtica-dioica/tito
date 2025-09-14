@@ -50,106 +50,25 @@ export class LeaveAccrualService {
   // Business logic methods
 
   async processOvertimeToLeaveAccrual(
-    employeeId: string,
-    overtimeHours: number,
-    attendanceRecordId?: string,
-    accrualDate?: Date
+    _employeeId: string,
+    _overtimeHours: number,
+    _attendanceRecordId?: string,
+    _accrualDate?: Date
   ): Promise<LeaveAccrual> {
-    // Get the overtime to leave ratio from system settings
-    const { getPool } = await import('../../config/database');
-    const pool = getPool();
-    
-    const ratioQuery = `
-      SELECT setting_value 
-      FROM system_settings 
-      WHERE setting_key = 'overtime_to_leave_ratio'
-    `;
-    
-    const ratioResult = await pool.query(ratioQuery);
-    const overtimeToLeaveRatio = ratioResult.rows.length > 0 
-      ? parseFloat(ratioResult.rows[0].setting_value) 
-      : 0.125; // Default: 1 day per 8 hours (0.125)
-
-    const leaveDaysAccrued = overtimeHours * overtimeToLeaveRatio;
-
-    // Create the leave accrual record
-    const accrualData: CreateLeaveAccrualData = {
-      employeeId,
-      attendanceRecordId,
-      overtimeHours,
-      leaveDaysAccrued,
-      accrualDate: accrualDate || new Date()
-    };
-
-    const accrual = await this.createLeaveAccrual(accrualData);
-
-    // Update the employee's leave balance
-    await this.updateEmployeeLeaveBalance(employeeId, 'vacation', leaveDaysAccrued);
-
-    return accrual;
+    // FEATURE DISABLED: Business rule change (2025-09-14)
+    // Overtime hours are no longer convertible to leave days automatically.
+    // HR can still manually create accrual records via the UI if needed.
+    throw new Error('FEATURE_DISABLED: Automatic overtime-to-leave conversion has been removed.');
   }
 
   async processBulkOvertimeAccruals(
-    startDate: Date,
-    endDate: Date
+    _startDate: Date,
+    _endDate: Date
   ): Promise<{
     processed: number;
     errors: Array<{ employeeId: string; error: string }>;
   }> {
-    const { getPool } = await import('../../config/database');
-    const pool = getPool();
-    
-    // Get all overtime sessions in the date range
-    const overtimeQuery = `
-      SELECT 
-        ar.employee_id,
-        ar.id as attendance_record_id,
-        ar.date,
-        SUM(as.calculated_hours) as total_overtime_hours
-      FROM attendance_records ar
-      JOIN attendance_sessions as ON ar.id = as.attendance_record_id
-      WHERE as.session_type = 'overtime' 
-        AND ar.date >= $1 
-        AND ar.date <= $2
-        AND as.calculated_hours > 0
-      GROUP BY ar.employee_id, ar.id, ar.date
-    `;
-    
-    const overtimeResult = await pool.query(overtimeQuery, [startDate, endDate]);
-    
-    let processed = 0;
-    const errors: Array<{ employeeId: string; error: string }> = [];
-
-    for (const row of overtimeResult.rows) {
-      try {
-        // Check if accrual already exists for this attendance record
-        const existingQuery = `
-          SELECT id FROM leave_accruals 
-          WHERE attendance_record_id = $1
-        `;
-        const existingResult = await pool.query(existingQuery, [row.attendance_record_id]);
-        
-        if (existingResult.rows.length > 0) {
-          continue; // Skip if already processed
-        }
-
-        await this.processOvertimeToLeaveAccrual(
-          row.employee_id,
-          parseFloat(row.total_overtime_hours),
-          row.attendance_record_id,
-          row.date
-        );
-        
-        processed++;
-      } catch (error) {
-        errors.push({
-          employeeId: row.employee_id,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    }
-
-    return { processed, errors };
+    throw new Error('FEATURE_DISABLED: Bulk overtime accrual processing has been removed.');
   }
 
   async getEmployeeAccrualSummary(
@@ -252,26 +171,7 @@ export class LeaveAccrualService {
     };
   }
 
-  private async updateEmployeeLeaveBalance(
-    employeeId: string,
-    leaveType: 'vacation' | 'sick' | 'maternity' | 'other',
-    daysToAdd: number
-  ): Promise<void> {
-    const { getPool } = await import('../../config/database');
-    const pool = getPool();
-    
-    // Upsert leave balance
-    const upsertQuery = `
-      INSERT INTO leave_balances (employee_id, leave_type, balance, updated_at)
-      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-      ON CONFLICT (employee_id, leave_type)
-      DO UPDATE SET 
-        balance = leave_balances.balance + $3,
-        updated_at = CURRENT_TIMESTAMP
-    `;
-    
-    await pool.query(upsertQuery, [employeeId, leaveType, daysToAdd]);
-  }
+  // Removed updateEmployeeLeaveBalance – obsolete with disabled overtime conversion
 
   async recalculateEmployeeAccruals(employeeId: string, year: number): Promise<{
     recalculated: number;

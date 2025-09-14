@@ -90,7 +90,7 @@ This document details the comprehensive analysis and implementation of business 
 - **Leave Types**: Vacation, sick, maternity, other with specific accrual rates
 - **Accrual System**: Automatic leave accrual (1.25 vacation, 1.0 sick days/month)
 - **Balance Limits**: Maximum balances (15 vacation, 10 sick days)
-- **Overtime Conversion**: 1.5 hours overtime = 1 hour leave credit
+- **Overtime Conversion**: ~~1.5 hours overtime = 1 hour leave credit~~ **[Deprecated 2025-09-14]** – Automatic overtime-to-leave conversion removed; HR can create manual accruals only
 - **Approval Workflow**: Department head approval process
 - **Carry-over Rules**: Vacation days carry over, sick days do not
 - **Maternity Leave**: 105 days per Philippines law

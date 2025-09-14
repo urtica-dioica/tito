@@ -1,7 +1,6 @@
 import { overtimeRequestModel, OvertimeRequest, CreateOvertimeRequestData, UpdateOvertimeRequestData } from '../../models/attendance/OvertimeRequest';
 import { attendanceRecordModel } from '../../models/attendance/AttendanceRecord';
 import { attendanceSessionModel } from '../../models/attendance/AttendanceSession';
-import { leaveBalanceModel } from '../../models/leave/LeaveBalance';
 import { employeeModel } from '../../models/hr/Employee';
 import { getPool } from '../../config/database';
 import logger from '../../utils/logger';
@@ -287,8 +286,9 @@ export class OvertimeService {
       timestamp: startTimestamp
     });
 
-    // Accrue leave days from overtime hours
-    await this.accrueLeaveFromOvertime(employeeId, requestedHours, requestDate);
+    // Business rule update (2025-09-14): Overtime hours are no longer convertible to leave days automatically.
+    // HR can manually adjust leave balances where necessary.
+    // Therefore, we skip automatic leave accrual here.
 
     logger.info('Overtime approval applied successfully', {
       requestId: request.id,
@@ -297,33 +297,6 @@ export class OvertimeService {
       startTime,
       endTime,
       requestedHours
-    });
-  }
-
-  /**
-   * Accrue leave days from overtime hours
-   */
-  private async accrueLeaveFromOvertime(employeeId: string, overtimeHours: number, _date: Date): Promise<void> {
-    // Get overtime to leave ratio from system settings
-    const query = `
-      SELECT setting_value 
-      FROM system_settings 
-      WHERE setting_key = 'overtime_to_leave_ratio'
-    `;
-    
-    const result = await getPool().query(query);
-    const overtimeToLeaveRatio = result.rows.length > 0 ? parseFloat(result.rows[0].setting_value) : 0.125; // Default: 1 day per 8 hours
-
-    const leaveDaysAccrued = overtimeHours * overtimeToLeaveRatio;
-
-    // Add leave days to vacation balance
-    await leaveBalanceModel.addLeaveDays(employeeId, 'vacation', leaveDaysAccrued);
-
-    logger.info('Leave days accrued from overtime', {
-      employeeId,
-      overtimeHours,
-      leaveDaysAccrued,
-      overtimeToLeaveRatio
     });
   }
 
@@ -561,24 +534,12 @@ export class OvertimeService {
   }> {
     const stats = await this.getOvertimeStats(employeeId);
     
-    // Get overtime to leave ratio
-    const query = `
-      SELECT setting_value 
-      FROM system_settings 
-      WHERE setting_key = 'overtime_to_leave_ratio'
-    `;
-    
-    const result = await getPool().query(query);
-    const overtimeToLeaveRatio = result.rows.length > 0 ? parseFloat(result.rows[0].setting_value) : 0.125;
-    
-    const leaveDaysAccrued = stats.approvedHours * overtimeToLeaveRatio;
-
     return {
       totalRequests: stats.totalRequests,
       approvedRequests: stats.approvedRequests,
       totalHours: stats.totalHours,
       approvedHours: stats.approvedHours,
-      leaveDaysAccrued: Math.round(leaveDaysAccrued * 100) / 100
+      leaveDaysAccrued: 0 // Conversion disabled per business rule change
     };
   }
 }

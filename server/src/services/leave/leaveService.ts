@@ -266,7 +266,7 @@ export class LeaveService {
     // If no leave balances exist, create default ones
     if (balances.length === 0) {
       logger.info('No leave balances found for employee, creating defaults', { employeeId, year: currentYear });
-      await this.initializeEmployeeLeaveBalance(employeeId, currentYear, 15, 10, 0, 0);
+      await this.initializeEmployeeLeaveBalance(employeeId, currentYear, 15, 15, 0, 0);
       // Fetch the newly created balances
       balances = await leaveBalanceModel.getEmployeeLeaveBalances(employeeId, currentYear);
     }
@@ -297,7 +297,7 @@ export class LeaveService {
     employeeId: string, 
     year: number,
     vacationDays: number = 15,
-    sickDays: number = 10,
+    sickDays: number = 15,
     maternityDays: number = 0,
     otherDays: number = 0
   ): Promise<LeaveBalance[]> {

@@ -297,28 +297,10 @@ Validation Points:
 - ✅ Error message provided
 ```
 
-#### **Test Case 3.3: Overtime to Leave Conversion**
-```typescript
-// Scenario: Overtime hours converted to leave
-Input: {
-  employeeId: 'EMP001',
-  overtimeHours: 12,        // 12 hours overtime
-  conversionRate: 1.5,      // 1.5 hours overtime = 1 hour leave
-  maxConversion: 8          // hours per month
-}
+#### **Test Case 3.3: Overtime to Leave Conversion (Deprecated)**
+> **Status**: Deprecated as of 2025-09-14. Automatic overtime-to-leave conversion has been removed from system logic. HR may still manually create leave accruals in exceptional cases, but no automatic processing is performed by the system.
 
-Expected Output: {
-  convertedLeaveHours: 8,   // 12 / 1.5 = 8, capped at 8
-  leaveCredits: 1,          // 8 hours = 1 day
-  remainingOvertime: 4,     // 12 - 8 = 4 hours
-  leaveType: 'vacation'     // converted to vacation leave
-}
-
-Validation Points:
-- ✅ Conversion rate applied correctly
-- ✅ Maximum conversion limit enforced
-- ✅ Leave credits calculated correctly
-- ✅ Remaining overtime tracked
+This test case has been retired and should no longer be executed. Preserve for historical reference only.
 ```
 
 ---

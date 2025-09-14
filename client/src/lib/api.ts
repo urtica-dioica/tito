@@ -39,6 +39,29 @@ api.interceptors.request.use(
     // with requests via the httpOnly cookie mechanism. We don't need to manually add
     // Authorization headers as the browser handles this automatically for HttpOnly cookies.
 
+    // ---------------------------------------------------------
+    // Kiosk Device Authentication
+    // ---------------------------------------------------------
+    // Any request that targets a kiosk endpoint must include the X-Kiosk-API-Key
+    // header so that it will pass the `kioskAuth` middleware on the server.
+    // The actual key is provided at build/run-time through the environment
+    // variable `VITE_KIOSK_API_KEY` – this allows different keys per
+    // environment without code changes.
+    const kioskApiKey = import.meta.env.VITE_KIOSK_API_KEY;
+    if (kioskApiKey && config.url && config.url.startsWith('/kiosk')) {
+      if (config.headers && typeof (config.headers as any).set === 'function') {
+        // Axios v1 uses AxiosHeaders class with .set()
+        (config.headers as any).set('x-kiosk-api-key', kioskApiKey);
+      } else {
+        // Fallback for plain object headers
+        if (!config.headers) {
+          // Cast to any to satisfy Axios type while keeping flexibility
+          config.headers = {} as any;
+        }
+        (config.headers as any)['x-kiosk-api-key'] = kioskApiKey;
+      }
+    }
+
     // No development tokens - rely on proper HttpOnly cookie authentication
     return config;
   },
