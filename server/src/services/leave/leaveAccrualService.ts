@@ -178,10 +178,13 @@ export class LeaveAccrualService {
     totalOvertimeHours: number;
     totalLeaveDaysAccrued: number;
   }> {
+    // FEATURE DISABLED: Overtime-to-leave conversion removed (2025-09-14)
+    // This method is kept for API compatibility but no longer processes overtime accruals
+    
     const startDate = new Date(year, 0, 1);
     const endDate = new Date(year, 11, 31);
 
-    // Delete existing accruals for the year
+    // Still delete existing accruals for cleanup if needed
     const deleteQuery = `
       DELETE FROM leave_accruals 
       WHERE employee_id = $1 
@@ -193,45 +196,13 @@ export class LeaveAccrualService {
     const pool = getPool();
     await pool.query(deleteQuery, [employeeId, startDate, endDate]);
 
-    // Recalculate from overtime sessions
-    const overtimeQuery = `
-      SELECT 
-        ar.id as attendance_record_id,
-        ar.date,
-        SUM(as.calculated_hours) as total_overtime_hours
-      FROM attendance_records ar
-      JOIN attendance_sessions as ON ar.id = as.attendance_record_id
-      WHERE ar.employee_id = $1 
-        AND as.session_type = 'overtime' 
-        AND ar.date >= $2 
-        AND ar.date <= $3
-        AND as.calculated_hours > 0
-      GROUP BY ar.id, ar.date
-    `;
+    // Skip overtime processing since automatic conversion is disabled
+    // HR can manually create leave accruals via the UI if needed
     
-    const overtimeResult = await pool.query(overtimeQuery, [employeeId, startDate, endDate]);
-    
-    let recalculated = 0;
-    let totalOvertimeHours = 0;
-    let totalLeaveDaysAccrued = 0;
-
-    for (const row of overtimeResult.rows) {
-      const accrual = await this.processOvertimeToLeaveAccrual(
-        employeeId,
-        parseFloat(row.total_overtime_hours),
-        row.attendance_record_id,
-        row.date
-      );
-      
-      recalculated++;
-      totalOvertimeHours += accrual.overtimeHours;
-      totalLeaveDaysAccrued += accrual.leaveDaysAccrued;
-    }
-
     return {
-      recalculated,
-      totalOvertimeHours,
-      totalLeaveDaysAccrued
+      recalculated: 0,
+      totalOvertimeHours: 0,
+      totalLeaveDaysAccrued: 0
     };
   }
 }

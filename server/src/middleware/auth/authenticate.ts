@@ -40,16 +40,16 @@ export const authenticate = async (
       authorization: req.headers.authorization ? 'present' : 'not present'
     });
 
-    // For testing, temporarily bypass authentication
-    logger.info('Bypassing authentication for testing');
-    req.user = {
-      userId: 'test-user',
-      email: 'test@example.com',
-      role: 'hr',
-      tokenVersion: 1
-    };
-    next();
-    return;
+    // DISABLED: For testing, temporarily bypass authentication
+    // logger.info('Bypassing authentication for testing');
+    // req.user = {
+    //   userId: 'test-user',
+    //   email: 'test@example.com',
+    //   role: 'hr',
+    //   tokenVersion: 1
+    // };
+    // next();
+    // return;
 
     // Try to get token from HttpOnly cookie first (production method)
     let token = req.cookies.accessToken;

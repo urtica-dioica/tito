@@ -11,77 +11,77 @@ router.use(authenticate);
 /**
  * @route GET /api/v1/employee/dashboard
  * @desc Get employee dashboard data
- * @access Employee
+ * @access Employee only
  */
 router.get('/dashboard', authorize(['employee']), employeeController.getDashboard);
 
 /**
  * @route GET /api/v1/employee/profile
  * @desc Get employee profile
- * @access Employee
+ * @access Employee only
  */
 router.get('/profile', authorize(['employee']), employeeController.getProfile);
 
 /**
  * @route PUT /api/v1/employee/profile
  * @desc Update employee profile
- * @access Employee
+ * @access Employee only
  */
 router.put('/profile', authorize(['employee']), employeeController.updateProfile);
 
 /**
  * @route GET /api/v1/employee/attendance/history
  * @desc Get employee attendance history
- * @access Employee
+ * @access Employee only
  */
 router.get('/attendance/history', authorize(['employee']), employeeController.getAttendanceHistory);
 
 /**
  * @route GET /api/v1/employee/attendance/summary
  * @desc Get employee attendance summary
- * @access Employee
+ * @access Employee only
  */
 router.get('/attendance/summary', authorize(['employee']), employeeController.getAttendanceSummary);
 
 /**
  * @route GET /api/v1/employee/requests
  * @desc Get employee requests
- * @access Employee
+ * @access Employee only
  */
 router.get('/requests', authorize(['employee']), employeeController.getRequests);
 
 /**
  * @route GET /api/v1/employee/requests/stats
  * @desc Get employee request statistics
- * @access Employee
+ * @access Employee only
  */
 router.get('/requests/stats', authorize(['employee']), employeeController.getRequestStats);
 
 /**
  * @route GET /api/v1/employee/paystubs
  * @desc Get employee paystubs
- * @access Employee
+ * @access Employee only
  */
 router.get('/paystubs', authorize(['employee']), employeeController.getPaystubs);
 
 /**
  * @route GET /api/v1/employee/paystubs/latest
  * @desc Get latest employee paystub
- * @access Employee
+ * @access Employee only
  */
 router.get('/paystubs/latest', authorize(['employee']), employeeController.getLatestPaystub);
 
 /**
  * @route GET /api/v1/employee/paystubs/:paystubId/download/pdf
  * @desc Download paystub as PDF
- * @access Employee
+ * @access Employee only
  */
 router.get('/paystubs/:paystubId/download/pdf', authorize(['employee']), employeeController.downloadPaystubPDF);
 
 /**
  * @route GET /api/v1/employee/paystubs/:paystubId/download/excel
  * @desc Download paystub as Excel
- * @access Employee
+ * @access Employee only
  */
 router.get('/paystubs/:paystubId/download/excel', authorize(['employee']), employeeController.downloadPaystubExcel);
 

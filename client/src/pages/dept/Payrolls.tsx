@@ -294,7 +294,7 @@ const DepartmentPayrolls: React.FC = () => {
                 </div>
               </div>
               <p className="text-2xl font-bold text-text-primary">
-                ${(stats?.totalGrossPay || 0).toLocaleString()}
+                ₱{(stats?.totalGrossPay || 0).toLocaleString()}
               </p>
             </div>
 
@@ -349,7 +349,7 @@ const DepartmentPayrolls: React.FC = () => {
                           {new Date(period.startDate).toLocaleDateString()} - {new Date(period.endDate).toLocaleDateString()}
                         </p>
                         <p className="text-xs text-text-secondary">
-                          {period.totalEmployees} employees • ${period.totalAmount.toLocaleString()}
+                          {period.totalEmployees} employees • ₱{period.totalAmount.toLocaleString()}
                         </p>
                       </div>
                     </div>

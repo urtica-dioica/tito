@@ -70,7 +70,7 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Monthly Payroll',
-      value: `$${(stats?.monthlyPayroll || 0).toLocaleString()}`,
+      value: `₱${(stats?.monthlyPayroll || 0).toLocaleString()}`,
       icon: DollarSign,
       color: 'bg-indigo-500',
       change: '+3.2%',

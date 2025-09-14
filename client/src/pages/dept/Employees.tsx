@@ -135,7 +135,7 @@ const DepartmentEmployees: React.FC = () => {
                   </div>
                   <p className="text-xs font-medium text-text-secondary mb-1">Avg Salary</p>
                   <p className="text-xl font-bold text-text-primary">
-                    ${stats?.averageSalary ? Math.round(stats.averageSalary).toLocaleString() : 0}
+                    ₱{stats?.averageSalary ? Math.round(stats.averageSalary).toLocaleString() : 0}
                   </p>
                 </div>
 
@@ -240,7 +240,7 @@ const DepartmentEmployees: React.FC = () => {
         </div>
 
         {/* Bottom Row - Employee Performance Statistics */}
-        <div className="bg-white rounded-lg border border-gray-200 shadow-sm h-72 flex flex-col transition-all duration-300 ease-in-out">
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm h-[32rem] flex flex-col transition-all duration-300 ease-in-out">
           <div className="p-6 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-text-primary">Employee Performance Statistics</h3>
             <p className="text-sm text-text-secondary">

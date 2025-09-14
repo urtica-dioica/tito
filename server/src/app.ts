@@ -233,12 +233,16 @@ app.get('/health', async (_req, res) => {
 // Mount API routes
 app.use('/', routes);
 
-// Debug route
+// Debug route (remove in production)
 app.get('/direct-debug', (_req, res) => {
-  console.log('=== DIRECT DEBUG ENDPOINT CALLED ===');
+  // Use proper logging instead of console.log
+  const logger = require('./utils/logger').default;
+  logger.info('Direct debug endpoint called', { endpoint: '/direct-debug' });
+  
   res.json({
     message: 'Direct debug endpoint reached',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env['NODE_ENV'] || 'development'
   });
 });
 

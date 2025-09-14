@@ -103,7 +103,7 @@ const DashboardStatsComponent: React.FC<DashboardStatsProps> = ({ stats, loading
       
       <StatCard
         title="Monthly Payroll"
-        value={`$${stats.monthlyPayroll.toLocaleString()}`}
+        value={`₱${stats.monthlyPayroll.toLocaleString()}`}
         icon={<DollarSign className="h-6 w-6 text-white" />}
         color="bg-emerald-500"
         trend={{ value: 4.5, isPositive: true }}

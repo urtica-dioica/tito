@@ -1057,9 +1057,10 @@ const EmployeeManagement: React.FC = () => {
                     </div>
 
                     <div className="text-sm text-text-secondary mb-3">
+                      <p>Email: {employee.email}</p>
                       <p>Position: {employee.position}</p>
                       <p>Department: {employee.departmentName}</p>
-                      <p>Salary: ${employee.baseSalary.toLocaleString()}</p>
+                      <p>Salary: ₱{employee.baseSalary.toLocaleString()}</p>
                       <p className="text-xs">Hired: {new Date(employee.hireDate).toLocaleDateString()}</p>
                     </div>
 

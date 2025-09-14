@@ -206,59 +206,29 @@ export class LeaveAccrualController {
   }
 
   async processOvertimeToLeaveAccrual(req: Request, res: Response<ApiResponse>): Promise<void> {
-    try {
-      const { employeeId, overtimeHours, attendanceRecordId, accrualDate } = req.body;
-
-      const accrual = await this.leaveAccrualService.processOvertimeToLeaveAccrual(
-        employeeId,
-        overtimeHours,
-        attendanceRecordId,
-        accrualDate ? new Date(accrualDate) : undefined
-      );
-
-      res.status(201).json({
-        success: true,
-        message: 'Overtime to leave accrual processed successfully',
-        data: accrual,
-        timestamp: new Date().toISOString(),
-        requestId: req.requestId
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: 'Failed to process overtime to leave accrual',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-        requestId: req.requestId
-      });
-    }
+    // FEATURE DISABLED: Overtime-to-leave conversion removed (2025-09-14)
+    // This endpoint is kept for API compatibility but returns an error
+    
+    res.status(410).json({
+      success: false,
+      message: 'Feature disabled: Automatic overtime-to-leave conversion has been removed',
+      error: 'FEATURE_DISABLED: This feature was deprecated on 2025-09-14. HR can manually create leave accruals if needed.',
+      timestamp: new Date().toISOString(),
+      requestId: req.requestId
+    });
   }
 
   async processBulkOvertimeAccruals(req: Request, res: Response<ApiResponse>): Promise<void> {
-    try {
-      const { startDate, endDate } = req.body;
-
-      const result = await this.leaveAccrualService.processBulkOvertimeAccruals(
-        new Date(startDate),
-        new Date(endDate)
-      );
-
-      res.status(200).json({
-        success: true,
-        message: 'Bulk overtime accruals processed successfully',
-        data: result,
-        timestamp: new Date().toISOString(),
-        requestId: req.requestId
-      });
-    } catch (error) {
-      res.status(400).json({
-        success: false,
-        message: 'Failed to process bulk overtime accruals',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-        requestId: req.requestId
-      });
-    }
+    // FEATURE DISABLED: Bulk overtime-to-leave conversion removed (2025-09-14)
+    // This endpoint is kept for API compatibility but returns an error
+    
+    res.status(410).json({
+      success: false,
+      message: 'Feature disabled: Bulk overtime-to-leave conversion has been removed',
+      error: 'FEATURE_DISABLED: This feature was deprecated on 2025-09-14. HR can manually create leave accruals if needed.',
+      timestamp: new Date().toISOString(),
+      requestId: req.requestId
+    });
   }
 
   async recalculateEmployeeAccruals(req: Request, res: Response<ApiResponse>): Promise<void> {

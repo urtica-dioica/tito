@@ -6,6 +6,7 @@ export interface EmployeeDashboard {
     id: string;
     name: string;
     employeeId: string;
+    email: string;
     department: string;
     position: string;
     hireDate: string;

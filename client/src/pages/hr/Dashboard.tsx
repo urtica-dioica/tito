@@ -183,7 +183,7 @@ const HRDashboard: React.FC = () => {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-text-primary">
-                        Average salary: ${stats?.averageSalary ? Math.round(stats.averageSalary).toLocaleString() : 0}
+                        Average salary: ₱{stats?.averageSalary ? Math.round(stats.averageSalary).toLocaleString() : 0}
                       </p>
                       <p className="text-xs text-text-secondary">
                         Based on {stats?.totalEmployees || 0} employees
