@@ -5,11 +5,10 @@
 ![TITO HR Logo](https://img.shields.io/badge/TITO-HR%20Management-blue?style=for-the-badge&logo=react)
 ![Version](https://img.shields.io/badge/version-1.0.0-green?style=for-the-badge)
 ![Status](https://img.shields.io/badge/status-Production%20Ready-brightgreen?style=for-the-badge)
-![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)
+![License](https://img.shields.io/badge/license-ISC-blue?style=for-the-badge)
 
 **A comprehensive, modern HR Management System built with React, Node.js, and PostgreSQL**
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Available-brightgreen?style=for-the-badge)](https://your-demo-url.com)
 [![Documentation](https://img.shields.io/badge/Documentation-Complete-blue?style=for-the-badge)](./docs/README.md)
 [![API Docs](https://img.shields.io/badge/API%20Docs-Available-orange?style=for-the-badge)](./docs/api/api-reference.md)
 
@@ -22,30 +21,33 @@
 ### **Prerequisites**
 - Node.js 18+ 
 - PostgreSQL 14+
-- npm or yarn
+- Redis (for session management)
+- npm
 
 ### **Installation**
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/tito-hr-system.git
-cd tito-hr-system
+# Install dependencies for both client and server
+cd server && npm install
+cd ../client && npm install
 
-# Install dependencies
-npm install
-
-# Setup database
+# Setup database (from server directory)
+cd server
 npm run db:setup
-npm run db:migrate
+npm run db:migrate 
 npm run db:seed
 
 # Start development servers
-npm run dev
+# Terminal 1: Start backend server
+cd server && npm run dev
+
+# Terminal 2: Start frontend client  
+cd client && npm run dev
 ```
 
 ### **Access the Application**
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5000
-- **API Documentation**: http://localhost:5000/api-docs
+- **Frontend**: http://localhost:5173 (Vite dev server) or http://localhost:3001
+- **Backend API**: http://localhost:3000
+- **API Base**: http://localhost:3000/api/v1
 
 ---
 
@@ -102,39 +104,51 @@ npm run dev
 ## 📁 **Project Structure**
 
 ```
-tito-hr-system/
-├── 📁 client/                 # React Frontend Application
+tito/
+├── 📁 client/                 # React Frontend Application (Vite + TypeScript)
+│   ├── 📁 public/             # Static assets
 │   ├── 📁 src/
-│   │   ├── 📁 components/     # React Components
-│   │   ├── 📁 pages/          # Page Components
-│   │   ├── 📁 hooks/          # Custom React Hooks
-│   │   ├── 📁 services/       # API Services
-│   │   └── 📁 types/          # TypeScript Types
-│   └── 📁 docs/               # Frontend Documentation
-├── 📁 server/                 # Node.js Backend Application
+│   │   ├── 📁 components/     # React Components (features, hr, kiosk, layout, shared)
+│   │   ├── 📁 pages/          # Page Components (hr, dept, employee, kiosk, debug)
+│   │   ├── 📁 hooks/          # Custom React Hooks (17 hooks)
+│   │   ├── 📁 services/       # API Services (17 service files)
+│   │   ├── 📁 contexts/       # React Contexts (AuthContext)
+│   │   ├── 📁 types/          # TypeScript Types
+│   │   └── 📁 utils/          # Utility functions
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── tailwind.config.js
+├── 📁 server/                 # Node.js Backend API (Express + TypeScript)
 │   ├── 📁 src/
-│   │   ├── 📁 controllers/    # API Controllers
-│   │   ├── 📁 services/       # Business Logic
-│   │   ├── 📁 models/         # Data Models
-│   │   ├── 📁 routes/         # API Routes
-│   │   └── 📁 middleware/     # Express Middleware
-│   ├── 📁 scripts/            # Database Scripts
-│   │   ├── setup-database.js  # Database setup
-│   │   ├── migrate-database.js # Database migrations
+│   │   ├── 📁 controllers/    # API Controllers (attendance, auth, hr, payroll, etc.)
+│   │   ├── 📁 services/       # Business Logic Services  
+│   │   ├── 📁 models/         # Data Models & Database Layer
+│   │   ├── 📁 routes/         # API Route Definitions
+│   │   ├── 📁 middleware/     # Express Middleware (auth, validation, security)
+│   │   ├── 📁 config/         # Configuration Files
+│   │   └── 📁 utils/          # Utility Functions & Helpers
+│   ├── 📁 scripts/            # Database & Utility Scripts
+│   │   ├── setup-database.js  # Database initialization
+│   │   ├── migrate-database.js # Database migrations  
 │   │   └── seed-database.js   # Database seeding
-│   └── 📁 docs/               # Backend Documentation
+│   ├── 📁 tests/              # Comprehensive Test Suite
+│   │   ├── 📁 unit/           # Unit Tests
+│   │   ├── 📁 integration/    # Integration Tests
+│   │   ├── 📁 e2e/            # End-to-End Tests
+│   │   ├── 📁 performance/    # Performance Tests
+│   │   └── 📁 security/       # Security Tests
+│   └── package.json
 ├── 📁 database/               # Database Schema & Scripts
-│   └── 📁 schemas/            # SQL Schema Files
-│       └── main-schema.sql    # Complete database schema
+│   └── 📁 schemas/
+│       └── main-schema.sql    # Complete PostgreSQL schema (21 tables)
 ├── 📁 docs/                   # 📚 Complete Documentation
-│   ├── 📁 overview/           # System Overview
-│   ├── 📁 architecture/       # System Architecture
-│   ├── 📁 api/                # API Documentation
-│   ├── 📁 deployment/         # Deployment Guides
-│   ├── 📁 development/        # Development Guides
-│   ├── 📁 user-guides/        # User Manuals
-│   ├── 📁 admin-guides/       # Administration Guides
-│   └── 📁 changelog/          # Version History
+│   ├── 📁 overview/           # System specifications & business rules
+│   ├── 📁 architecture/       # System architecture documentation
+│   ├── 📁 api/                # API reference & guides
+│   ├── 📁 guides/             # User & admin guides  
+│   ├── 📁 development/        # Development & testing guides
+│   └── 📁 deployment/         # Installation & deployment guides
+├── 📁 tests/                  # Additional Test Configurations
 └── 📄 README.md               # This File
 ```
 
@@ -151,24 +165,27 @@ tito-hr-system/
 - **Vite** - Fast build tool and development server
 
 ### **Backend**
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web application framework
+- **Node.js 18+** - JavaScript runtime
+- **Express.js** - Web application framework  
 - **TypeScript** - Type-safe server development
 - **JWT** - JSON Web Token authentication
 - **Bcrypt** - Password hashing
+- **Redis** - Session management and caching
+- **Winston** - Logging framework
 - **Jest** - Testing framework
 
 ### **Database**
-- **PostgreSQL** - Relational database
+- **PostgreSQL 14+** - Relational database with 21 tables
 - **Database Migrations** - Version-controlled schema changes
 - **Triggers & Functions** - Database-level business logic
+- **Connection pooling** - Optimized database connections
 
 ### **DevOps & Tools**
-- **Docker** - Containerization
-- **ESLint** - Code linting
+- **ESLint** - Code linting and quality
 - **Prettier** - Code formatting
+- **Nodemon** - Development server hot-reload
 - **Git** - Version control
-- **Jest** - Testing framework
+- **Jest** - Comprehensive testing (Unit, Integration, E2E)
 
 ---
 
@@ -189,21 +206,26 @@ tito-hr-system/
 
 ### **1. Development Setup**
 ```bash
-# Install dependencies
-npm install
+# Install dependencies for both applications
+cd server && npm install
+cd ../client && npm install
 
-# Setup environment variables
-cp server/.env.example server/.env
-cp client/.env.example client/.env
+# Setup environment variables (create .env files as needed)
+# server/.env - Database, Redis, JWT settings
+# client/.env - API URLs and configuration
 
-# Setup database
+# Setup and initialize database
 cd server
-npm run db:setup
-npm run db:migrate
-npm run db:seed
+npm run db:setup    # Create database and user
+npm run db:migrate  # Apply database schema  
+npm run db:seed     # Insert initial data
 
-# Start development servers (from root directory)
-npm run dev
+# Start development servers
+# Terminal 1: Backend API server
+cd server && npm run dev
+
+# Terminal 2: Frontend client (in new terminal)
+cd client && npm run dev
 ```
 
 ### **2. Production Deployment**
@@ -216,10 +238,16 @@ cd ../client && npm run build
 cd server && npm run start
 ```
 
-### **3. Docker Deployment**
+### **3. Testing**
 ```bash
-# Build and run with Docker
-docker-compose up -d
+# Run comprehensive test suite (from server directory)
+cd server && npm run test:all
+
+# Or run specific test types
+npm run test:unit        # Unit tests
+npm run test:integration # Integration tests  
+npm run test:e2e         # End-to-end tests
+npm run test:coverage    # Generate coverage report
 ```
 
 ---
@@ -259,20 +287,31 @@ docker-compose up -d
 ## 🧪 **Testing**
 
 ```bash
-# Run all tests
+# Run all tests (comprehensive test suite)
 cd server && npm run test:all
 
-# Run backend tests
-cd server && npm test
-
-# Run specific test types
-cd server && npm run test:unit
-cd server && npm run test:integration
-cd server && npm run test:e2e
+# Run individual test types
+npm test                    # Basic test run
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests  
+npm run test:e2e          # End-to-end tests
+npm run test:performance  # Performance tests
+npm run test:security     # Security tests
 
 # Generate coverage report
-cd server && npm run test:coverage
+npm run test:coverage
+
+# Watch mode for development
+npm run test:watch
 ```
+
+### **Test Coverage**
+The system includes comprehensive testing across all layers:
+- **Unit Tests**: Individual component/function testing
+- **Integration Tests**: API endpoint and service integration
+- **End-to-End Tests**: Complete user workflow testing  
+- **Performance Tests**: Load and stress testing
+- **Security Tests**: Authentication, authorization, and input validation
 
 ---
 
@@ -288,14 +327,15 @@ cd server && npm run test:coverage
 
 ## 🤝 **Contributing**
 
-We welcome contributions! Please see our [Contributing Guide](./docs/development/contributing.md) for details.
+Contributions to improve the TITO HR Management System are welcome! Please see our [Contributing Guide](./docs/development/contribution-guidelines.md) for details.
 
 ### **Development Workflow**
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+1. Set up the development environment
+2. Create a feature branch  
+3. Make your changes following code standards
+4. Add comprehensive tests
+5. Update documentation as needed
+6. Submit a pull request
 
 ---
 
@@ -303,28 +343,29 @@ We welcome contributions! Please see our [Contributing Guide](./docs/development
 
 ### **Documentation & Help**
 - **📚 [Complete Documentation](./docs/README.md)** - Full system documentation
-- **❓ [FAQ](./docs/overview/faq.md)** - Frequently asked questions
-- **🐛 [Bug Reports](https://github.com/your-repo/issues)** - Report issues
-- **💡 [Feature Requests](https://github.com/your-repo/issues)** - Suggest improvements
+- **🔌 [API Reference](./docs/api/api-reference.md)** - Complete API documentation
+- **🏗️ [System Architecture](./docs/architecture/system-architecture.md)** - Technical architecture
+- **🚀 [Installation Guide](./docs/deployment/installation.md)** - Setup and deployment
 
-### **Community**
-- **💬 [Discussions](https://github.com/your-repo/discussions)** - General discussion
-- **📢 [Announcements](https://github.com/your-repo/discussions/categories/announcements)** - System updates
-- **🤝 [Contributing](./docs/development/contributing.md)** - How to contribute
+### **Development Resources**
+- **💻 [Development Guide](./docs/development/development-setup.md)** - Setup development environment
+- **🧪 [Testing Guide](./docs/development/testing-guide.md)** - Testing procedures  
+- **🤝 [Contributing Guide](./docs/development/contribution-guidelines.md)** - How to contribute
+- **📊 [Database Schema](./database/schemas/main-schema.sql)** - Complete database structure
 
 ---
 
 ## 📄 **License**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the ISC License - see the package.json files for details.
 
 ---
 
 ## 🙏 **Acknowledgments**
 
 - **Development Team** - TITO HR Development Team
-- **Contributors** - All project contributors
-- **Community** - Open source community support
+- **Contributors** - All project contributors and testers
+- **Community** - Open source libraries and frameworks used
 
 ---
 
@@ -334,7 +375,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 *Built with ❤️ by the TITO Development Team*
 
-[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?style=for-the-badge&logo=github)](https://github.com/your-repo)
 [![Documentation](https://img.shields.io/badge/Documentation-Complete-blue?style=for-the-badge&logo=gitbook)](./docs/README.md)
 [![API Docs](https://img.shields.io/badge/API%20Docs-Available-orange?style=for-the-badge&logo=swagger)](./docs/api/api-reference.md)
 
