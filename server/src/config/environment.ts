@@ -128,7 +128,8 @@ export const config = {
     },
     credentials: process.env['CORS_CREDENTIALS'] === 'true' || process.env['NODE_ENV'] !== 'production',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    // Include custom header used by kiosk devices for authentication
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-Kiosk-Api-Key'],
     maxAge: 86400, // 24 hours
     optionsSuccessStatus: 200 // Some legacy browsers choke on 204
   },

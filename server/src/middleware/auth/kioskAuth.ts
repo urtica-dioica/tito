@@ -66,13 +66,16 @@ export const kioskAuth = async (
     }
 
     // Check for kiosk API key in headers
-    const kioskApiKey = req.headers['x-kiosk-api-key'] as string;
+    const kioskApiKeyHeader = req.headers['x-kiosk-api-key'];
+    const kioskApiKey = Array.isArray(kioskApiKeyHeader) ? kioskApiKeyHeader[0] : kioskApiKeyHeader;
 
     if (kioskApiKey) {
       // Validate kiosk API key (this should be stored securely, e.g., in environment variables)
-      const validKioskKeys = process.env.KIOSK_API_KEYS?.split(',') || [];
+      const validKioskKeys = (process.env.KIOSK_API_KEYS || '')
+        .split(',')
+        .map(key => key.trim());
 
-      if (validKioskKeys.includes(kioskApiKey)) {
+      if (validKioskKeys.includes(kioskApiKey.trim())) {
         // Set kiosk context in request
         req.kioskContext = {
           authenticated: true,

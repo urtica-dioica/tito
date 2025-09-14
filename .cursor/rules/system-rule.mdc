@@ -268,12 +268,9 @@ const LEAVE_RULES = {
     }
   },
   
-  // Overtime to Leave Conversion
-  overtime_conversion: {
-    rate: 1.5,  // 1.5 hours overtime = 1 hour leave
-    max_conversion: 8,  // hours per month
-    leave_type: 'vacation'
-  }
+  // ~~Overtime to Leave Conversion (Deprecated 2025-09-14)~~
+  // Automatic overtime-to-leave conversion has been removed from the system.
+  // HR may manually create leave accruals when necessary.
 }
 ```
 
@@ -444,7 +441,7 @@ const SYSTEM_SETTINGS = {
   
   payroll: {
     expected_monthly_hours: 176,  // 22 days × 8 hours
-    overtime_to_leave_rate: 1.5,
+    // overtime_to_leave_rate: 1.5, // Deprecated 2025-09-14 – automatic conversion removed
     tax_brackets: 'philippine_standard',
     deduction_percentages: {
       SSS: 11,
