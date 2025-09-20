@@ -164,7 +164,7 @@ export class DepartmentHeadService {
     const cleanParams: Record<string, string> = {};
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null && String(value) !== '') {
           cleanParams[key] = String(value);
         }
       });
@@ -176,8 +176,8 @@ export class DepartmentHeadService {
     }>(`/department-head/employees?${new URLSearchParams(cleanParams).toString()}`);
 
     return {
-      employees: response.data || [],
-      total: response.pagination?.total || response.pagination?.pages || 0
+      employees: response.data?.data || [],
+      total: response.data?.pagination?.total || 0
     };
   }
 
@@ -198,7 +198,7 @@ export class DepartmentHeadService {
     const cleanParams: Record<string, string> = {};
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null && String(value) !== '') {
           cleanParams[key] = String(value);
         }
       });
@@ -210,8 +210,8 @@ export class DepartmentHeadService {
     }>(`/department-head/requests?${new URLSearchParams(cleanParams).toString()}`);
 
     return {
-      requests: response.data || [],
-      total: response.pagination?.total || response.pagination?.totalPages || 0
+      requests: response.data?.data || [],
+      total: response.data?.pagination?.total || 0
     };
   }
 
